@@ -1,0 +1,6 @@
+<h1>Leaderboard</h1><div id="b"></div>
+<script>
+fetch('/api/stats').then(r=>r.json()).then(d=>{
+b.innerHTML=d.map(u=>u.username+" "+u.xp).join("<br>");
+});
+</script>
