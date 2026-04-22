@@ -1,7 +1,0 @@
-<input id="u"><button onclick="l()">Login</button>
-<script>
-function l(){
-fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u.value})})
-.then(r=>r.json()).then(d=>{localStorage.setItem('user',JSON.stringify(d));location='index.html';});
-}
-</script>

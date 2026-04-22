@@ -1,9 +1,0 @@
-<h1>World Conquest</h1>
-<button onclick="play()">Gain XP</button>
-<script>
-let user=JSON.parse(localStorage.getItem('user'));
-function play(){
-fetch('/api/xp',{method:'POST',headers:{'Content-Type':'application/json'},
-body:JSON.stringify({username:user.username,xp:10})});
-}
-</script>
