@@ -15,11 +15,13 @@ body{
   display:flex;
 }
 
+/* MAIN */
 #main{
   flex:1;
   text-align:center;
 }
 
+/* SIDEBAR */
 #sidebar{
   width:250px;
   background:#111827;
@@ -62,6 +64,11 @@ body{
   display:none;
   text-align:center;
 }
+
+/* BOARD */
+#board{
+  margin-top:20px;
+}
 </style>
 </head>
 
@@ -71,22 +78,26 @@ body{
 
 <h2>♟️ Chess Lobby</h2>
 
-<input id="name" placeholder="Lobby name">
+<!-- 🔥 LOBBY CONTROLS -->
+<div id="lobbyControls">
+  <input id="name" placeholder="Lobby name">
 
-<select id="mode">
-  <option value="30">Blitz (30s)</option>
-  <option value="60">Rapid (60s)</option>
-  <option value="90">Classic (90s)</option>
-  <option value="120">Snail (120s)</option>
-</select>
+  <select id="mode">
+    <option value="30">Blitz (30s)</option>
+    <option value="60">Rapid (60s)</option>
+    <option value="90">Classic (90s)</option>
+    <option value="120">Snail (120s)</option>
+  </select>
 
-<button onclick="createLobby()">Create</button>
+  <button onclick="createLobby()">Create</button>
+</div>
 
 <div id="lobbies"></div>
 <div id="board"></div>
 
 </div>
 
+<!-- SIDEBAR -->
 <div id="sidebar">
   <h3>Players</h3>
   <div id="players"></div>
@@ -103,7 +114,7 @@ let currentUsers={};
 
 socket.emit("register_online", user.username);
 
-/* ONLINE */
+/* ONLINE USERS */
 socket.on("online_users", users=>{
   currentUsers=users;
 
@@ -168,17 +179,27 @@ function join(id){
 }
 
 function invite(name){
-  const lobbyId = Object.keys(currentUsers).length ? Object.keys(lobbies)[0] : null;
+  const lobbyId = Object.keys(currentUsers).length ? Object.keys(currentUsers)[0] : null;
   socket.emit("invite_player",{target:name,lobbyId});
 }
 
-/* GAME */
+/* ================= GAME ================= */
+
 let game=new Chess();
 let selected=null;
 let playerColor=null;
 
+/* 🔥 PIECES UNICODE */
+const pieces = {
+  p:"♟", r:"♜", n:"♞", b:"♝", q:"♛", k:"♚"
+};
+
 socket.on("chess_start", data=>{
   playerColor=data.color;
+
+  /* 🔥 HIDE LOBBY */
+  document.getElementById("lobbyControls").style.display="none";
+
   draw();
 });
 
@@ -187,6 +208,11 @@ socket.on("chess_update", data=>{
   draw();
 });
 
+socket.on("chess_end", ()=>{
+  document.getElementById("lobbyControls").style.display="block";
+});
+
+/* DRAW BOARD */
 function draw(){
   const el=document.getElementById("board");
   el.innerHTML="";
@@ -203,7 +229,11 @@ function draw(){
       c.style.background=(x+y)%2?"#444":"#eee";
 
       const p=state[y][x];
-      c.innerText=p?p.type:"";
+
+      c.innerText = p ? pieces[p.type] : "";
+      c.style.fontSize="28px";
+      c.style.textAlign="center";
+      c.style.lineHeight="60px";
 
       const sq=String.fromCharCode(97+x)+(8-y);
 
@@ -215,6 +245,7 @@ function draw(){
   }
 }
 
+/* CLICK */
 function clickCell(sq){
 
   if(game.turn()!==playerColor) return;
