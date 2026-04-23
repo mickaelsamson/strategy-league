@@ -20,19 +20,21 @@ app.get('/', (req,res)=>{
 let games = {};
 const TURN_TIME = 30;
 
+/* GAME INIT */
 function createGame(id){
   return {
     id,
     players:[],
     turn:0,
     timeLeft:TURN_TIME,
-    territories:Array(19).fill().map((_,i)=>({
-      owner:i%2,
+    territories:Array(12).fill().map((_,i)=>({
+      owner:0,
       troops:3
     }))
   };
 }
 
+/* TIMER */
 function startTimer(g){
   if(g.timer) clearInterval(g.timer);
 
@@ -43,13 +45,12 @@ function startTimer(g){
     if(g.timeLeft<=0){
       g.turn=(g.turn+1)%g.players.length;
       g.timeLeft=TURN_TIME;
-
       io.to(g.id).emit("turnChanged",g.turn);
     }
   },1000);
 }
 
-// SAFE STATE (🔥 IMPORTANT FIX)
+/* SAFE STATE */
 function sendState(g){
   io.to(g.id).emit('state', {
     players: g.players,
@@ -59,18 +60,25 @@ function sendState(g){
   });
 }
 
-// ===== API =====
-
+/* ===== LOGIN ===== */
 app.post('/api/login', async (req,res)=>{
-  let user = await User.findOne({username:req.body.username});
+  const username = req.body.username?.trim();
+
+  if(!username){
+    return res.status(400).send({error:"Username required"});
+  }
+
+  let user = await User.findOne({username});
 
   if(!user){
-    user = await User.create({username:req.body.username});
+    user = await User.create({username});
+    console.log("New user:", username);
   }
 
   res.send(user);
 });
 
+/* XP */
 app.post('/api/xp', async (req,res)=>{
   let user = await User.findOne({username:req.body.username});
   if(!user) return;
@@ -81,13 +89,13 @@ app.post('/api/xp', async (req,res)=>{
   res.send(user);
 });
 
+/* LEADERBOARD */
 app.get('/api/stats', async (req,res)=>{
   let users = await User.find().sort({xp:-1});
   res.send(users);
 });
 
-// ===== GAME =====
-
+/* ===== SOCKET GAME ===== */
 io.on('connection',socket=>{
 
   socket.on('create',name=>{
@@ -104,7 +112,7 @@ io.on('connection',socket=>{
     startTimer(g);
 
     socket.emit('created',id);
-    sendState(g); // ✅ FIX
+    sendState(g);
   });
 
   socket.on('join',({id,name})=>{
@@ -117,7 +125,7 @@ io.on('connection',socket=>{
 
     g.players.push(name);
 
-    sendState(g); // ✅ FIX
+    sendState(g);
   });
 
   socket.on('move',({from,to})=>{
@@ -142,10 +150,12 @@ io.on('connection',socket=>{
       g.turn=(g.turn+1)%g.players.length;
       g.timeLeft=TURN_TIME;
 
-      sendState(g); // ✅ FIX
+      sendState(g);
     }
   });
 
 });
 
-http.listen(process.env.PORT||3000);
+http.listen(process.env.PORT||3000, ()=>{
+  console.log("Server running");
+});
