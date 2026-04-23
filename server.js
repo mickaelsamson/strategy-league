@@ -37,14 +37,19 @@ function update(){
 function createGame(lobby){
 
   const [p1,p2] = lobby.players;
-
   const id = Math.random().toString(36).substr(2,6);
+
+  /* 🎲 RANDOM COLORS */
+  const swap = Math.random() < 0.5;
+
+  const white = swap ? p2 : p1;
+  const black = swap ? p1 : p2;
 
   const game = {
     id,
     players:[
-      {id:p1.id, username:p1.username, color:'w'},
-      {id:p2.id, username:p2.username, color:'b'}
+      {id:white.id, username:white.username, color:'w'},
+      {id:black.id, username:black.username, color:'b'}
     ],
     fen:null,
     turn:'w'
@@ -52,8 +57,8 @@ function createGame(lobby){
 
   chessGames[id] = game;
 
-  playerGames[p1.username] = id;
-  playerGames[p2.username] = id;
+  playerGames[white.username] = id;
+  playerGames[black.username] = id;
 
   return game;
 }
@@ -169,9 +174,9 @@ io.on('connection', socket=>{
       rematchRequests[gameId].push(username);
     }
 
-    const game = chessGames[gameId];
+    let game = chessGames[gameId];
 
-    /* 🔥 SI LA GAME N'EXISTE PLUS → ON LA RECRÉE */
+    /* 🔥 RECREATE GAME IF NEEDED */
     if(!game){
       const players = Object.keys(playerGames)
         .filter(u => playerGames[u] === gameId);
@@ -180,7 +185,7 @@ io.on('connection', socket=>{
 
         const sockets = players.map(u => onlineUsers[u]?.id);
 
-        chessGames[gameId] = {
+        game = {
           id: gameId,
           players:[
             {id:sockets[0], username:players[0], color:'w'},
@@ -189,25 +194,37 @@ io.on('connection', socket=>{
           fen:null,
           turn:'w'
         };
+
+        chessGames[gameId] = game;
       }
     }
 
-    const updatedGame = chessGames[gameId];
-    if(!updatedGame) return;
+    if(!game) return;
 
+    /* 🔥 BOTH ACCEPTED */
     if(rematchRequests[gameId].length === 2){
 
       rematchRequests[gameId] = [];
 
-      updatedGame.players.forEach(p=>{
+      /* 🔁 SWAP COLORS */
+      game.players = game.players.map(p=>({
+        id:p.id,
+        username:p.username,
+        color: p.color === 'w' ? 'b' : 'w'
+      }));
+
+      game.fen = null;
+      game.turn = 'w';
+
+      game.players.forEach(p=>{
         const s = io.sockets.sockets.get(p.id);
 
         if(s){
           s.emit("chess_start",{
             color:p.color,
             players:{
-              white: updatedGame.players.find(p=>p.color==='w').username,
-              black: updatedGame.players.find(p=>p.color==='b').username
+              white: game.players.find(pl=>pl.color==='w').username,
+              black: game.players.find(pl=>pl.color==='b').username
             }
           });
         }
@@ -215,7 +232,7 @@ io.on('connection', socket=>{
 
     }else{
 
-      const opponent = updatedGame.players.find(p=>p.username !== username);
+      const opponent = game.players.find(p=>p.username !== username);
 
       if(opponent){
         io.to(opponent.id).emit("rematch_requested",{
@@ -302,15 +319,17 @@ io.on('connection', socket=>{
 
         onlineUsers[p.username].status="playing";
 
+        const playerData = game.players.find(pl=>pl.username===p.username);
+
         s.join(game.id);
         s.chessGame = game.id;
-        s.color = i===0 ? 'w':'b';
+        s.color = playerData.color;
 
         s.emit("chess_start",{
           color:s.color,
           players:{
-            white:l.players[0].username,
-            black:l.players[1].username
+            white: game.players.find(pl=>pl.color==='w').username,
+            black: game.players.find(pl=>pl.color==='b').username
           }
         });
       });
