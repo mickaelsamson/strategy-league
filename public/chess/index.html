@@ -15,7 +15,6 @@ body{
   display:flex;
 }
 
-/* LAYOUT */
 #main{
   flex:1;
   text-align:center;
@@ -32,24 +31,17 @@ body{
   position:relative;
   width:90vw;
   max-width:520px;
-  height:90vw;
-  max-height:520px;
+  aspect-ratio:1/1;
   margin:20px auto;
 }
 
-/* BOARD IMAGE */
-#boardWrapper img{
-  position:absolute;
-  top:0;
-  left:0;
+#boardImg{
   width:100%;
   height:100%;
   object-fit:cover;
   border-radius:12px;
-  z-index:1;
 }
 
-/* LAYERS */
 #piecesLayer, #clickLayer{
   position:absolute;
   top:0;
@@ -58,15 +50,6 @@ body{
   height:100%;
 }
 
-#piecesLayer{
-  z-index:2;
-}
-
-#clickLayer{
-  z-index:3;
-}
-
-/* CELLS */
 .square{
   position:absolute;
   width:12.5%;
@@ -74,14 +57,12 @@ body{
   cursor:pointer;
 }
 
-/* PIECES */
 .piece{
   position:absolute;
   width:12.5%;
   height:12.5%;
-  object-fit:contain;
   pointer-events:none;
-  z-index:2;
+  object-fit:contain;
 }
 
 /* TIMER */
@@ -148,7 +129,7 @@ body{
 <div id="timerBar"><div id="timerFill"></div></div>
 
 <div id="boardWrapper">
-  <img src="/chess/board.png">
+  <img src="/chess/board.png" id="boardImg">
   <div id="piecesLayer"></div>
   <div id="clickLayer"></div>
 </div>
@@ -168,7 +149,9 @@ body{
 const socket = io();
 const user = JSON.parse(localStorage.getItem("user"));
 
-socket.emit("register_online", user.username);
+if(user){
+  socket.emit("register_online", user.username);
+}
 
 /* GAME */
 let game = new Chess();
@@ -220,8 +203,9 @@ function invitePlayer(username){
   });
 }
 
-socket.on("invite", data=>{
+socket.on("invite_received", data=>{
   const accept = confirm(`${data.from} invited you`);
+
   if(accept){
     socket.emit("join_lobby", data.lobbyId);
   }
@@ -238,10 +222,7 @@ socket.on("lobbies_update", lobbies=>{
     list.length === 0 ? "<p>No lobbies</p>" :
     list.map(l=>{
 
-      const players = l.players.map(p=>
-        `${p.username} ${p.ready ? "✅" : "❌"}`
-      ).join(", ");
-
+      const players = l.players.map(p=>p.username).join(", ");
       const me = l.players.find(p=>p.username===user.username);
 
       return `
@@ -252,23 +233,20 @@ socket.on("lobbies_update", lobbies=>{
           ${
             !me
             ? `<button onclick="join('${l.id}')">Join</button>`
-            : `<button onclick="toggleReady('${l.id}')">
-                ${me.ready ? "Unready" : "Ready"}
-              </button>`
+            : `<span>Waiting...</span>`
           }
         </div>
       `;
     }).join("");
 });
 
-function toggleReady(id){
-  socket.emit("toggle_ready", id);
-}
+/* GAME SOCKET */
 
-/* GAME */
-socket.on("start", data=>{
+socket.on("chess_start", data=>{
   playerColor = data.color;
   totalTime = data.time;
+
+  game.reset(); // 🔥 FIX MAJEUR
 
   document.getElementById("timerFill").style.width = "100%";
   document.getElementById("lobbyControls").style.display="none";
@@ -276,12 +254,23 @@ socket.on("start", data=>{
   draw();
 });
 
-socket.on("update", data=>{
-  game.load(data.fen);
+socket.on("chess_update", data=>{
+  if(data.fen){ // 🔥 FIX MAJEUR
+    game.load(data.fen);
+  }
   draw();
 });
 
+socket.on("chess_timer", players=>{
+  const me = players.find(p=>p.color===playerColor);
+  if(!me) return;
+
+  const percent = (me.time / totalTime) * 100;
+  document.getElementById("timerFill").style.width = percent + "%";
+});
+
 /* DRAW */
+
 function draw(){
 
   const piecesLayer = document.getElementById("piecesLayer");
@@ -307,12 +296,12 @@ function draw(){
       clickLayer.appendChild(cell);
 
       if(piece){
+
         const img = document.createElement("img");
 
         const key = piece.color + piece.type.toUpperCase();
 
-        // 🔥 CHEMIN FIX DEFINITIF
-        img.src = "/chess/pieces/" + pieceMap[key];
+        img.src = "/chess/pieces/" + pieceMap[key]; // 🔥 FIX PATH
 
         img.className = "piece";
 
@@ -326,6 +315,7 @@ function draw(){
 }
 
 /* MOVE */
+
 function clickCell(sq){
 
   if(game.turn() !== playerColor) return;
@@ -344,13 +334,18 @@ function clickCell(sq){
     selected = null;
 
     if(move){
-      socket.emit("move",{ fen:game.fen() });
+      socket.emit("chess_move",{
+        from:move.from,
+        to:move.to,
+        fen:game.fen()
+      });
       draw();
     }
   }
 }
 
 /* LOBBY */
+
 function createLobby(){
   socket.emit("create_lobby",{
     name:document.getElementById("name").value,
