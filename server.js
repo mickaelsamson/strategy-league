@@ -15,30 +15,6 @@ app.get('/', (req,res)=>{
   res.sendFile('index.html', { root: 'public' });
 });
 
-/* ================= AUTH ================= */
-
-app.post('/api/login', async (req,res)=>{
-  try{
-    let {email, password} = req.body;
-
-    email = email.toLowerCase().trim();
-
-    const user = await User.findOne({email});
-    if(!user) return res.status(400).send({error:"User not found"});
-
-    const valid = await bcrypt.compare(password, user.password);
-    if(!valid) return res.status(400).send({error:"Wrong password"});
-
-    res.send({
-      username:user.username,
-      elo:user.elo || 1000
-    });
-
-  }catch(err){
-    res.status(500).send({error:"Server error"});
-  }
-});
-
 /* ================= DATA ================= */
 
 let onlineUsers = {};
@@ -61,8 +37,8 @@ function createGame(lobby){
   const game = {
     id,
     players:[
-      {id:p1.id, username:p1.username, color:'w', time:lobby.time},
-      {id:p2.id, username:p2.username, color:'b', time:lobby.time}
+      {id:p1.id, username:p1.username, color:'w'},
+      {id:p2.id, username:p2.username, color:'b'}
     ],
     fen:null,
     turn:'w'
@@ -85,15 +61,45 @@ io.on('connection', socket=>{
     onlineUsers[username] = {
       id:socket.id,
       elo:socket.elo,
-      status:"idle",
-      avatar:`https://api.dicebear.com/7.x/bottts/svg?seed=${username}`
+      status:"idle"
     };
 
     update();
   });
 
+  /* 🔥 DISCONNECT FIX */
   socket.on("disconnect", ()=>{
-    delete onlineUsers[socket.username];
+
+    const username = socket.username;
+
+    if(!username) return;
+
+    delete onlineUsers[username];
+
+    /* 🔥 CHECK SI DANS UNE GAME */
+    Object.values(chessGames).forEach(game=>{
+
+      const player = game.players.find(p=>p.id === socket.id);
+
+      if(player){
+
+        const opponent = game.players.find(p=>p.id !== socket.id);
+
+        if(opponent){
+          io.to(opponent.id).emit("player_left",{
+            winner: opponent.username
+          });
+        }
+
+        delete chessGames[game.id];
+      }
+    });
+
+    /* 🔥 REMOVE FROM LOBBY */
+    Object.values(lobbies).forEach(lobby=>{
+      lobby.players = lobby.players.filter(p=>p.id !== socket.id);
+    });
+
     update();
   });
 
@@ -157,7 +163,6 @@ io.on('connection', socket=>{
         s.chessGame = game.id;
         s.color = i===0 ? 'w':'b';
 
-        /* 🔥 NOMS ENVOYÉS */
         s.emit("chess_start",{
           color:s.color,
           time:l.time,
