@@ -1,28 +1,38 @@
 <!DOCTYPE html>
 <html>
 <head>
-<link rel="stylesheet" href="style.css">
 <script src="/socket.io/socket.io.js"></script>
+<style>
+body{background:#020617;color:white;font-family:Arial}
+.cell{
+  width:60px;height:60px;
+  display:inline-flex;
+  justify-content:center;
+  align-items:center;
+  margin:2px;
+  cursor:pointer;
+}
+</style>
 </head>
 
 <body>
 
-<div>
-  <input id="name" placeholder="Name">
-  <button onclick="login()">Login</button>
-</div>
+<input id="name" placeholder="Name">
+<button onclick="login()">Login</button>
 
 <div id="timer"></div>
 <div id="leaderboard"></div>
 
+<div id="game"></div>
+
 <script>
 let socket = io();
+let selected=null;
 
 /* LOGIN */
 function login(){
-
   if(!name.value.trim()){
-    alert("Enter a name");
+    alert("Enter name");
     return;
   }
 
@@ -33,11 +43,35 @@ function login(){
   })
   .then(r=>r.json())
   .then(u=>{
-    console.log("Logged:", u);
-
     localStorage.setItem("user", u.username);
-
     socket.emit("create", u.username);
+  });
+}
+
+/* GAME STATE */
+socket.on("state", g=>{
+  draw(g);
+});
+
+/* DRAW GAME */
+function draw(g){
+  game.innerHTML="";
+
+  g.territories.forEach((t,i)=>{
+    let d=document.createElement("div");
+    d.className="cell";
+    d.style.background = ["blue","red","green","purple"][t.owner];
+    d.innerText=t.troops;
+
+    d.onclick=()=>{
+      if(selected===null) selected=i;
+      else{
+        socket.emit("move",{from:selected,to:i});
+        selected=null;
+      }
+    };
+
+    game.appendChild(d);
   });
 }
 
@@ -52,13 +86,13 @@ function loadLB(){
   .then(r=>r.json())
   .then(data=>{
     leaderboard.innerHTML = data.map((u,i)=>`
-      ${i+1}. ${u.username} — ${u.xp}
+      ${i+1}. ${u.username || "Unknown"} — ${u.xp || 0}
     `).join("<br>");
   });
 }
 setInterval(loadLB,3000);
 
-/* ATTACK */
+/* FX */
 socket.on("attack",()=>{
   alert("💥 Attack!");
 });
