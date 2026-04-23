@@ -38,7 +38,8 @@ app.post('/api/register', async (req,res)=>{
       password: hashed,
       firstName,
       lastName,
-      username
+      username,
+      elo: 1000
     });
 
     res.send({success:true});
@@ -54,44 +55,42 @@ let onlineUsers = {};
 let lobbies = {};
 let chessGames = {};
 
-/* REMOVE EXISTING LOBBY FOR USER */
 function removeUserLobby(socket){
   Object.keys(lobbies).forEach(id=>{
-    const l = lobbies[id];
+    const l=lobbies[id];
     if(l.players.find(p=>p.id===socket.id)){
       delete lobbies[id];
     }
   });
 }
 
-/* CREATE LOBBY */
 function createLobby(name,time,host){
 
   removeUserLobby(host);
 
-  const id = Math.random().toString(36).substr(2,5);
+  const id=Math.random().toString(36).substr(2,5);
 
-  lobbies[id] = {
+  lobbies[id]={
     id,
     name,
     time,
     players:[{
       id:host.id,
-      username:host.username
+      username:host.username,
+      elo:host.elo || 1000
     }]
   };
 
   return lobbies[id];
 }
 
-/* CREATE GAME */
 function createGame(lobby){
 
-  const [p1,p2] = lobby.players;
+  const [p1,p2]=lobby.players;
 
-  const id = Math.random().toString(36).substr(2,6);
+  const id=Math.random().toString(36).substr(2,6);
 
-  const game = {
+  const game={
     id,
     players:[
       {id:p1.id, username:p1.username, color:'w', time:lobby.time},
@@ -130,9 +129,18 @@ function startTimer(g){
 
 io.on('connection', socket=>{
 
-  socket.on("register_online", username=>{
+  socket.on("register_online", async username=>{
     socket.username=username;
-    onlineUsers[username]=socket.id;
+
+    const user=await User.findOne({username});
+    socket.elo=user?.elo || 1000;
+
+    onlineUsers[username]={
+      id:socket.id,
+      elo:socket.elo,
+      status:"idle"
+    };
+
     update();
   });
 
@@ -144,7 +152,7 @@ io.on('connection', socket=>{
 
   function update(){
     io.emit("lobbies_update", lobbies);
-    io.emit("online_users", Object.keys(onlineUsers));
+    io.emit("online_users", onlineUsers);
   }
 
   socket.on("create_lobby", ({name,time})=>{
@@ -158,7 +166,8 @@ io.on('connection', socket=>{
 
     l.players.push({
       id:socket.id,
-      username:socket.username
+      username:socket.username,
+      elo:socket.elo
     });
 
     update();
@@ -169,6 +178,8 @@ io.on('connection', socket=>{
 
       l.players.forEach((p,i)=>{
         const s=io.sockets.sockets.get(p.id);
+
+        onlineUsers[p.username].status="playing";
 
         s.join(game.id);
         s.chessGame=game.id;
@@ -183,9 +194,12 @@ io.on('connection', socket=>{
   });
 
   socket.on("invite_player", ({target,lobbyId})=>{
-    const id=onlineUsers[target];
-    if(id){
-      io.to(id).emit("invite_received",{from:socket.username,lobbyId});
+    const targetUser=onlineUsers[target];
+    if(targetUser){
+      io.to(targetUser.id).emit("invite_received",{
+        from:socket.username,
+        lobbyId
+      });
     }
   });
 
@@ -202,21 +216,3 @@ io.on('connection', socket=>{
   });
 
 });
-
-/* ================= START ================= */
-
-async function startServer(){
-  try{
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log("Mongo connected");
-
-    http.listen(process.env.PORT||3000, ()=>{
-      console.log("Server running");
-    });
-
-  }catch(err){
-    process.exit(1);
-  }
-}
-
-startServer();
