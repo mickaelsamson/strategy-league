@@ -17,11 +17,15 @@
 
 <script>
 let socket = io();
-let selected = null;
-let currentUser = null;
 
 /* LOGIN */
 function login(){
+
+  if(!name.value.trim()){
+    alert("Enter a name");
+    return;
+  }
+
   fetch('/api/login',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
@@ -29,12 +33,10 @@ function login(){
   })
   .then(r=>r.json())
   .then(u=>{
-    currentUser = u.username;
+    console.log("Logged:", u);
+
     localStorage.setItem("user", u.username);
 
-    console.log("Logged in:", u);
-
-    // démarre une game automatiquement
     socket.emit("create", u.username);
   });
 }
@@ -44,32 +46,22 @@ socket.on("timer",t=>{
   timer.innerText="⏳ "+t;
 });
 
-/* ATTACK FX */
-socket.on("attack",()=>{
-  show("💥 Attack!");
-});
-
-function show(txt){
-  let d=document.createElement("div");
-  d.className="float";
-  d.innerText=txt;
-  document.body.appendChild(d);
-  setTimeout(()=>d.remove(),1200);
-}
-
-/* LEADERBOARD FIX */
+/* LEADERBOARD */
 function loadLB(){
   fetch('/api/stats')
   .then(r=>r.json())
   .then(data=>{
     leaderboard.innerHTML = data.map((u,i)=>`
-      ${i+1}. ${u.username || "Unknown"} — ${u.xp || 0}
+      ${i+1}. ${u.username} — ${u.xp}
     `).join("<br>");
   });
 }
-
 setInterval(loadLB,3000);
 
+/* ATTACK */
+socket.on("attack",()=>{
+  alert("💥 Attack!");
+});
 </script>
 
 </body>
