@@ -15,17 +15,14 @@ body{
   height:100vh;
 }
 
-/* CARD */
 .card{
   background:#111827;
   padding:30px;
   border-radius:20px;
-  width:300px;
+  width:320px;
   text-align:center;
-  box-shadow:0 0 20px rgba(0,0,0,0.6);
 }
 
-/* TABS */
 .tabs{
   display:flex;
   margin-bottom:20px;
@@ -42,16 +39,14 @@ body{
   background:#3b82f6;
 }
 
-/* INPUTS */
 input{
   width:100%;
   padding:10px;
-  margin:5px 0;
+  margin:6px 0;
   border:none;
   border-radius:8px;
 }
 
-/* BUTTON */
 button{
   width:100%;
   padding:10px;
@@ -62,43 +57,73 @@ button{
   color:white;
   cursor:pointer;
 }
-</style>
 
+button:disabled{
+  background:#555;
+  cursor:not-allowed;
+}
+
+.error{
+  color:#f87171;
+  font-size:12px;
+  text-align:left;
+}
+
+.success{
+  color:#4ade80;
+  font-size:12px;
+}
+</style>
 </head>
 
 <body>
 
 <div class="card">
 
-  <h2>🎮 Strategy Hub</h2>
+<h2>🎮 Strategy Hub</h2>
 
-  <div class="tabs">
-    <div id="loginTab" class="tab active" onclick="showLogin()">Login</div>
-    <div id="registerTab" class="tab" onclick="showRegister()">Sign Up</div>
-  </div>
+<div class="tabs">
+  <div id="loginTab" class="tab active" onclick="showLogin()">Login</div>
+  <div id="registerTab" class="tab" onclick="showRegister()">Sign Up</div>
+</div>
 
-  <!-- LOGIN -->
-  <div id="loginForm">
-    <input id="loginEmail" placeholder="Email">
-    <input id="loginPassword" type="password" placeholder="Password">
-    <button onclick="login()">Login</button>
-  </div>
+<!-- LOGIN -->
+<div id="loginForm">
+  <input id="loginEmail" placeholder="Email">
+  <div id="loginEmailError" class="error"></div>
 
-  <!-- REGISTER -->
-  <div id="registerForm" style="display:none;">
-    <input id="regEmail" placeholder="Email">
-    <input id="regPassword" type="password" placeholder="Password">
-    <input id="regFirstName" placeholder="First Name">
-    <input id="regLastName" placeholder="Last Name">
-    <input id="regUsername" placeholder="Username">
-    <button onclick="register()">Create Account</button>
-  </div>
+  <input id="loginPassword" type="password" placeholder="Password">
+  <button onclick="togglePassword('loginPassword')">👁️</button>
+
+  <div id="loginError" class="error"></div>
+
+  <button id="loginBtn" onclick="login()">Login</button>
+</div>
+
+<!-- REGISTER -->
+<div id="registerForm" style="display:none;">
+
+  <input id="regEmail" placeholder="Email">
+  <div id="regEmailError" class="error"></div>
+
+  <input id="regPassword" type="password" placeholder="Password">
+  <button onclick="togglePassword('regPassword')">👁️</button>
+
+  <input id="regFirstName" placeholder="First Name">
+  <input id="regLastName" placeholder="Last Name">
+  <input id="regUsername" placeholder="Username">
+
+  <div id="regError" class="error"></div>
+  <div id="regSuccess" class="success"></div>
+
+  <button id="registerBtn" onclick="register()">Create Account</button>
+</div>
 
 </div>
 
 <script>
 
-/* SWITCH UI */
+/* SWITCH */
 function showLogin(){
   loginForm.style.display="block";
   registerForm.style.display="none";
@@ -113,21 +138,40 @@ function showRegister(){
   loginTab.classList.remove("active");
 }
 
+/* VALIDATION EMAIL */
+function isEmail(email){
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+/* TOGGLE PASSWORD */
+function togglePassword(id){
+  const input = document.getElementById(id);
+  input.type = input.type === "password" ? "text" : "password";
+}
+
 /* LOGIN */
 function login(){
+
+  const email = loginEmail.value.trim();
+  const password = loginPassword.value.trim();
+
+  loginEmailError.innerText = "";
+  loginError.innerText = "";
+
+  if(!isEmail(email)){
+    loginEmailError.innerText = "Invalid email";
+    return;
+  }
 
   fetch('/api/login',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      email:loginEmail.value,
-      password:loginPassword.value
-    })
+    body:JSON.stringify({email,password})
   })
   .then(r=>r.json())
   .then(u=>{
     if(u.error){
-      alert(u.error);
+      loginError.innerText = u.error;
       return;
     }
 
@@ -139,23 +183,41 @@ function login(){
 /* REGISTER */
 function register(){
 
+  const email = regEmail.value.trim();
+  const password = regPassword.value.trim();
+  const username = regUsername.value.trim();
+
+  regEmailError.innerText = "";
+  regError.innerText = "";
+  regSuccess.innerText = "";
+
+  if(!isEmail(email)){
+    regEmailError.innerText = "Invalid email";
+    return;
+  }
+
+  if(password.length < 4){
+    regError.innerText = "Password too short";
+    return;
+  }
+
   fetch('/api/register',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
-      email:regEmail.value,
-      password:regPassword.value,
+      email,
+      password,
       firstName:regFirstName.value,
       lastName:regLastName.value,
-      username:regUsername.value
+      username
     })
   })
   .then(r=>r.json())
   .then(res=>{
     if(res.error){
-      alert(res.error);
+      regError.innerText = res.error;
     } else {
-      alert("Account created!");
+      regSuccess.innerText = "Account created!";
       showLogin();
     }
   });
