@@ -19,37 +19,41 @@ body{
   padding:10px 20px;
 }
 
-#gameContainer{
-  position:relative;
-  max-width:1000px;
+svg{
+  width:90%;
+  max-width:900px;
   margin:auto;
 }
 
-#map{
-  width:100%;
-}
-
+/* TERRITORIES */
 .territory{
-  position:absolute;
-  width:60px;
-  height:60px;
-  border-radius:50%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:bold;
+  fill:#1f2937;
+  stroke:#000;
+  stroke-width:2;
   cursor:pointer;
   transition:0.2s;
 }
 
 .territory:hover{
-  transform:scale(1.2);
+  filter:brightness(1.5);
 }
 
-.blue{background:#3b82f6;}
-.red{background:#ef4444;}
-.green{background:#22c55e;}
-.purple{background:#a855f7;}
+.selected{
+  stroke:yellow;
+  stroke-width:4;
+}
+
+.blue{ fill:#3b82f6; }
+.red{ fill:#ef4444; }
+.green{ fill:#22c55e; }
+.purple{ fill:#a855f7; }
+
+text{
+  pointer-events:none;
+  fill:white;
+  font-size:12px;
+  text-anchor:middle;
+}
 </style>
 
 </head>
@@ -63,70 +67,71 @@ body{
 
 <div id="timer"></div>
 
-<div id="gameContainer">
-  <img id="map" src="map.png">
-  <div id="territoriesLayer"></div>
-</div>
+<!-- SVG MAP -->
+<svg viewBox="0 0 400 300">
+
+  <!-- TERRITORIES -->
+  <g id="map">
+
+    <polygon id="t0" class="territory" points="20,50 80,50 60,100"/>
+    <polygon id="t1" class="territory" points="80,50 140,50 120,100"/>
+    <polygon id="t2" class="territory" points="140,50 200,50 180,100"/>
+    <polygon id="t3" class="territory" points="60,100 120,100 100,150"/>
+    <polygon id="t4" class="territory" points="120,100 180,100 160,150"/>
+    <polygon id="t5" class="territory" points="100,150 160,150 130,200"/>
+
+  </g>
+
+</svg>
 
 <script>
 const socket = io();
 let selected = null;
 
-/* SESSION CHECK */
 const user = JSON.parse(localStorage.getItem("user"));
 
 if(!user){
   window.location.href="/login.html";
-} else {
-  document.getElementById("player").innerText = user.username;
+}else{
+  player.innerText = user.username;
   socket.emit("create", user.username);
 }
 
-/* LOGOUT */
 function logout(){
   localStorage.removeItem("user");
   window.location.href="/login.html";
 }
 
-/* POSITIONS */
-const positions = [
-  [10,60],[25,40],[40,55],[55,45],[70,60],
-  [15,75],[30,70],[50,70],[70,75],
-  [25,85],[50,85],[70,90]
-];
-
-/* DRAW */
+/* DRAW STATE */
 socket.on("state", g=>{
-  const layer = document.getElementById("territoriesLayer");
-  layer.innerHTML="";
 
   const colors = ["blue","red","green","purple"];
 
   g.territories.forEach((t,i)=>{
-    let d = document.createElement("div");
 
-    d.className = "territory " + colors[t.owner % colors.length];
-    d.innerText = t.troops;
+    const el = document.getElementById("t"+i);
+    if(!el) return;
 
-    d.style.left = positions[i][0] + "%";
-    d.style.top = positions[i][1] + "%";
+    el.setAttribute("class","territory " + colors[t.owner % colors.length]);
 
-    d.onclick = ()=>{
-      if(selected===null){
-        selected=i;
+    el.onclick = ()=>{
+      if(selected === null){
+        selected = i;
+        el.classList.add("selected");
       } else {
         socket.emit("move",{from:selected,to:i});
-        selected=null;
+        selected = null;
+        document.querySelectorAll(".territory").forEach(e=>e.classList.remove("selected"));
       }
     };
 
-    layer.appendChild(d);
   });
+
 });
 
 /* TIMER */
 socket.on("timer",t=>{
-  document.getElementById("timer").innerText="⏳ "+t;
+  timer.innerText = "⏳ " + t;
 });
 
 /* FX */
