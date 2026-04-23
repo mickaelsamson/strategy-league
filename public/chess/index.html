@@ -46,7 +46,6 @@ body{
   height:100%;
 }
 
-/* CLICK */
 .square{
   position:absolute;
   width:64px;
@@ -54,7 +53,6 @@ body{
   cursor:pointer;
 }
 
-/* PIECES */
 .piece{
   position:absolute;
   width:64px;
@@ -92,6 +90,14 @@ body{
   height:30px;
   border-radius:50%;
 }
+
+/* LOBBY */
+.lobby{
+  background:#1f2937;
+  padding:10px;
+  margin:10px;
+  border-radius:10px;
+}
 </style>
 </head>
 
@@ -122,6 +128,7 @@ body{
   <div id="clickLayer"></div>
 </div>
 
+<h3>Lobbies</h3>
 <div id="lobbies"></div>
 
 </div>
@@ -145,7 +152,6 @@ let selected = null;
 let playerColor = null;
 let totalTime = 60;
 
-/* PIECES MAP */
 const pieceMap = {
   wP:"wP.svg", wR:"wR.svg", wN:"wN.svg",
   wB:"wB.svg", wQ:"wQ.svg", wK:"wK.svg",
@@ -155,7 +161,10 @@ const pieceMap = {
 
 /* ================= PLAYERS ================= */
 
+window.onlineUsers = {};
+
 socket.on("online_users", users=>{
+  window.onlineUsers = users;
 
   const container = document.getElementById("players");
 
@@ -170,10 +179,69 @@ socket.on("online_users", users=>{
       </div>
     </div>
   `).join("");
+});
+
+/* ================= LOBBIES ================= */
+
+socket.on("lobbies_update", lobbies=>{
+
+  const container = document.getElementById("lobbies");
+  const list = Object.values(lobbies);
+
+  if(list.length === 0){
+    container.innerHTML = "<p>No lobbies</p>";
+    return;
+  }
+
+  container.innerHTML = list.map(l=>{
+
+    const players = l.players.map(p=>p.username).join(", ");
+
+    return `
+      <div class="lobby">
+        <b>${l.name}</b> (${l.time}s)<br>
+        Players: ${players}<br>
+
+        ${l.players.length < 2 
+          ? `<button onclick="join('${l.id}')">Join</button>`
+          : `<span style="color:gray;">Full</span>`
+        }
+
+        <button onclick="inviteToLobby('${l.id}')">Invite</button>
+      </div>
+    `;
+
+  }).join("");
 
 });
 
-/* ================= SOCKET ================= */
+/* ================= INVITE ================= */
+
+function inviteToLobby(lobbyId){
+
+  const players = Object.keys(window.onlineUsers);
+
+  const target = prompt("Invite player (username):\n" + players.join("\n"));
+
+  if(!target) return;
+
+  socket.emit("invite_player", {
+    target,
+    lobbyId
+  });
+}
+
+socket.on("invite_received", data=>{
+
+  const accept = confirm(`${data.from} invited you to a game`);
+
+  if(accept){
+    socket.emit("join_lobby", data.lobbyId);
+  }
+
+});
+
+/* ================= GAME SOCKET ================= */
 
 socket.on("chess_start", data=>{
   playerColor = data.color;
@@ -196,10 +264,6 @@ socket.on("chess_timer", players=>{
   document.getElementById("timerFill").style.width = percent + "%";
 });
 
-socket.on("chess_end", ()=>{
-  document.getElementById("lobbyControls").style.display="block";
-});
-
 /* ================= DRAW ================= */
 
 function draw(){
@@ -219,22 +283,18 @@ function draw(){
       const sq = String.fromCharCode(97+x)+(8-y);
       const piece = board[y][x];
 
-      /* CLICK */
       const cell = document.createElement("div");
       cell.className = "square";
       cell.style.left = (x*size) + "px";
       cell.style.top = (y*size) + "px";
-
       cell.onclick = ()=>clickCell(sq);
 
       clickLayer.appendChild(cell);
 
-      /* PIECE */
       if(piece){
         const img = document.createElement("img");
 
         const key = piece.color + piece.type.toUpperCase();
-
         img.src = "pieces/" + pieceMap[key];
         img.className = "piece";
 
@@ -278,7 +338,7 @@ function clickCell(sq){
   }
 }
 
-/* ================= LOBBY ================= */
+/* ================= LOBBY ACTIONS ================= */
 
 function createLobby(){
   socket.emit("create_lobby",{
@@ -286,16 +346,6 @@ function createLobby(){
     time:parseInt(document.getElementById("mode").value)
   });
 }
-
-socket.on("lobbies_update", lobbies=>{
-  document.getElementById("lobbies").innerHTML =
-    Object.values(lobbies).map(l=>`
-      <div>
-        ${l.name} (${l.time}s)
-        <button onclick="join('${l.id}')">Join</button>
-      </div>
-    `).join("");
-});
 
 function join(id){
   socket.emit("join_lobby", id);
