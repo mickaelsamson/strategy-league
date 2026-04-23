@@ -3,6 +3,9 @@
 <head>
 <title>Chess</title>
 
+<!-- CHESS ENGINE -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+
 <style>
 body{
   margin:0;
@@ -34,6 +37,7 @@ body{
   justify-content:center;
   font-size:32px;
   cursor:pointer;
+  user-select:none;
 }
 
 .white{ background:#f1f5f9; color:black; }
@@ -42,8 +46,12 @@ body{
 .selected{
   outline:3px solid yellow;
 }
-</style>
 
+.move{
+  box-shadow:inset 0 0 10px yellow;
+}
+
+</style>
 </head>
 
 <body>
@@ -55,10 +63,16 @@ body{
 
 <h2>♟️ Chess</h2>
 
+<div id="status"></div>
+
 <div id="board"></div>
 
 <script>
 
+const game = new Chess();
+let selected = null;
+
+/* SESSION */
 const user = JSON.parse(localStorage.getItem("user"));
 
 if(!user){
@@ -75,28 +89,17 @@ function logout(){
 
 /* PIECES */
 const pieces = {
-  r:"♜", n:"♞", b:"♝", q:"♛", k:"♚", p:"♟",
-  R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔", P:"♙"
+  p:"♟", r:"♜", n:"♞", b:"♝", q:"♛", k:"♚",
+  P:"♙", R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔"
 };
 
-/* BOARD INIT */
-let board = [
-  ["r","n","b","q","k","b","n","r"],
-  ["p","p","p","p","p","p","p","p"],
-  ["","","","","","","",""],
-  ["","","","","","","",""],
-  ["","","","","","","",""],
-  ["","","","","","","",""],
-  ["P","P","P","P","P","P","P","P"],
-  ["R","N","B","Q","K","B","N","R"]
-];
-
-let selected = null;
-
-/* DRAW */
+/* DRAW BOARD */
 function draw(){
-  const el = document.getElementById("board");
-  el.innerHTML = "";
+
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+
+  const state = game.board();
 
   for(let y=0;y<8;y++){
     for(let x=0;x<8;x++){
@@ -105,35 +108,94 @@ function draw(){
 
       cell.className = "cell " + ((x+y)%2 ? "black":"white");
 
-      const piece = board[y][x];
-      cell.innerText = pieces[piece] || "";
+      const piece = state[y][x];
+      cell.innerText = piece ? pieces[piece.type === piece.type.toLowerCase() ? piece.type : piece.type.toUpperCase()] : "";
 
-      cell.onclick = ()=>clickCell(x,y,cell);
+      const square = String.fromCharCode(97+x) + (8-y);
 
-      el.appendChild(cell);
+      cell.onclick = ()=>clickCell(square, cell);
+
+      board.appendChild(cell);
     }
   }
+
+  updateStatus();
 }
 
 /* CLICK */
-function clickCell(x,y,cell){
+function clickCell(square, cell){
 
   if(selected === null){
-    if(board[y][x] !== ""){
-      selected = {x,y};
-      cell.classList.add("selected");
-    }
+
+    const moves = game.moves({ square, verbose:true });
+
+    if(moves.length === 0) return;
+
+    selected = square;
+    cell.classList.add("selected");
+
+    highlightMoves(moves);
+
   } else {
 
-    // MOVE (simple, no rules yet)
-    board[y][x] = board[selected.y][selected.x];
-    board[selected.y][selected.x] = "";
+    const move = game.move({
+      from: selected,
+      to: square,
+      promotion: 'q'
+    });
 
+    clearHighlights();
     selected = null;
-    draw();
+
+    if(move){
+      draw();
+    }
   }
 }
 
+/* HIGHLIGHT MOVES */
+function highlightMoves(moves){
+
+  moves.forEach(m=>{
+    const index = squareToIndex(m.to);
+    document.getElementById("board").children[index].classList.add("move");
+  });
+
+}
+
+/* CLEAR */
+function clearHighlights(){
+  document.querySelectorAll(".cell").forEach(c=>{
+    c.classList.remove("selected","move");
+  });
+}
+
+/* UTILS */
+function squareToIndex(sq){
+  const file = sq.charCodeAt(0) - 97;
+  const rank = 8 - parseInt(sq[1]);
+  return rank * 8 + file;
+}
+
+/* STATUS */
+function updateStatus(){
+
+  let text = "";
+
+  if(game.in_checkmate()){
+    text = "♛ Checkmate!";
+  }
+  else if(game.in_check()){
+    text = "⚠ Check!";
+  }
+  else{
+    text = (game.turn() === 'w' ? "White" : "Black") + " to move";
+  }
+
+  document.getElementById("status").innerText = text;
+}
+
+/* INIT */
 draw();
 
 </script>
