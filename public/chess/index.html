@@ -8,16 +8,33 @@
 
 <style>
 body{
+  margin:0;
   background:#020617;
   color:white;
   font-family:Arial;
+  display:flex;
+}
+
+/* LEFT MAIN */
+#main{
+  flex:1;
   text-align:center;
 }
 
-#lobbies{
-  margin:20px;
+/* RIGHT SIDEBAR */
+#sidebar{
+  width:200px;
+  background:#111827;
+  padding:10px;
+  border-left:2px solid #1f2937;
 }
 
+.player{
+  padding:6px;
+  border-bottom:1px solid #1f2937;
+}
+
+/* LOBBY */
 .lobby{
   background:#1f2937;
   margin:10px auto;
@@ -31,50 +48,49 @@ button{
   padding:8px;
   border-radius:8px;
 }
-
-#invitePopup{
-  position:fixed;
-  top:20%;
-  left:50%;
-  transform:translateX(-50%);
-  background:#111827;
-  padding:20px;
-  display:none;
-}
 </style>
 </head>
 
 <body>
 
+<div id="main">
+
 <h2>♟️ Chess Lobby</h2>
 
-<!-- CREATE -->
-<div>
-  <input id="name" placeholder="Lobby name">
-  <select id="mode">
-    <option value="30">Blitz (30s)</option>
-    <option value="60">Rapid (60s)</option>
-    <option value="90">Classic (90s)</option>
-    <option value="120">Snail (120s)</option>
-  </select>
-  <button onclick="createLobby()">Create</button>
+<input id="name" placeholder="Lobby name">
+
+<select id="mode">
+  <option value="30">Blitz (30s)</option>
+  <option value="60">Rapid (60s)</option>
+  <option value="90">Classic (90s)</option>
+  <option value="120">Snail (120s)</option>
+</select>
+
+<button onclick="createLobby()">Create</button>
+
+<div id="lobbies"></div>
+<div id="board"></div>
+
 </div>
 
-<!-- LOBBIES -->
-<div id="lobbies"></div>
-
-<!-- POPUP INVITE -->
-<div id="invitePopup"></div>
-
-<!-- GAME -->
-<div id="board"></div>
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <h3>Online</h3>
+  <div id="players"></div>
+</div>
 
 <script>
 
-const socket = io();
-const user = JSON.parse(localStorage.getItem("user"));
+const socket=io();
+const user=JSON.parse(localStorage.getItem("user"));
 
 socket.emit("register_online", user.username);
+
+/* ONLINE LIST */
+socket.on("online_users", users=>{
+  document.getElementById("players").innerHTML =
+    users.map(u=>`<div class="player">${u}</div>`).join("");
+});
 
 /* CREATE */
 function createLobby(){
@@ -84,16 +100,15 @@ function createLobby(){
   });
 }
 
-/* DISPLAY LOBBIES */
+/* LOBBIES */
 socket.on("lobbies_update", lobbies=>{
-
   document.getElementById("lobbies").innerHTML =
     Object.values(lobbies).map(l=>`
       <div class="lobby">
         <b>${l.name}</b> (${l.time}s)<br>
         Players: ${l.players.map(p=>p.username).join(", ")}<br>
         <button onclick="join('${l.id}')">Join</button>
-        <button onclick="openInvite('${l.id}')">➕ Invite</button>
+        <button onclick="invite('${l.id}')">+ Invite</button>
       </div>
     `).join("");
 });
@@ -102,45 +117,20 @@ function join(id){
   socket.emit("join_lobby", id);
 }
 
-/* INVITE UI */
-let currentLobby = null;
-
-function openInvite(id){
-  currentLobby = id;
-  socket.emit("get_online");
-}
-
-socket.on("online_users", users=>{
-  const popup = document.getElementById("invitePopup");
-
-  popup.style.display="block";
-
-  popup.innerHTML = users.map(u=>`
-    <div>
-      ${u}
-      <button onclick="invite('${u}')">Invite</button>
-    </div>
-  `).join("");
-});
-
-function invite(user){
-  socket.emit("invite_player",{target:user,lobbyId:currentLobby});
-}
-
-/* INVITE RECEIVE */
-socket.on("invite_received", data=>{
-  if(confirm(data.from+" invited you")){
-    socket.emit("join_lobby", data.lobbyId);
+function invite(lobbyId){
+  const name = prompt("Enter username to invite:");
+  if(name){
+    socket.emit("invite_player",{target:name,lobbyId});
   }
-});
+}
 
 /* GAME */
-let game = new Chess();
+let game=new Chess();
 let selected=null;
 let playerColor=null;
 
 socket.on("chess_start", data=>{
-  playerColor = data.color;
+  playerColor=data.color;
   draw();
 });
 
@@ -157,6 +147,7 @@ function draw(){
 
   for(let y=0;y<8;y++){
     for(let x=0;x<8;x++){
+
       const c=document.createElement("div");
       c.style.display="inline-block";
       c.style.width="60px";
