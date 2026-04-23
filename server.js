@@ -10,7 +10,6 @@ const User = require('./models/User');
 app.use(express.json());
 app.use(express.static('public'));
 
-/* ===== ROUTE ROOT (FIX CLEAN) ===== */
 app.get('/', (req,res)=>{
   res.sendFile('index.html', { root: 'public' });
 });
@@ -78,17 +77,7 @@ app.post('/api/login', async (req,res)=>{
   }
 });
 
-/* LEADERBOARD */
-app.get('/api/stats', async (req,res)=>{
-  try{
-    const users = await User.find().sort({xp:-1});
-    res.send(users);
-  }catch(err){
-    res.status(500).send([]);
-  }
-});
-
-/* ===== GAME ===== */
+/* ===== GAME STRATEGY ===== */
 
 let games = {};
 const TURN_TIME = 30;
@@ -106,7 +95,6 @@ function createGame(id){
   };
 }
 
-/* TIMER */
 function startTimer(g){
   if(g.timer) clearInterval(g.timer);
 
@@ -116,7 +104,7 @@ function startTimer(g){
     io.to(g.id).emit("timer",g.timeLeft);
 
     if(g.timeLeft<=0){
-      if(g.players.length > 0){ // 🔧 SAFE FIX
+      if(g.players.length > 0){
         g.turn=(g.turn+1)%g.players.length;
       }
       g.timeLeft=TURN_TIME;
@@ -124,7 +112,6 @@ function startTimer(g){
   },1000);
 }
 
-/* SEND STATE CLEAN */
 function sendState(g){
   io.to(g.id).emit('state', {
     players: g.players,
@@ -134,8 +121,58 @@ function sendState(g){
   });
 }
 
-/* SOCKET */
+/* ===== CHESS MATCHMAKING ===== */
+
+let lobby = [];
+let chessGames = {};
+
+function createChessGame(p1, p2){
+
+  const id = Math.random().toString(36).substr(2,6);
+
+  const game = {
+    id,
+    players: [
+      {id:p1.id, color:'w', time:300},
+      {id:p2.id, color:'b', time:300}
+    ],
+    fen: null,
+    turn:'w',
+    timer:null
+  };
+
+  chessGames[id] = game;
+  startChessTimer(game);
+
+  return game;
+}
+
+function startChessTimer(g){
+
+  if(g.timer) clearInterval(g.timer);
+
+  g.timer = setInterval(()=>{
+
+    const current = g.players.find(p=>p.color === g.turn);
+    if(!current) return;
+
+    current.time--;
+
+    io.to(g.id).emit("chess_timer", g.players);
+
+    if(current.time <= 0){
+      io.to(g.id).emit("chess_end", {winner: g.turn === 'w' ? 'Black' : 'White'});
+      clearInterval(g.timer);
+    }
+
+  },1000);
+}
+
+/* ===== SOCKET ===== */
+
 io.on('connection',socket=>{
+
+  /* ===== STRATEGY ===== */
 
   socket.on('create',name=>{
     if(!name) return;
@@ -177,7 +214,7 @@ io.on('connection',socket=>{
         f.troops=Math.max(1, f.troops-1);
       }
 
-      if(g.players.length > 0){ // 🔧 SAFE FIX
+      if(g.players.length > 0){
         g.turn=(g.turn+1)%g.players.length;
       }
 
@@ -187,89 +224,18 @@ io.on('connection',socket=>{
     }
   });
 
-});
-
-/* START SERVER AFTER MONGO */
-async function startServer(){
-  try{
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log("Mongo connected");
-
-    http.listen(process.env.PORT||3000, ()=>{
-      console.log("Server running");
-    });
-
-  }catch(err){
-    console.log("Mongo ERROR:", err.message);
-    process.exit(1);
-  }
-}
-
-
-/* ===== CHESS MATCHMAKING ===== */
-
-let lobby = [];
-let chessGames = {};
-
-function createChessGame(p1, p2){
-
-  const id = Math.random().toString(36).substr(2,6);
-
-  const game = {
-    id,
-    players: [
-      {id:p1.id, color:'w', time:300},
-      {id:p2.id, color:'b', time:300}
-    ],
-    fen: null,
-    turn:'w',
-    timer:null
-  };
-
-  chessGames[id] = game;
-
-  startChessTimer(game);
-
-  return game;
-}
-
-/* TIMER */
-function startChessTimer(g){
-
-  if(g.timer) clearInterval(g.timer);
-
-  g.timer = setInterval(()=>{
-
-    const current = g.players.find(p=>p.color === g.turn);
-    if(!current) return;
-
-    current.time--;
-
-    io.to(g.id).emit("chess_timer", g.players);
-
-    if(current.time <= 0){
-      io.to(g.id).emit("chess_end", {winner: g.turn === 'w' ? 'Black' : 'White'});
-      clearInterval(g.timer);
-    }
-
-  },1000);
-}
-
-/* SOCKET */
-io.on('connection', socket => {
+  /* ===== CHESS LOBBY ===== */
 
   socket.on("chess_lobby_join", name=>{
     socket.name = name;
     socket.ready = false;
 
     lobby.push(socket);
-
     updateLobby();
   });
 
   socket.on("chess_ready", ()=>{
     socket.ready = !socket.ready;
-
     updateLobby();
     tryMatch();
   });
@@ -310,7 +276,6 @@ io.on('connection', socket => {
   }
 
   socket.on("chess_move", ({from,to,fen})=>{
-
     const g = chessGames[socket.chessGame];
     if(!g) return;
 
@@ -330,5 +295,22 @@ io.on('connection', socket => {
   });
 
 });
+
+/* START SERVER AFTER MONGO */
+
+async function startServer(){
+  try{
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("Mongo connected");
+
+    http.listen(process.env.PORT||3000, ()=>{
+      console.log("Server running");
+    });
+
+  }catch(err){
+    console.log("Mongo ERROR:", err.message);
+    process.exit(1);
+  }
+}
 
 startServer();
