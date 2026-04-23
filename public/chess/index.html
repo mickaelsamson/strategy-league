@@ -26,7 +26,6 @@ body{
   padding:10px;
 }
 
-/* BOARD */
 #boardWrapper{
   position:relative;
   width:512px;
@@ -60,7 +59,6 @@ body{
   pointer-events:none;
 }
 
-/* TIMER */
 #timerBar{
   width:320px;
   height:10px;
@@ -74,16 +72,15 @@ body{
   height:100%;
   width:100%;
   background:linear-gradient(90deg, #22c55e, #eab308, #ef4444);
-  transition:width 1s linear;
 }
 
-/* PLAYERS */
 .player{
   padding:8px;
   border-bottom:1px solid #1f2937;
   display:flex;
   align-items:center;
   gap:10px;
+  cursor:pointer;
 }
 .player img{
   width:30px;
@@ -91,7 +88,6 @@ body{
   border-radius:50%;
 }
 
-/* LOBBY */
 .lobby{
   background:#1f2937;
   padding:10px;
@@ -123,7 +119,7 @@ body{
 <div id="timerBar"><div id="timerFill"></div></div>
 
 <div id="boardWrapper">
-  <img src="board.png" id="boardImg">
+  <img src="board.png">
   <div id="piecesLayer"></div>
   <div id="clickLayer"></div>
 </div>
@@ -169,7 +165,7 @@ socket.on("online_users", users=>{
   const container = document.getElementById("players");
 
   container.innerHTML = Object.entries(users).map(([name,data])=>`
-    <div class="player">
+    <div class="player" onclick="invitePlayer('${name}')">
       <img src="${data.avatar}">
       <div>
         <div>${name} (${data.elo})</div>
@@ -181,9 +177,37 @@ socket.on("online_users", users=>{
   `).join("");
 });
 
+/* ================= INVITE ================= */
+
+function invitePlayer(username){
+
+  const lobby = Object.values(window.currentLobbies || {})
+    .find(l => l.players.some(p=>p.username===user.username));
+
+  if(!lobby){
+    alert("Create a lobby first");
+    return;
+  }
+
+  socket.emit("invite_player", {
+    target: username,
+    lobbyId: lobby.id
+  });
+}
+
+socket.on("invite_received", data=>{
+  const accept = confirm(`${data.from} invited you`);
+
+  if(accept){
+    socket.emit("join_lobby", data.lobbyId);
+  }
+});
+
 /* ================= LOBBIES ================= */
 
 socket.on("lobbies_update", lobbies=>{
+
+  window.currentLobbies = lobbies;
 
   const container = document.getElementById("lobbies");
   const list = Object.values(lobbies);
@@ -195,19 +219,24 @@ socket.on("lobbies_update", lobbies=>{
 
   container.innerHTML = list.map(l=>{
 
-    const players = l.players.map(p=>p.username).join(", ");
+    const players = l.players.map(p=>
+      `${p.username} ${p.ready ? "✅" : "❌"}`
+    ).join(", ");
+
+    const me = l.players.find(p=>p.username===user.username);
 
     return `
       <div class="lobby">
         <b>${l.name}</b> (${l.time}s)<br>
         Players: ${players}<br>
 
-        ${l.players.length < 2 
+        ${
+          !me
           ? `<button onclick="join('${l.id}')">Join</button>`
-          : `<span style="color:gray;">Full</span>`
+          : `<button onclick="toggleReady('${l.id}')">
+              ${me.ready ? "Unready" : "Ready"}
+            </button>`
         }
-
-        <button onclick="inviteToLobby('${l.id}')">Invite</button>
       </div>
     `;
 
@@ -215,31 +244,11 @@ socket.on("lobbies_update", lobbies=>{
 
 });
 
-/* ================= INVITE ================= */
+/* ================= READY ================= */
 
-function inviteToLobby(lobbyId){
-
-  const players = Object.keys(window.onlineUsers);
-
-  const target = prompt("Invite player (username):\n" + players.join("\n"));
-
-  if(!target) return;
-
-  socket.emit("invite_player", {
-    target,
-    lobbyId
-  });
+function toggleReady(id){
+  socket.emit("toggle_ready", id);
 }
-
-socket.on("invite_received", data=>{
-
-  const accept = confirm(`${data.from} invited you to a game`);
-
-  if(accept){
-    socket.emit("join_lobby", data.lobbyId);
-  }
-
-});
 
 /* ================= GAME SOCKET ================= */
 
@@ -338,7 +347,7 @@ function clickCell(sq){
   }
 }
 
-/* ================= LOBBY ACTIONS ================= */
+/* ================= LOBBY ================= */
 
 function createLobby(){
   socket.emit("create_lobby",{
