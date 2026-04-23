@@ -1,58 +1,163 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Login</title>
+<title>Strategy Hub - Auth</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background: radial-gradient(circle at top, #0f172a, #020617);
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+
+/* CARD */
+.card{
+  background:#111827;
+  padding:30px;
+  border-radius:20px;
+  width:300px;
+  text-align:center;
+  box-shadow:0 0 20px rgba(0,0,0,0.6);
+}
+
+/* TABS */
+.tabs{
+  display:flex;
+  margin-bottom:20px;
+}
+
+.tab{
+  flex:1;
+  padding:10px;
+  cursor:pointer;
+  border-radius:10px;
+}
+
+.active{
+  background:#3b82f6;
+}
+
+/* INPUTS */
+input{
+  width:100%;
+  padding:10px;
+  margin:5px 0;
+  border:none;
+  border-radius:8px;
+}
+
+/* BUTTON */
+button{
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+  border:none;
+  border-radius:10px;
+  background:#3b82f6;
+  color:white;
+  cursor:pointer;
+}
+</style>
+
 </head>
 
-<body style="background:#020617;color:white;text-align:center;font-family:Arial;">
+<body>
 
-<h2>🔐 Login / Register</h2>
+<div class="card">
 
-<input id="email" placeholder="Email"><br>
-<input id="password" type="password" placeholder="Password"><br>
-<input id="firstName" placeholder="First Name"><br>
-<input id="lastName" placeholder="Last Name"><br>
-<input id="username" placeholder="Username"><br>
+  <h2>🎮 Strategy Hub</h2>
 
-<button onclick="login()">Login</button>
-<button onclick="register()">Register</button>
+  <div class="tabs">
+    <div id="loginTab" class="tab active" onclick="showLogin()">Login</div>
+    <div id="registerTab" class="tab" onclick="showRegister()">Sign Up</div>
+  </div>
+
+  <!-- LOGIN -->
+  <div id="loginForm">
+    <input id="loginEmail" placeholder="Email">
+    <input id="loginPassword" type="password" placeholder="Password">
+    <button onclick="login()">Login</button>
+  </div>
+
+  <!-- REGISTER -->
+  <div id="registerForm" style="display:none;">
+    <input id="regEmail" placeholder="Email">
+    <input id="regPassword" type="password" placeholder="Password">
+    <input id="regFirstName" placeholder="First Name">
+    <input id="regLastName" placeholder="Last Name">
+    <input id="regUsername" placeholder="Username">
+    <button onclick="register()">Create Account</button>
+  </div>
+
+</div>
 
 <script>
 
+/* SWITCH UI */
+function showLogin(){
+  loginForm.style.display="block";
+  registerForm.style.display="none";
+  loginTab.classList.add("active");
+  registerTab.classList.remove("active");
+}
+
+function showRegister(){
+  loginForm.style.display="none";
+  registerForm.style.display="block";
+  registerTab.classList.add("active");
+  loginTab.classList.remove("active");
+}
+
+/* LOGIN */
 function login(){
+
   fetch('/api/login',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
-      email:email.value,
-      password:password.value
+      email:loginEmail.value,
+      password:loginPassword.value
     })
   })
   .then(r=>r.json())
   .then(u=>{
-    if(u.error) return alert(u.error);
+    if(u.error){
+      alert(u.error);
+      return;
+    }
 
     localStorage.setItem("user", JSON.stringify(u));
     window.location.href="/";
   });
 }
 
+/* REGISTER */
 function register(){
+
   fetch('/api/register',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
-      email:email.value,
-      password:password.value,
-      firstName:firstName.value,
-      lastName:lastName.value,
-      username:username.value
+      email:regEmail.value,
+      password:regPassword.value,
+      firstName:regFirstName.value,
+      lastName:regLastName.value,
+      username:regUsername.value
     })
   })
   .then(r=>r.json())
   .then(res=>{
-    if(res.error) alert(res.error);
-    else alert("Account created!");
+    if(res.error){
+      alert(res.error);
+    } else {
+      alert("Account created!");
+      showLogin();
+    }
   });
 }
 
