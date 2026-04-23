@@ -59,6 +59,7 @@ body{margin:0;background:#020617;color:white;font-family:Arial;display:flex;}
 .lobby{background:#1f2937;margin:10px;padding:10px;border-radius:10px;}
 #turn{margin:10px;font-size:18px;}
 #status{color:#facc15;}
+#reconnect{color:#60a5fa;margin:5px;}
 </style>
 </head>
 
@@ -70,6 +71,7 @@ body{margin:0;background:#020617;color:white;font-family:Arial;display:flex;}
 
 <div id="turn">Turn: -</div>
 <div id="status"></div>
+<div id="reconnect"></div>
 
 <div id="lobbyControls">
   <input id="name" placeholder="Lobby name">
@@ -121,6 +123,15 @@ const pieceMap = {
   bP:"bP.svg", bR:"bR.svg", bN:"bN.svg",
   bB:"bB.svg", bQ:"bQ.svg", bK:"bK.svg"
 };
+
+/* 🔥 RECONNECT MESSAGE */
+socket.on("connect", ()=>{
+  document.getElementById("reconnect").innerText = "🟢 Connected";
+});
+
+socket.on("disconnect", ()=>{
+  document.getElementById("reconnect").innerText = "⚠️ Reconnecting...";
+});
 
 /* PLAYERS */
 socket.on("online_users", users=>{
@@ -184,6 +195,7 @@ socket.on("chess_start", data=>{
     opponentName = white;
   }
 
+  document.getElementById("status").innerText = "";
   game.reset();
   updateUI();
   draw();
@@ -194,6 +206,14 @@ socket.on("chess_update", data=>{
   updateUI();
   draw();
 });
+
+/* PLAYER LEFT */
+socket.on("player_left", data=>{
+  document.getElementById("status").innerText =
+    "🏆 " + data.winner + " wins (opponent left)";
+});
+
+/* UI */
 
 function updateUI(){
 
