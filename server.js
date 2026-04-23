@@ -4,8 +4,6 @@ const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
-
 const User = require('./models/User');
 
 app.use(express.json());
@@ -29,6 +27,21 @@ function update(){
   io.emit("lobbies_update", lobbies);
 }
 
+/* ================= ELO ================= */
+
+function calculateElo(playerElo, opponentElo, result){
+
+  const K = 20;
+
+  const expected =
+    1 / (1 + Math.pow(10, (opponentElo - playerElo) / 400));
+
+  const newElo =
+    Math.round(playerElo + K * (result - expected));
+
+  return newElo;
+}
+
 /* ================= GAME ================= */
 
 function createGame(lobby){
@@ -48,7 +61,8 @@ function createGame(lobby){
       {id:black.id, username:black.username, color:'b'}
     ],
     fen:null,
-    turn:'w'
+    turn:'w',
+    ended:false
   };
 
   chessGames[id] = game;
@@ -59,6 +73,47 @@ function createGame(lobby){
   return game;
 }
 
+/* ================= ELO UPDATE ================= */
+
+async function applyElo(game, winnerName){
+
+  if(game.ended) return;
+  game.ended = true;
+
+  const p1 = game.players[0];
+  const p2 = game.players[1];
+
+  const u1 = await User.findOne({username:p1.username});
+  const u2 = await User.findOne({username:p2.username});
+
+  const r1 = p1.username === winnerName ? 1 : 0;
+  const r2 = p2.username === winnerName ? 1 : 0;
+
+  const newElo1 = calculateElo(u1.elo, u2.elo, r1);
+  const newElo2 = calculateElo(u2.elo, u1.elo, r2);
+
+  const gain1 = newElo1 - u1.elo;
+  const gain2 = newElo2 - u2.elo;
+
+  u1.elo = newElo1;
+  u2.elo = newElo2;
+
+  await u1.save();
+  await u2.save();
+
+  /* 🔥 ENVOI AUX JOUEURS */
+  game.players.forEach(p=>{
+    const s = io.sockets.sockets.get(p.id);
+    if(s){
+      const gain = p.username === p1.username ? gain1 : gain2;
+      s.emit("elo_update",{
+        elo: p.username === p1.username ? newElo1 : newElo2,
+        gain
+      });
+    }
+  });
+}
+
 /* ================= SOCKET ================= */
 
 io.on('connection', socket=>{
@@ -67,37 +122,37 @@ io.on('connection', socket=>{
     socket.username = username;
 
     const user = await User.findOne({username});
-    socket.elo = user?.elo || 1000;
 
     onlineUsers[username] = {
       id:socket.id,
-      elo:socket.elo,
+      elo:user?.elo || 1000,
       status:"idle"
     };
 
-    if(playerGames[username]){
-      const game = chessGames[playerGames[username]];
-      if(game){
-        const p = game.players.find(x=>x.username===username);
-
-        socket.join(game.id);
-        socket.chessGame = game.id;
-        socket.color = p.color;
-
-        socket.emit("chess_start",{
-          color:p.color,
-          players:{
-            white: game.players.find(p=>p.color==='w').username,
-            black: game.players.find(p=>p.color==='b').username
-          }
-        });
-
-        socket.emit("chess_update",{fen:game.fen});
-      }
-    }
-
     update();
   });
+
+  /* ================= RESIGN ================= */
+
+  socket.on("resign", async ()=>{
+
+    const gameId = playerGames[socket.username];
+    const game = chessGames[gameId];
+    if(!game) return;
+
+    const opponent = game.players.find(p=>p.username!==socket.username);
+
+    /* 🔥 ELO */
+    await applyElo(game, opponent.username);
+
+    game.players.forEach(p=>{
+      io.to(p.id).emit("player_left",{winner:opponent.username});
+    });
+
+    delete chessGames[gameId];
+  });
+
+  /* ================= DISCONNECT ================= */
 
   socket.on("disconnect", ()=>{
     const username = socket.username;
@@ -107,14 +162,15 @@ io.on('connection', socket=>{
     const game = chessGames[gameId];
 
     if(game){
+
       const opponent = game.players.find(p=>p.username!==username);
 
       if(opponent){
-        io.to(opponent.id).emit("opponent_disconnected",{player:username});
 
         let timeLeft = 60;
 
-        const interval = setInterval(()=>{
+        const interval = setInterval(async ()=>{
+
           timeLeft--;
 
           io.to(opponent.id).emit("disconnect_timer",{time:timeLeft});
@@ -122,102 +178,18 @@ io.on('connection', socket=>{
           if(timeLeft<=0){
             clearInterval(interval);
 
+            await applyElo(game, opponent.username);
+
             io.to(opponent.id).emit("player_left",{winner:opponent.username});
 
             delete chessGames[gameId];
           }
-        },1000);
 
-        pendingDisconnects[username]=interval;
+        },1000);
       }
     }
 
     update();
-  });
-
-  /* ================= REMATCH ================= */
-
-  socket.on("rematch", ()=>{
-
-    const username = socket.username;
-    const gameId = playerGames[username];
-
-    if(!rematchRequests[gameId]) rematchRequests[gameId]=[];
-
-    if(!rematchRequests[gameId].includes(username)){
-      rematchRequests[gameId].push(username);
-    }
-
-    let game = chessGames[gameId];
-
-    if(!game){
-      const players = Object.keys(playerGames).filter(u=>playerGames[u]===gameId);
-
-      if(players.length===2){
-        game = {
-          id:gameId,
-          players:[
-            {id:onlineUsers[players[0]].id, username:players[0], color:'w'},
-            {id:onlineUsers[players[1]].id, username:players[1], color:'b'}
-          ],
-          fen:null,
-          turn:'w'
-        };
-        chessGames[gameId]=game;
-      }
-    }
-
-    if(rematchRequests[gameId].length===2){
-
-      rematchRequests[gameId]=[];
-
-      /* 🔥 SWAP + FIX SOCKET */
-      game.players = game.players.map(p=>{
-        const newColor = p.color==='w'?'b':'w';
-        const s = io.sockets.sockets.get(p.id);
-        if(s) s.color = newColor;
-
-        return {id:p.id, username:p.username, color:newColor};
-      });
-
-      game.fen=null;
-      game.turn='w';
-
-      game.players.forEach(p=>{
-        const s = io.sockets.sockets.get(p.id);
-        if(s){
-          s.emit("chess_start",{
-            color:p.color,
-            players:{
-              white: game.players.find(pl=>pl.color==='w').username,
-              black: game.players.find(pl=>pl.color==='b').username
-            }
-          });
-        }
-      });
-
-    }else{
-      const opponent = game.players.find(p=>p.username!==username);
-      if(opponent){
-        io.to(opponent.id).emit("rematch_requested",{from:username});
-      }
-    }
-
-  });
-
-  /* ================= RESIGN ================= */
-
-  socket.on("resign", ()=>{
-    const game = chessGames[playerGames[socket.username]];
-    if(!game) return;
-
-    const opponent = game.players.find(p=>p.username!==socket.username);
-
-    game.players.forEach(p=>{
-      io.to(p.id).emit("player_left",{winner:opponent.username});
-    });
-
-    delete chessGames[game.id];
   });
 
   /* ================= LOBBY ================= */
@@ -286,6 +258,8 @@ io.on('connection', socket=>{
   });
 
 });
+
+/* ================= START ================= */
 
 async function startServer(){
   await mongoose.connect(process.env.MONGO_URI);
