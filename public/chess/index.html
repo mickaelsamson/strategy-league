@@ -23,51 +23,60 @@ body{
 
 /* SIDEBAR */
 #sidebar{
-  width:250px;
+  width:260px;
   background:#111827;
   padding:10px;
 }
 
-.player{
-  padding:8px;
-  border-bottom:1px solid #1f2937;
-  display:flex;
-  justify-content:space-between;
-  cursor:pointer;
-}
-
-.player:hover{
-  background:#1f2937;
-}
-
-.avatar{
-  width:35px;
-  height:35px;
-  border-radius:50%;
-}
-
-.status{
-  font-size:12px;
-}
-
-.idle{color:lightgreen;}
-.playing{color:red;}
-
-#profilePopup{
-  position:fixed;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  background:#111827;
-  padding:20px;
-  border-radius:12px;
-  display:none;
-  text-align:center;
-}
-
-/* BOARD */
+/* BOARD CONTAINER */
 #board{
   margin-top:20px;
+  display:inline-block;
+  padding:12px;
+  background:#0f172a;
+  border-radius:14px;
+  box-shadow:0 0 30px rgba(0,0,0,0.6);
+}
+
+/* SQUARE */
+.square{
+  display:inline-block;
+  width:64px;
+  height:64px;
+  position:relative;
+}
+
+.light{ background:#e5e7eb; }
+.dark{ background:#1f2937; }
+
+.square img{
+  width:52px;
+  height:52px;
+  position:absolute;
+  top:6px;
+  left:6px;
+}
+
+/* TIMER */
+#timerBar{
+  width:320px;
+  height:10px;
+  background:#1f2937;
+  margin:10px auto;
+  border-radius:10px;
+  overflow:hidden;
+}
+
+#timerFill{
+  height:100%;
+  width:100%;
+  background:linear-gradient(90deg, #22c55e, #eab308, #ef4444);
+  transition:width 1s linear;
+}
+
+/* LOBBY */
+#lobbyControls{
+  margin-top:10px;
 }
 </style>
 </head>
@@ -78,7 +87,6 @@ body{
 
 <h2>♟️ Chess Lobby</h2>
 
-<!-- LOBBY -->
 <div id="lobbyControls">
   <input id="name" placeholder="Lobby name">
 
@@ -92,6 +100,8 @@ body{
   <button onclick="createLobby()">Create</button>
 </div>
 
+<div id="timerBar"><div id="timerFill"></div></div>
+
 <div id="lobbies"></div>
 <div id="board"></div>
 
@@ -102,102 +112,33 @@ body{
   <div id="players"></div>
 </div>
 
-<div id="profilePopup"></div>
-
 <script>
 
 const socket=io();
 const user=JSON.parse(localStorage.getItem("user"));
 
-let currentUsers={};
-
 socket.emit("register_online", user.username);
-
-/* USERS */
-socket.on("online_users", users=>{
-  currentUsers=users;
-
-  document.getElementById("players").innerHTML =
-    Object.entries(users).map(([name,data])=>`
-      <div class="player" onclick="openProfile('${name}')">
-        <div>
-          <img src="${data.avatar}" class="avatar">
-          ${name} (${data.elo})
-          <div class="status ${data.status}">
-            ${data.status}
-          </div>
-        </div>
-
-        ${name!==user.username ? 
-          `<button onclick="invite('${name}');event.stopPropagation()">+</button>` : ""}
-      </div>
-    `).join("");
-});
-
-/* PROFILE */
-function openProfile(name){
-  const data=currentUsers[name];
-
-  const popup=document.getElementById("profilePopup");
-
-  popup.style.display="block";
-
-  popup.innerHTML=`
-    <img src="${data.avatar}" class="avatar"><br><br>
-    <b>${name}</b><br>
-    ELO: ${data.elo}<br><br>
-    <button onclick="closeProfile()">Close</button>
-  `;
-}
-
-function closeProfile(){
-  document.getElementById("profilePopup").style.display="none";
-}
-
-/* LOBBY */
-function createLobby(){
-  socket.emit("create_lobby",{
-    name:document.getElementById("name").value,
-    time:parseInt(document.getElementById("mode").value)
-  });
-}
-
-socket.on("lobbies_update", lobbies=>{
-  document.getElementById("lobbies").innerHTML =
-    Object.values(lobbies).map(l=>`
-      <div>
-        <b>${l.name}</b> (${l.time}s)<br>
-        ${l.players.map(p=>p.username).join(", ")}<br>
-        <button onclick="join('${l.id}')">Join</button>
-      </div>
-    `).join("");
-});
-
-function join(id){
-  socket.emit("join_lobby", id);
-}
-
-function invite(name){
-  socket.emit("invite_player",{target:name});
-}
 
 /* ================= GAME ================= */
 
 let game=new Chess();
 let selected=null;
 let playerColor=null;
+let totalTime=60;
 
-/* 🔥 PIECES */
-const whitePieces = {
-  p:"♙", r:"♖", n:"♘", b:"♗", q:"♕", k:"♔"
+/* 🔥 PIECES SVG (SANS RENAME) */
+const pieceMap = {
+  wP:"wP.svg", wR:"wR.svg", wN:"wN.svg",
+  wB:"wB.svg", wQ:"wQ.svg", wK:"wK.svg",
+  bP:"bP.svg", bR:"bR.svg", bN:"bN.svg",
+  bB:"bB.svg", bQ:"bQ.svg", bK:"bK.svg"
 };
 
-const blackPieces = {
-  p:"♟", r:"♜", n:"♞", b:"♝", q:"♛", k:"♚"
-};
+/* ================= SOCKET ================= */
 
 socket.on("chess_start", data=>{
   playerColor=data.color;
+  totalTime=data.time;
 
   document.getElementById("lobbyControls").style.display="none";
 
@@ -209,12 +150,22 @@ socket.on("chess_update", data=>{
   draw();
 });
 
+socket.on("chess_timer", players=>{
+  const me = players.find(p=>p.color===playerColor);
+  if(!me) return;
+
+  const percent = (me.time / totalTime) * 100;
+  document.getElementById("timerFill").style.width = percent + "%";
+});
+
 socket.on("chess_end", ()=>{
   document.getElementById("lobbyControls").style.display="block";
 });
 
-/* DRAW */
+/* ================= DRAW ================= */
+
 function draw(){
+
   const el=document.getElementById("board");
   el.innerHTML="";
 
@@ -223,38 +174,34 @@ function draw(){
   for(let y=0;y<8;y++){
     for(let x=0;x<8;x++){
 
-      const c=document.createElement("div");
+      const sq = String.fromCharCode(97+x)+(8-y);
 
-      c.style.display="inline-block";
-      c.style.width="60px";
-      c.style.height="60px";
-
-      /* 🎨 COLORS */
-      c.style.background = (x+y)%2 ? "#769656" : "#eeeed2";
+      const div=document.createElement("div");
+      div.className="square " + ((x+y)%2?"dark":"light");
 
       const p=state[y][x];
 
       if(p){
-        c.innerText = p.color === "w"
-          ? whitePieces[p.type]
-          : blackPieces[p.type];
+        const img=document.createElement("img");
+
+        const key = p.color.toUpperCase() + p.type.toUpperCase();
+
+        img.src = "pieces/" + pieceMap[key];
+
+        div.appendChild(img);
       }
 
-      c.style.fontSize="36px";
-      c.style.textAlign="center";
-      c.style.lineHeight="60px";
+      div.onclick=()=>clickCell(sq);
 
-      const sq=String.fromCharCode(97+x)+(8-y);
-
-      c.onclick=()=>clickCell(sq);
-
-      el.appendChild(c);
+      el.appendChild(div);
     }
+
     el.appendChild(document.createElement("br"));
   }
 }
 
-/* MOVE */
+/* ================= MOVE ================= */
+
 function clickCell(sq){
 
   if(game.turn()!==playerColor) return;
