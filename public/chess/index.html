@@ -109,12 +109,10 @@ button:hover{background:#2563eb;}
   <div id="clickLayer"></div>
 </div>
 
-<!-- 🔥 ABANDON (pendant game) -->
 <div>
   <button id="resignBtn" onclick="resign()">Abandon</button>
 </div>
 
-<!-- 🔥 FIN DE PARTIE -->
 <div>
   <button id="endGameBtn" onclick="goMain()">Back to Main Menu</button>
 </div>
@@ -303,10 +301,12 @@ function updateUI(){
   }
 }
 
-/* DRAW + MOVE identique */
+/* DRAW */
 function draw(){
+
   const p=document.getElementById("piecesLayer");
   const c=document.getElementById("clickLayer");
+
   p.innerHTML=""; c.innerHTML="";
   const board=game.board();
 
@@ -315,6 +315,7 @@ function draw(){
 
   for(let y=0;y<8;y++){
     for(let x=0;x<8;x++){
+
       const sq=String.fromCharCode(97+x)+(8-y);
       const piece=board[y][x];
 
@@ -346,6 +347,7 @@ function draw(){
   }
 }
 
+/* MOVE */
 function clickCell(sq){
   if(game.turn()!==playerColor || gameOver) return;
 
@@ -380,6 +382,10 @@ function getKingSquare(color){
 function resign(){
   if(confirm("Abandon game?")){
     socket.emit("resign");
+
+    // 🔥 FIX INSTANT UI
+    document.getElementById("status").innerText = "You resigned";
+    endGameUI();
   }
 }
 
