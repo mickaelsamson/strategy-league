@@ -35,6 +35,7 @@ function createGame(id){
 
 function startTimer(g){
   if(g.timer) clearInterval(g.timer);
+
   g.timer=setInterval(()=>{
     g.timeLeft--;
     io.to(g.id).emit("timer",g.timeLeft);
@@ -42,25 +43,41 @@ function startTimer(g){
     if(g.timeLeft<=0){
       g.turn=(g.turn+1)%g.players.length;
       g.timeLeft=TURN_TIME;
+
       io.to(g.id).emit("turnChanged",g.turn);
     }
   },1000);
 }
 
-// AUTH + DATA
+// SAFE STATE (🔥 IMPORTANT FIX)
+function sendState(g){
+  io.to(g.id).emit('state', {
+    players: g.players,
+    turn: g.turn,
+    timeLeft: g.timeLeft,
+    territories: g.territories
+  });
+}
+
+// ===== API =====
+
 app.post('/api/login', async (req,res)=>{
   let user = await User.findOne({username:req.body.username});
+
   if(!user){
     user = await User.create({username:req.body.username});
   }
+
   res.send(user);
 });
 
 app.post('/api/xp', async (req,res)=>{
   let user = await User.findOne({username:req.body.username});
   if(!user) return;
+
   user.xp += req.body.xp;
   await user.save();
+
   res.send(user);
 });
 
@@ -69,48 +86,63 @@ app.get('/api/stats', async (req,res)=>{
   res.send(users);
 });
 
-// GAME
+// ===== GAME =====
+
 io.on('connection',socket=>{
 
   socket.on('create',name=>{
     let id=Math.random().toString(36).substr(2,4).toUpperCase();
     let g=createGame(id);
+
     g.players.push(name);
     games[id]=g;
+
     socket.join(id);
     socket.gameId=id;
     socket.playerIndex=0;
+
     startTimer(g);
+
     socket.emit('created',id);
-    io.to(id).emit('state',g);
+    sendState(g); // ✅ FIX
   });
 
   socket.on('join',({id,name})=>{
-    let g=games[id]; if(!g)return;
+    let g=games[id]; 
+    if(!g) return;
+
     socket.join(id);
     socket.gameId=id;
     socket.playerIndex=g.players.length;
+
     g.players.push(name);
-    io.to(id).emit('state',g);
+
+    sendState(g); // ✅ FIX
   });
 
   socket.on('move',({from,to})=>{
-    let g=games[socket.gameId]; if(!g)return;
+    let g=games[socket.gameId]; 
+    if(!g) return;
+
     let f=g.territories[from];
     let t=g.territories[to];
 
     if(f.owner===socket.playerIndex){
+
       if(f.troops>t.troops){
         t.owner=socket.playerIndex;
         t.troops=f.troops-1;
         f.troops=1;
+
         io.to(g.id).emit("attack",{to});
       } else {
         f.troops--;
       }
+
       g.turn=(g.turn+1)%g.players.length;
       g.timeLeft=TURN_TIME;
-      io.to(g.id).emit('state',g);
+
+      sendState(g); // ✅ FIX
     }
   });
 
