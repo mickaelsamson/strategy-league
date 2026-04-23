@@ -61,6 +61,7 @@ button:hover{background:#2563eb;}
 
 #endGameBtn{display:none;background:#22c55e;}
 #resignBtn{display:none;}
+#rematchBtn{display:none;background:#f59e0b;}
 </style>
 </head>
 
@@ -74,7 +75,7 @@ button:hover{background:#2563eb;}
 <div id="status"></div>
 <div id="disconnectTimer"></div>
 
-<!-- 🔥 LOBBY CONTROLS -->
+<!-- LOBBY -->
 <div id="lobbyControls">
   <input id="name" placeholder="Lobby name">
   <select id="mode">
@@ -83,7 +84,7 @@ button:hover{background:#2563eb;}
     <option value="120">Snail</option>
   </select>
   <button onclick="createLobby()">Create</button>
-  <button onclick="goMain()">Back to Main Menu</button> <!-- 🔥 AJOUT -->
+  <button onclick="goMain()">Back to Main Menu</button>
 </div>
 
 <h3>Lobbies</h3>
@@ -95,13 +96,14 @@ button:hover{background:#2563eb;}
   <div id="clickLayer"></div>
 </div>
 
-<!-- 🔥 GAME BUTTON -->
+<!-- GAME BUTTON -->
 <div>
   <button id="resignBtn" onclick="resign()">Abandon</button>
 </div>
 
-<!-- 🔥 END GAME -->
+<!-- END GAME -->
 <div>
+  <button id="rematchBtn" onclick="rematch()">Rematch</button>
   <button id="endGameBtn" onclick="goMain()">Back to Main Menu</button>
 </div>
 
@@ -177,6 +179,7 @@ socket.on("chess_start", data=>{
 
   document.getElementById("resignBtn").style.display = "inline-block";
   document.getElementById("endGameBtn").style.display = "none";
+  document.getElementById("rematchBtn").style.display = "none";
 
   playerColor = data.color;
 
@@ -197,7 +200,7 @@ socket.on("chess_update", data=>{
   updateUI(); draw();
 });
 
-/* DISCONNECT + TIMER */
+/* DISCONNECT */
 socket.on("opponent_disconnected", data=>{
   document.getElementById("status").innerText =
     "⚠️ " + data.player + " disconnected";
@@ -213,12 +216,24 @@ function endGameUI(){
   gameOver = true;
   document.getElementById("resignBtn").style.display = "none";
   document.getElementById("endGameBtn").style.display = "inline-block";
+  document.getElementById("rematchBtn").style.display = "inline-block";
 }
 
 socket.on("player_left", data=>{
   document.getElementById("status").innerText =
     "🏆 " + data.winner + " wins";
   endGameUI();
+});
+
+/* REMATCH */
+function rematch(){
+  socket.emit("rematch");
+  document.getElementById("status").innerText = "Waiting for opponent...";
+}
+
+socket.on("rematch_requested", data=>{
+  document.getElementById("status").innerText =
+    data.from + " wants a rematch";
 });
 
 /* UI */
@@ -240,7 +255,7 @@ function updateUI(){
   }
 }
 
-/* DRAW + MOVE identique */
+/* DRAW */
 function draw(){
   const p=document.getElementById("piecesLayer");
   const c=document.getElementById("clickLayer");
