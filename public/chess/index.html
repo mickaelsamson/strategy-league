@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Chess Lobby</title>
+<title>Chess Arena</title>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.11.0/chess.min.js"></script>
@@ -15,53 +15,119 @@ body{
   text-align:center;
 }
 
-/* LOBBY */
-#lobby{
-  margin:20px;
+/* HEADER */
+.header{
+  display:flex;
+  justify-content:space-around;
+  align-items:center;
+  margin-top:15px;
 }
 
-.player{
-  margin:5px;
+.playerBox{
+  background:#1f2937;
+  padding:10px 20px;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.avatar{
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  background:#374151;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
+}
+
+/* BOARD */
+#board{
+  width:520px;
+  margin:20px auto;
+  display:grid;
+  grid-template-columns:repeat(8,1fr);
+  border-radius:12px;
+  overflow:hidden;
+  box-shadow:0 0 25px rgba(0,0,0,0.6);
+}
+
+.cell{
+  width:65px;
+  height:65px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:34px;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+.white{background:#f0d9b5;color:black;}
+.black{background:#b58863;}
+
+.selected{
+  outline:4px solid yellow;
+}
+
+.move{
+  background:rgba(255,255,0,0.3);
+}
+
+.capture{
+  background:rgba(255,0,0,0.4);
+}
+
+/* HISTORY */
+#history{
+  width:300px;
+  margin:20px auto;
+  text-align:left;
+  background:#111827;
+  padding:10px;
+  border-radius:10px;
+  max-height:200px;
+  overflow-y:auto;
+}
+
+/* LOBBY */
+#lobby{
+  margin-top:20px;
 }
 
 button{
   padding:8px 12px;
-  margin:5px;
   border-radius:8px;
-  cursor:pointer;
+  margin:5px;
   background:#1f2937;
   color:white;
+  cursor:pointer;
 }
 
 button:hover{
   background:#374151;
 }
-
-/* BOARD */
-#board{
-  width:480px;
-  margin:auto;
-  display:grid;
-  grid-template-columns:repeat(8,1fr);
-}
-
-.cell{
-  width:60px;
-  height:60px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:30px;
-}
-
-.white{background:#eee;color:black;}
-.black{background:#444;}
 </style>
 </head>
 
 <body>
 
-<h2>♟️ Chess Lobby</h2>
+<h2>♟️ Chess Arena</h2>
+
+<!-- PLAYERS -->
+<div class="header">
+  <div class="playerBox" id="p1">
+    <div class="avatar">W</div>
+    <span id="player1">Waiting...</span>
+  </div>
+
+  <div class="playerBox" id="p2">
+    <div class="avatar">B</div>
+    <span id="player2">Waiting...</span>
+  </div>
+</div>
 
 <!-- TIME SELECT -->
 <div>
@@ -73,7 +139,7 @@ button:hover{
   </select>
 </div>
 
-<!-- ONLINE PLAYERS -->
+<!-- LOBBY -->
 <div id="lobby"></div>
 
 <!-- STATUS -->
@@ -81,6 +147,9 @@ button:hover{
 
 <!-- BOARD -->
 <div id="board"></div>
+
+<!-- HISTORY -->
+<div id="history"></div>
 
 <button onclick="rematch()">Rematch</button>
 
@@ -95,15 +164,14 @@ const user = JSON.parse(localStorage.getItem("user"));
 
 socket.emit("register_online", user.username);
 
-/* ONLINE PLAYERS */
+/* ONLINE */
 socket.on("online_users", users=>{
   document.getElementById("lobby").innerHTML =
     "<h3>Players</h3>" +
     users.map(u => `
-      <div class="player">
+      <div>
         ${u}
-        ${u !== user.username ?
-          `<button onclick="invite('${u}')">Invite</button>`:""}
+        ${u !== user.username ? `<button onclick="invite('${u}')">Invite</button>`:""}
       </div>
     `).join("");
 });
@@ -112,27 +180,24 @@ socket.on("online_users", users=>{
 function invite(name){
   const time = parseInt(document.getElementById("time").value);
 
-  socket.emit("invite_player", {
-    target:name,
-    time
-  });
+  socket.emit("invite_player", {target:name,time});
 }
 
-/* RECEIVE INVITE */
 socket.on("invite_received", data=>{
-  if(confirm(`${data.from} invites you (${data.time}s). Accept?`)){
-    socket.emit("accept_invite", {
-      opponent:data.from,
-      time:data.time
-    });
+  if(confirm(`${data.from} invites you (${data.time}s)`)){
+    socket.emit("accept_invite",{opponent:data.from,time:data.time});
   }
 });
 
 /* START */
 socket.on("chess_start", data=>{
   playerColor = data.color;
-  document.getElementById("status").innerText =
-    "Game started ("+(playerColor==='w'?'White':'Black')+")";
+
+  document.getElementById("player1").innerText =
+    playerColor==='w'?user.username:"Opponent";
+
+  document.getElementById("player2").innerText =
+    playerColor==='b'?user.username:"Opponent";
 
   draw();
 });
@@ -140,6 +205,7 @@ socket.on("chess_start", data=>{
 /* UPDATE */
 socket.on("chess_update", data=>{
   game.load(data.fen);
+  updateHistory();
   draw();
 });
 
@@ -164,6 +230,7 @@ function rematch(){
 
 /* DRAW */
 function draw(){
+
   const el=document.getElementById("board");
   el.innerHTML="";
 
@@ -176,39 +243,86 @@ function draw(){
       c.className="cell "+((x+y)%2?"black":"white");
 
       const p=state[y][x];
-      c.innerText=p?p.type:"";
+
+      if(p){
+        const pieces = {
+          p:"♟", r:"♜", n:"♞", b:"♝", q:"♛", k:"♚",
+          P:"♙", R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔"
+        };
+
+        const key = p.color === 'w' ? p.type.toUpperCase() : p.type;
+        c.innerText = pieces[key];
+      }
 
       const sq=String.fromCharCode(97+x)+(8-y);
 
-      c.onclick=()=>clickCell(sq);
+      c.onclick=()=>clickCell(sq,c);
 
       el.appendChild(c);
     }
   }
 }
 
-/* MOVE */
-function clickCell(sq){
+/* CLICK */
+function clickCell(sq,cell){
 
   if(game.turn()!==playerColor) return;
 
   if(!selected){
-    if(game.moves({square:sq}).length===0) return;
+
+    const moves=game.moves({square:sq,verbose:true});
+    if(moves.length===0) return;
+
     selected=sq;
+    cell.classList.add("selected");
+
+    highlight(moves);
+
   } else {
 
     const move=game.move({from:selected,to:sq,promotion:'q'});
     selected=null;
+    clearHighlights();
 
     if(move){
-      socket.emit("chess_move",{
-        from:move.from,
-        to:move.to,
-        fen:game.fen()
-      });
+      socket.emit("chess_move",{from:move.from,to:move.to,fen:game.fen()});
       draw();
     }
   }
+}
+
+/* HIGHLIGHT */
+function highlight(moves){
+
+  moves.forEach(m=>{
+    const index=squareToIndex(m.to);
+    const cell=document.getElementById("board").children[index];
+
+    if(m.captured){
+      cell.classList.add("capture");
+    } else {
+      cell.classList.add("move");
+    }
+  });
+}
+
+function clearHighlights(){
+  document.querySelectorAll(".cell").forEach(c=>{
+    c.classList.remove("selected","move","capture");
+  });
+}
+
+function squareToIndex(sq){
+  const file=sq.charCodeAt(0)-97;
+  const rank=8-parseInt(sq[1]);
+  return rank*8+file;
+}
+
+/* HISTORY */
+function updateHistory(){
+  const history = game.history();
+  document.getElementById("history").innerHTML =
+    history.map((m,i)=>`${i+1}. ${m}`).join("<br>");
 }
 
 </script>
