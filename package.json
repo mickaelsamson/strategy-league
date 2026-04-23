@@ -1,6 +1,7 @@
 {
   "name": "strategy-hub",
-  "version": "2.0.0",
+  "version": "2.1.0",
+  "description": "Strategy Hub game platform",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -8,6 +9,7 @@
   "dependencies": {
     "express": "^4.18.2",
     "socket.io": "^4.7.2",
-    "mongoose": "^8.0.0"
+    "mongoose": "^8.0.0",
+    "bcrypt": "^5.1.0"
   }
 }
