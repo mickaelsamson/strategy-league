@@ -7,26 +7,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.11.0/chess.min.js"></script>
 
 <style>
-body{
-  margin:0;
-  background:#020617;
-  color:white;
-  font-family:Arial;
-  display:flex;
-}
+body{margin:0;background:#020617;color:white;font-family:Arial;text-align:center;}
 
-#main{
-  flex:1;
-  text-align:center;
-}
-
-#sidebar{
-  width:260px;
-  background:#111827;
-  padding:10px;
-}
-
-/* BOARD */
 #boardWrapper{
   position:relative;
   width:90vw;
@@ -39,26 +21,23 @@ body{
   width:100%;
   height:100%;
   object-fit:cover;
-  border-radius:12px;
 }
 
-#piecesLayer, #clickLayer{
+#piecesLayer,#clickLayer{
   position:absolute;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  overflow:hidden;
+  top:0;left:0;
+  width:100%;height:100%;
 }
 
 .square{
   position:absolute;
   width:12.5%;
   height:12.5%;
-  cursor:pointer;
 }
 
-/* 🔥 FIX DEFINITIF SVG */
+.selected{outline:3px solid #3b82f6;}
+.move{background:rgba(34,197,94,0.4);border-radius:50%;}
+
 .piece{
   position:absolute;
   width:12.5%;
@@ -66,72 +45,29 @@ body{
   display:flex;
   align-items:center;
   justify-content:center;
-  pointer-events:none;
 }
-
 .piece img{
   width:80%;
   height:80%;
-  object-fit:contain;
 }
 
 /* UI */
-.player{
-  padding:8px;
-  border-bottom:1px solid #1f2937;
-  display:flex;
-  align-items:center;
-  gap:10px;
-  cursor:pointer;
-}
-
-.player img{
-  width:30px;
-  height:30px;
-  border-radius:50%;
-}
-
-.lobby{
-  background:#1f2937;
-  padding:10px;
-  margin:10px;
-  border-radius:10px;
-}
+#turn{font-size:18px;margin:10px;}
+#status{font-size:18px;color:#facc15;}
 </style>
 </head>
 
 <body>
 
-<div id="main">
-
 <h2>♟️ Chess</h2>
 
-<div id="lobbyControls">
-  <input id="name" placeholder="Lobby name">
-
-  <select id="mode">
-    <option value="30">Blitz</option>
-    <option value="60">Rapid</option>
-    <option value="120">Snail</option>
-  </select>
-
-  <button onclick="createLobby()">Create</button>
-</div>
+<div id="turn">Turn: -</div>
+<div id="status"></div>
 
 <div id="boardWrapper">
   <img src="/chess/board.png">
   <div id="piecesLayer"></div>
   <div id="clickLayer"></div>
-</div>
-
-<h3>Lobbies</h3>
-<div id="lobbies"></div>
-
-</div>
-
-<div id="sidebar">
-  <h3>Players</h3>
-  <div id="players"></div>
 </div>
 
 <script>
@@ -143,11 +79,16 @@ if(user){
   socket.emit("register_online", user.username);
 }
 
-/* GAME */
 let game = new Chess();
 let selected = null;
+let possibleMoves = [];
 let playerColor = null;
 
+/* 🔥 NOM DES JOUEURS */
+let myName = user?.username || "You";
+let opponentName = "Opponent";
+
+/* PIECES */
 const pieceMap = {
   wP:"wP.svg", wR:"wR.svg", wN:"wN.svg",
   wB:"wB.svg", wQ:"wQ.svg", wK:"wK.svg",
@@ -155,84 +96,70 @@ const pieceMap = {
   bB:"bB.svg", bQ:"bQ.svg", bK:"bK.svg"
 };
 
-/* PLAYERS */
-socket.on("online_users", users=>{
-  document.getElementById("players").innerHTML =
-    Object.entries(users).map(([name,data])=>`
-      <div class="player">
-        <img src="${data.avatar}">
-        <div>
-          <div>${name} (${data.elo})</div>
-          <div style="font-size:12px;color:${data.status==="playing"?"red":"lightgreen"};">
-            ${data.status}
-          </div>
-        </div>
-      </div>
-    `).join("");
-});
-
-/* LOBBIES */
-socket.on("lobbies_update", lobbies=>{
-
-  const list = Object.values(lobbies);
-
-  document.getElementById("lobbies").innerHTML =
-    list.map(l=>{
-
-      const me = l.players.find(p=>p.username===user.username);
-
-      return `
-      <div class="lobby">
-        ${l.name} (${l.time}s)<br>
-        Players: ${l.players.map(p=>p.username + (p.ready?" ✅":" ❌")).join(",")}<br>
-
-        ${
-          !me
-          ? `<button onclick="join('${l.id}')">Join</button>`
-          : `<button onclick="ready('${l.id}')">Ready</button>`
-        }
-      </div>
-      `;
-    }).join("");
-});
-
-function ready(id){
-  socket.emit("toggle_ready", id);
-}
-
-function createLobby(){
-  socket.emit("create_lobby",{
-    name:document.getElementById("name").value,
-    time:parseInt(document.getElementById("mode").value)
-  });
-}
-
-function join(id){
-  socket.emit("join_lobby", id);
-}
-
-/* GAME SOCKET */
-
+/* START */
 socket.on("chess_start", data=>{
   playerColor = data.color;
+
+  /* 🔥 on reconstruit noms */
+  if(playerColor === 'w'){
+    myName = user.username;
+    opponentName = "Player Black";
+  }else{
+    myName = user.username;
+    opponentName = "Player White";
+  }
+
   game.reset();
+  updateUI();
   draw();
 });
 
+/* UPDATE */
 socket.on("chess_update", data=>{
   if(data.fen) game.load(data.fen);
+  updateUI();
   draw();
 });
 
-/* DRAW FIX FINAL */
+/* UI */
+function updateUI(){
 
+  let turnColor = game.turn();
+
+  let currentPlayer =
+    (turnColor === playerColor)
+    ? myName
+    : opponentName;
+
+  document.getElementById("turn").innerText =
+    "Turn: " + currentPlayer;
+
+  /* 🔥 FIX CHECK */
+  if(game.in_check() && !game.in_checkmate()){
+    document.getElementById("status").innerText = "⚠️ CHECK!";
+  }
+  else if(game.in_checkmate()){
+    const winner =
+      (game.turn() === playerColor)
+      ? opponentName
+      : myName;
+
+    document.getElementById("status").innerText =
+      "🏆 " + winner + " wins!";
+  }
+  else{
+    document.getElementById("status").innerText = "";
+  }
+}
+
+/* DRAW */
 function draw(){
 
-  const piecesLayer = document.getElementById("piecesLayer");
-  const clickLayer = document.getElementById("clickLayer");
+  const p = document.getElementById("piecesLayer");
+  const c = document.getElementById("clickLayer");
 
-  piecesLayer.innerHTML = "";
-  clickLayer.innerHTML = "";
+  p.innerHTML="";
+  c.innerHTML="";
 
   const board = game.board();
 
@@ -243,42 +170,46 @@ function draw(){
       const piece = board[y][x];
 
       const cell = document.createElement("div");
-      cell.className = "square";
-      cell.style.left = (x*12.5) + "%";
-      cell.style.top = (y*12.5) + "%";
-      cell.onclick = ()=>clickCell(sq);
+      cell.className="square";
+      cell.style.left=(x*12.5)+"%";
+      cell.style.top=(y*12.5)+"%";
 
-      clickLayer.appendChild(cell);
+      if(selected === sq) cell.classList.add("selected");
+      if(possibleMoves.includes(sq)) cell.classList.add("move");
+
+      cell.onclick=()=>clickCell(sq);
+      c.appendChild(cell);
 
       if(piece){
+        const wrapper=document.createElement("div");
+        wrapper.className="piece";
+        wrapper.style.left=(x*12.5)+"%";
+        wrapper.style.top=(y*12.5)+"%";
 
-        const wrapper = document.createElement("div");
-        wrapper.className = "piece";
-        wrapper.style.left = (x*12.5) + "%";
-        wrapper.style.top = (y*12.5) + "%";
-
-        const img = document.createElement("img");
-        const key = piece.color + piece.type.toUpperCase();
-
-        img.src = "/chess/pieces/" + pieceMap[key];
+        const img=document.createElement("img");
+        const key=piece.color+piece.type.toUpperCase();
+        img.src="/chess/pieces/"+pieceMap[key];
 
         wrapper.appendChild(img);
-        piecesLayer.appendChild(wrapper);
+        p.appendChild(wrapper);
       }
     }
   }
 }
 
 /* MOVE */
-
 function clickCell(sq){
 
   if(game.turn() !== playerColor) return;
 
   if(!selected){
-    if(game.moves({square:sq}).length === 0) return;
+    const moves = game.moves({square:sq, verbose:true});
+    if(moves.length === 0) return;
+
     selected = sq;
-  } else {
+    possibleMoves = moves.map(m=>m.to);
+
+  }else{
 
     const move = game.move({
       from:selected,
@@ -287,12 +218,15 @@ function clickCell(sq){
     });
 
     selected = null;
+    possibleMoves = [];
 
     if(move){
       socket.emit("chess_move",{fen:game.fen()});
-      draw();
     }
   }
+
+  updateUI();
+  draw();
 }
 
 draw();
