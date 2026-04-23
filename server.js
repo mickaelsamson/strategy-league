@@ -44,6 +44,7 @@ app.post('/api/register', async (req,res)=>{
     res.send({success:true});
 
   }catch(err){
+    console.log(err);
     res.status(500).send({error:"Server error"});
   }
 });
@@ -71,14 +72,19 @@ app.post('/api/login', async (req,res)=>{
     });
 
   }catch(err){
+    console.log(err);
     res.status(500).send({error:"Server error"});
   }
 });
 
 /* LEADERBOARD */
 app.get('/api/stats', async (req,res)=>{
-  const users = await User.find().sort({xp:-1});
-  res.send(users);
+  try{
+    const users = await User.find().sort({xp:-1});
+    res.send(users);
+  }catch(err){
+    res.status(500).send([]);
+  }
 });
 
 /* ===== GAME ===== */
@@ -99,6 +105,7 @@ function createGame(id){
   };
 }
 
+/* TIMER */
 function startTimer(g){
   if(g.timer) clearInterval(g.timer);
 
@@ -114,13 +121,22 @@ function startTimer(g){
   },1000);
 }
 
+/* ✅ FIX ICI : on envoie un objet propre */
 function sendState(g){
-  io.to(g.id).emit('state', g);
+  io.to(g.id).emit('state', {
+    players: g.players,
+    turn: g.turn,
+    timeLeft: g.timeLeft,
+    territories: g.territories
+  });
 }
 
+/* SOCKET */
 io.on('connection',socket=>{
 
   socket.on('create',name=>{
+    if(!name) return;
+
     let id=Math.random().toString(36).substr(2,4).toUpperCase();
     let g=createGame(id);
 
@@ -132,6 +148,8 @@ io.on('connection',socket=>{
     socket.playerIndex=0;
 
     startTimer(g);
+
+    socket.emit('created',id);
     sendState(g);
   });
 
@@ -142,14 +160,18 @@ io.on('connection',socket=>{
     let f=g.territories[from];
     let t=g.territories[to];
 
+    if(!f || !t) return;
+
     if(f.owner===socket.playerIndex){
 
       if(f.troops>t.troops){
         t.owner=socket.playerIndex;
         t.troops=f.troops-1;
         f.troops=1;
+
+        io.to(g.id).emit("attack",{to});
       } else {
-        f.troops--;
+        f.troops=Math.max(1, f.troops-1);
       }
 
       g.turn=(g.turn+1)%g.players.length;
@@ -163,12 +185,18 @@ io.on('connection',socket=>{
 
 /* START SERVER AFTER MONGO */
 async function startServer(){
-  await mongoose.connect(process.env.MONGO_URI);
-  console.log("Mongo connected");
+  try{
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("Mongo connected");
 
-  http.listen(process.env.PORT||3000, ()=>{
-    console.log("Server running");
-  });
+    http.listen(process.env.PORT||3000, ()=>{
+      console.log("Server running");
+    });
+
+  }catch(err){
+    console.log("Mongo ERROR:", err.message);
+    process.exit(1);
+  }
 }
 
 startServer();
