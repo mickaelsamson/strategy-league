@@ -1,1 +1,11 @@
-body{background:#020617;color:white;font-family:Arial}
+body{
+  background:#020617;
+  color:white;
+  font-family:Arial;
+  padding:20px;
+}
+
+input, button{
+  padding:10px;
+  margin:5px;
+}
