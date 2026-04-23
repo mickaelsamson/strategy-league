@@ -205,7 +205,6 @@ async function startServer(){
   }
 }
 
-startServer();
 
 /* ===== CHESS MULTIPLAYER ===== */
 
@@ -277,3 +276,5 @@ io.on('connection', socket => {
   });
 
 });
+
+startServer();
