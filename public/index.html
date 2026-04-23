@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Strategy Hub</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background: radial-gradient(circle at top, #0f172a, #020617);
+  color:white;
+}
+
+/* HEADER */
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:20px 40px;
+}
+
+.logo{
+  font-size:28px;
+  font-weight:bold;
+  color:#facc15;
+}
+
+.player{
+  background:#111827;
+  padding:10px 20px;
+  border-radius:12px;
+  box-shadow:0 0 10px rgba(0,0,0,0.5);
+}
+
+/* MAIN */
+.container{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:70vh;
+  gap:30px;
+}
+
+/* CARDS */
+.card{
+  width:260px;
+  height:180px;
+  background: linear-gradient(145deg,#1f2937,#020617);
+  border-radius:20px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  cursor:pointer;
+  transition:0.3s;
+  box-shadow:0 0 20px rgba(0,0,0,0.6);
+}
+
+.card:hover{
+  transform:scale(1.1);
+  box-shadow:0 0 25px rgba(250,204,21,0.6);
+}
+
+.icon{
+  font-size:40px;
+  margin-bottom:10px;
+}
+
+.title{
+  font-size:20px;
+  font-weight:bold;
+}
+
+.subtitle{
+  font-size:13px;
+  opacity:0.7;
+}
+
+/* BUTTON */
+button{
+  padding:10px 20px;
+  border:none;
+  border-radius:10px;
+  background:#3b82f6;
+  color:white;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+button:hover{
+  background:#2563eb;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="header">
+  <div class="logo">👑 Strategy Hub</div>
+  <div class="player" id="playerName">Guest</div>
+</div>
+
+<div class="container">
+
+  <div class="card" onclick="play()">
+    <div class="icon">⚔️</div>
+    <div class="title">Battle</div>
+    <div class="subtitle">Start a match</div>
+  </div>
+
+  <div class="card" onclick="leaderboard()">
+    <div class="icon">🏆</div>
+    <div class="title">Leaderboard</div>
+    <div class="subtitle">Top players</div>
+  </div>
+
+  <div class="card" onclick="profile()">
+    <div class="icon">👤</div>
+    <div class="title">Profile</div>
+    <div class="subtitle">Your stats</div>
+  </div>
+
+</div>
+
+<script>
+
+/* LOAD USER */
+const user = localStorage.getItem("user");
+if(user){
+  document.getElementById("playerName").innerText = user;
+}
+
+/* NAV */
+function play(){
+  window.location.href="/game.html";
+}
+
+function leaderboard(){
+  window.location.href="/leaderboard.html";
+}
+
+function profile(){
+  alert("Coming soon 👀");
+}
+
+</script>
+
+</body>
+</html>
