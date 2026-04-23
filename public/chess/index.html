@@ -8,7 +8,6 @@
 
 <style>
 body{margin:0;background:#020617;color:white;font-family:Arial;display:flex;}
-
 #main{flex:1;text-align:center;}
 #sidebar{width:260px;background:#111827;padding:10px;}
 
@@ -40,11 +39,7 @@ body{margin:0;background:#020617;color:white;font-family:Arial;display:flex;}
 
 .selected{outline:3px solid #3b82f6;}
 .move{background:rgba(34,197,94,0.4);border-radius:50%;}
-
-/* 🔥 ROI EN ECHEC */
-.check{
-  background:rgba(239,68,68,0.6);
-}
+.check{background:rgba(239,68,68,0.6);}
 
 .piece{
   position:absolute;
@@ -60,19 +55,8 @@ body{margin:0;background:#020617;color:white;font-family:Arial;display:flex;}
 }
 
 /* UI */
-.player{
-  padding:8px;
-  border-bottom:1px solid #1f2937;
-  cursor:pointer;
-}
-
-.lobby{
-  background:#1f2937;
-  margin:10px;
-  padding:10px;
-  border-radius:10px;
-}
-
+.player{padding:8px;border-bottom:1px solid #1f2937;}
+.lobby{background:#1f2937;margin:10px;padding:10px;border-radius:10px;}
 #turn{margin:10px;font-size:18px;}
 #status{color:#facc15;}
 </style>
@@ -122,14 +106,13 @@ if(user){
   socket.emit("register_online", user.username);
 }
 
-/* GAME */
 let game = new Chess();
 let selected = null;
 let possibleMoves = [];
 let playerColor = null;
 
-let myName = user?.username || "You";
-let opponentName = "Opponent";
+let myName = "";
+let opponentName = "";
 
 /* PIECES */
 const pieceMap = {
@@ -139,50 +122,31 @@ const pieceMap = {
   bB:"bB.svg", bQ:"bQ.svg", bK:"bK.svg"
 };
 
-/* ================= PLAYERS ONLINE ================= */
-
-window.onlineUsers = {};
-
+/* PLAYERS */
 socket.on("online_users", users=>{
-  window.onlineUsers = users;
-
   document.getElementById("players").innerHTML =
     Object.entries(users).map(([name,data])=>`
-      <div class="player">
-        ${name} (${data.elo})
-      </div>
+      <div class="player">${name} (${data.elo})</div>
     `).join("");
 });
 
-/* ================= LOBBIES ================= */
-
+/* LOBBIES */
 socket.on("lobbies_update", lobbies=>{
-
-  window.currentLobbies = lobbies;
-
   const list = Object.values(lobbies);
 
   document.getElementById("lobbies").innerHTML =
-    list.length === 0 ? "<p>No lobbies</p>" :
     list.map(l=>{
-
-      const players = l.players.map(p=>
-        `${p.username} ${p.ready ? "✅" : "❌"}`
-      ).join(", ");
-
       const me = l.players.find(p=>p.username===user.username);
 
       return `
         <div class="lobby">
-          <b>${l.name}</b> (${l.time}s)<br>
-          Players: ${players}<br>
+          ${l.name} (${l.time}s)<br>
+          Players: ${l.players.map(p=>p.username + (p.ready?" ✅":" ❌")).join(",")}<br>
 
           ${
             !me
             ? `<button onclick="join('${l.id}')">Join</button>`
-            : `<button onclick="toggleReady('${l.id}')">
-                ${me.ready ? "Unready" : "Ready"}
-              </button>`
+            : `<button onclick="toggleReady('${l.id}')">Ready</button>`
           }
         </div>
       `;
@@ -204,12 +168,21 @@ function toggleReady(id){
   socket.emit("toggle_ready", id);
 }
 
-/* ================= GAME ================= */
+/* GAME */
 
 socket.on("chess_start", data=>{
   playerColor = data.color;
 
-  opponentName = (playerColor === 'w') ? "Black" : "White";
+  const white = data.players.white;
+  const black = data.players.black;
+
+  if(playerColor === 'w'){
+    myName = white;
+    opponentName = black;
+  }else{
+    myName = black;
+    opponentName = white;
+  }
 
   game.reset();
   updateUI();
@@ -221,8 +194,6 @@ socket.on("chess_update", data=>{
   updateUI();
   draw();
 });
-
-/* ================= UI ================= */
 
 function updateUI(){
 
@@ -251,22 +222,20 @@ function updateUI(){
   }
 }
 
-/* 🔥 FIND KING IN CHECK */
+/* KING CHECK */
 function getKingSquare(color){
   const board = game.board();
-
   for(let y=0;y<8;y++){
     for(let x=0;x<8;x++){
       const piece = board[y][x];
-      if(piece && piece.type === 'k' && piece.color === color){
+      if(piece && piece.type==='k' && piece.color===color){
         return String.fromCharCode(97+x)+(8-y);
       }
     }
   }
-  return null;
 }
 
-/* ================= DRAW ================= */
+/* DRAW */
 
 function draw(){
 
@@ -279,7 +248,6 @@ function draw(){
   const board = game.board();
 
   let checkSquare = null;
-
   if(game.in_check()){
     checkSquare = getKingSquare(game.turn());
   }
@@ -295,13 +263,9 @@ function draw(){
       cell.style.left=(x*12.5)+"%";
       cell.style.top=(y*12.5)+"%";
 
-      if(selected === sq) cell.classList.add("selected");
+      if(selected===sq) cell.classList.add("selected");
       if(possibleMoves.includes(sq)) cell.classList.add("move");
-
-      /* 🔥 ROI EN ROUGE */
-      if(sq === checkSquare){
-        cell.classList.add("check");
-      }
+      if(sq===checkSquare) cell.classList.add("check");
 
       cell.onclick=()=>clickCell(sq);
       c.appendChild(cell);
@@ -313,8 +277,7 @@ function draw(){
         wrapper.style.top=(y*12.5)+"%";
 
         const img=document.createElement("img");
-        const key=piece.color+piece.type.toUpperCase();
-        img.src="/chess/pieces/"+pieceMap[key];
+        img.src="/chess/pieces/"+pieceMap[piece.color+piece.type.toUpperCase()];
 
         wrapper.appendChild(img);
         p.appendChild(wrapper);
@@ -323,15 +286,13 @@ function draw(){
   }
 }
 
-/* ================= MOVE ================= */
-
 function clickCell(sq){
 
   if(game.turn() !== playerColor) return;
 
   if(!selected){
     const moves = game.moves({square:sq, verbose:true});
-    if(moves.length === 0) return;
+    if(moves.length===0) return;
 
     selected = sq;
     possibleMoves = moves.map(m=>m.to);
@@ -359,6 +320,5 @@ function clickCell(sq){
 draw();
 
 </script>
-
 </body>
 </html>
