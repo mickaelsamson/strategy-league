@@ -75,7 +75,6 @@ button:hover{background:#2563eb;}
 <div id="status"></div>
 <div id="disconnectTimer"></div>
 
-<!-- LOBBY -->
 <div id="lobbyControls">
   <input id="name" placeholder="Lobby name">
   <select id="mode">
@@ -96,12 +95,10 @@ button:hover{background:#2563eb;}
   <div id="clickLayer"></div>
 </div>
 
-<!-- GAME BUTTON -->
 <div>
   <button id="resignBtn" onclick="resign()">Abandon</button>
 </div>
 
-<!-- END GAME -->
 <div>
   <button id="rematchBtn" onclick="rematch()">Rematch</button>
   <button id="endGameBtn" onclick="goMain()">Back to Main Menu</button>
@@ -132,7 +129,8 @@ let myName = "";
 let opponentName = "";
 let gameOver = false;
 
-/* PLAYERS */
+/* ================= PLAYERS ================= */
+
 socket.on("online_users", users=>{
   document.getElementById("players").innerHTML =
     Object.entries(users).map(([name,data])=>`
@@ -140,7 +138,8 @@ socket.on("online_users", users=>{
     `).join("");
 });
 
-/* LOBBIES */
+/* ================= LOBBIES ================= */
+
 socket.on("lobbies_update", lobbies=>{
   const list = Object.values(lobbies);
 
@@ -173,7 +172,8 @@ function createLobby(){
 function join(id){ socket.emit("join_lobby", id); }
 function toggleReady(id){ socket.emit("toggle_ready", id); }
 
-/* GAME START */
+/* ================= GAME START ================= */
+
 socket.on("chess_start", data=>{
   gameOver = false;
 
@@ -194,13 +194,16 @@ socket.on("chess_start", data=>{
   draw();
 });
 
-/* UPDATE */
+/* ================= UPDATE ================= */
+
 socket.on("chess_update", data=>{
   if(data.fen) game.load(data.fen);
-  updateUI(); draw();
+  updateUI();
+  draw();
 });
 
-/* DISCONNECT */
+/* ================= DISCONNECT ================= */
+
 socket.on("opponent_disconnected", data=>{
   document.getElementById("status").innerText =
     "⚠️ " + data.player + " disconnected";
@@ -211,7 +214,8 @@ socket.on("disconnect_timer", data=>{
     data.time > 0 ? "Waiting: " + data.time + "s" : "";
 });
 
-/* END GAME */
+/* ================= END GAME ================= */
+
 function endGameUI(){
   gameOver = true;
   document.getElementById("resignBtn").style.display = "none";
@@ -225,7 +229,8 @@ socket.on("player_left", data=>{
   endGameUI();
 });
 
-/* REMATCH */
+/* ================= REMATCH ================= */
+
 function rematch(){
   socket.emit("rematch");
   document.getElementById("status").innerText = "Waiting for opponent...";
@@ -236,7 +241,8 @@ socket.on("rematch_requested", data=>{
     data.from + " wants a rematch";
 });
 
-/* UI */
+/* ================= UI ================= */
+
 function updateUI(){
 
   document.getElementById("turn").innerText =
@@ -255,15 +261,21 @@ function updateUI(){
   }
 }
 
-/* DRAW */
+/* ================= DRAW ================= */
+
 function draw(){
+
   const p=document.getElementById("piecesLayer");
   const c=document.getElementById("clickLayer");
-  p.innerHTML=""; c.innerHTML="";
+
+  p.innerHTML="";
+  c.innerHTML="";
+
   const board=game.board();
 
   for(let y=0;y<8;y++){
     for(let x=0;x<8;x++){
+
       const sq=String.fromCharCode(97+x)+(8-y);
       const piece=board[y][x];
 
@@ -271,6 +283,10 @@ function draw(){
       cell.className="square";
       cell.style.left=(x*12.5)+"%";
       cell.style.top=(y*12.5)+"%";
+
+      if(selected===sq) cell.classList.add("selected");
+      if(possibleMoves.includes(sq)) cell.classList.add("move");
+
       cell.onclick=()=>clickCell(sq);
       c.appendChild(cell);
 
@@ -290,7 +306,10 @@ function draw(){
   }
 }
 
+/* ================= MOVE ================= */
+
 function clickCell(sq){
+
   if(game.turn()!==playerColor || gameOver) return;
 
   if(!selected){
@@ -300,13 +319,20 @@ function clickCell(sq){
     possibleMoves=moves.map(m=>m.to);
   }else{
     const move=game.move({from:selected,to:sq,promotion:'q'});
-    selected=null; possibleMoves=[];
-    if(move) socket.emit("chess_move",{fen:game.fen()});
+    selected=null;
+    possibleMoves=[];
+
+    if(move){
+      socket.emit("chess_move",{fen:game.fen()});
+    }
   }
-  updateUI(); draw();
+
+  updateUI();
+  draw();
 }
 
-/* BUTTONS */
+/* ================= BUTTONS ================= */
+
 function resign(){
   if(confirm("Abandon game?")){
     socket.emit("resign");
