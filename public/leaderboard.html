@@ -40,6 +40,11 @@ button{
   color:gold;
   font-weight:bold;
 }
+
+.loading{
+  margin-top:20px;
+  color:#94a3b8;
+}
 </style>
 </head>
 
@@ -59,23 +64,37 @@ button{
 
 async function load(type){
 
-  const res = await fetch("/api/leaderboard/"+type);
-  const data = await res.json();
-
   const table = document.getElementById("table");
 
-  table.innerHTML = data.map((u,i)=>`
-    <div class="row ${i<3?'top':''}">
-      <span>#${i+1} ${u.username}</span>
-      <span>${
-        type==='chess'?u.chessElo:
-        type==='strategy'?u.strategyPoints:
-        u.xp
-      }</span>
-    </div>
-  `).join("");
+  table.innerHTML = "<div class='loading'>Loading...</div>";
+
+  try{
+
+    const res = await fetch("/api/leaderboard/"+type);
+    const data = await res.json();
+
+    if(!data || data.length === 0){
+      table.innerHTML = "<div class='loading'>No players yet</div>";
+      return;
+    }
+
+    table.innerHTML = data.map((u,i)=>`
+      <div class="row ${i<3?'top':''}">
+        <span>#${i+1} ${u.username}</span>
+        <span>${
+          type==='chess'?u.chessElo:
+          type==='strategy'?u.strategyPoints:
+          u.xp
+        }</span>
+      </div>
+    `).join("");
+
+  }catch(e){
+    table.innerHTML = "<div class='loading'>Error loading leaderboard</div>";
+  }
 }
 
+/* LOAD DEFAULT */
 load("global");
 
 </script>
