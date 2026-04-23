@@ -154,7 +154,7 @@ io.on('connection', socket=>{
     update();
   });
 
-  /* 🔥 ABANDON */
+  /* 🔥 FIX ABANDON */
   socket.on("resign", ()=>{
 
     const username = socket.username;
@@ -165,11 +165,14 @@ io.on('connection', socket=>{
 
     const opponent = game.players.find(p=>p.username !== username);
 
-    if(opponent){
-      io.to(opponent.id).emit("player_left",{
-        winner: opponent.username
-      });
-    }
+    game.players.forEach(p=>{
+      const s = io.sockets.sockets.get(p.id);
+      if(s){
+        s.emit("player_left",{
+          winner: opponent.username
+        });
+      }
+    });
 
     delete chessGames[gameId];
     delete playerGames[username];
@@ -240,7 +243,6 @@ io.on('connection', socket=>{
 
         s.emit("chess_start",{
           color:s.color,
-          time:l.time,
           players:{
             white:p1.username,
             black:p2.username
@@ -253,7 +255,6 @@ io.on('connection', socket=>{
     }
   });
 
-  /* MOVE */
   socket.on("chess_move", ({fen})=>{
     const g = chessGames[socket.chessGame];
     if(!g) return;
@@ -268,15 +269,9 @@ io.on('connection', socket=>{
 
 });
 
-/* ================= START ================= */
-
 async function startServer(){
   await mongoose.connect(process.env.MONGO_URI);
-  console.log("Mongo connected");
-
-  http.listen(process.env.PORT||3000, ()=>{
-    console.log("Server running");
-  });
+  http.listen(process.env.PORT||3000);
 }
 
 startServer();
