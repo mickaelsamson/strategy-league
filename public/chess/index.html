@@ -1,19 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Chess</title>
+<title>Chess Lobby</title>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.11.0/chess.min.js"></script>
 
 <style>
 body{
-  background: radial-gradient(circle at top, #0f172a, #020617);
+  margin:0;
+  background: radial-gradient(circle at top,#0f172a,#020617);
   color:white;
   font-family:Arial;
   text-align:center;
 }
 
+/* LOBBY */
+#lobby{
+  margin:20px;
+}
+
+.player{
+  margin:5px;
+}
+
+button{
+  padding:8px 12px;
+  margin:5px;
+  border-radius:8px;
+  cursor:pointer;
+  background:#1f2937;
+  color:white;
+}
+
+button:hover{
+  background:#374151;
+}
+
+/* BOARD */
 #board{
   width:480px;
   margin:auto;
@@ -32,20 +56,30 @@ body{
 
 .white{background:#eee;color:black;}
 .black{background:#444;}
-
-button{
-  padding:8px;
-  margin:5px;
-}
 </style>
 </head>
 
 <body>
 
-<h2>♟️ Chess</h2>
+<h2>♟️ Chess Lobby</h2>
 
+<!-- TIME SELECT -->
+<div>
+  Time:
+  <select id="time">
+    <option value="60">1 min</option>
+    <option value="300" selected>5 min</option>
+    <option value="600">10 min</option>
+  </select>
+</div>
+
+<!-- ONLINE PLAYERS -->
 <div id="lobby"></div>
+
+<!-- STATUS -->
 <div id="status"></div>
+
+<!-- BOARD -->
 <div id="board"></div>
 
 <button onclick="rematch()">Rematch</button>
@@ -60,43 +94,46 @@ let playerColor = null;
 const user = JSON.parse(localStorage.getItem("user"));
 
 socket.emit("register_online", user.username);
-socket.emit("chess_lobby_join");
 
-/* ONLINE */
+/* ONLINE PLAYERS */
 socket.on("online_users", users=>{
   document.getElementById("lobby").innerHTML =
-    "<h3>Online</h3>" +
+    "<h3>Players</h3>" +
     users.map(u => `
-      ${u}
-      ${u !== user.username ? `<button onclick="invite('${u}')">Invite</button>`:""}
-      <br>
+      <div class="player">
+        ${u}
+        ${u !== user.username ?
+          `<button onclick="invite('${u}')">Invite</button>`:""}
+      </div>
     `).join("");
 });
 
+/* INVITE */
 function invite(name){
-  socket.emit("invite_player", name);
+  const time = parseInt(document.getElementById("time").value);
+
+  socket.emit("invite_player", {
+    target:name,
+    time
+  });
 }
 
-socket.on("invite_received", from=>{
-  if(confirm(from+" invited you")){
-    socket.emit("accept_invite", from);
+/* RECEIVE INVITE */
+socket.on("invite_received", data=>{
+  if(confirm(`${data.from} invites you (${data.time}s). Accept?`)){
+    socket.emit("accept_invite", {
+      opponent:data.from,
+      time:data.time
+    });
   }
 });
-
-/* LOBBY */
-socket.on("chess_lobby", players=>{
-  document.getElementById("status").innerHTML =
-    players.map(p=>`${p.name} ${p.ready?'✅':'❌'}`).join("<br>") +
-    `<br><button onclick="ready()">Ready</button>`;
-});
-
-function ready(){
-  socket.emit("chess_ready");
-}
 
 /* START */
 socket.on("chess_start", data=>{
   playerColor = data.color;
+  document.getElementById("status").innerText =
+    "Game started ("+(playerColor==='w'?'White':'Black')+")";
+
   draw();
 });
 
@@ -110,7 +147,8 @@ socket.on("chess_update", data=>{
 socket.on("chess_timer", players=>{
   const me = players.find(p=>p.color===playerColor);
   if(me){
-    document.getElementById("status").innerText = "Time: "+me.time;
+    document.getElementById("status").innerText =
+      "Time: "+me.time+"s";
   }
 });
 
@@ -126,7 +164,6 @@ function rematch(){
 
 /* DRAW */
 function draw(){
-
   const el=document.getElementById("board");
   el.innerHTML="";
 
@@ -164,7 +201,11 @@ function clickCell(sq){
     selected=null;
 
     if(move){
-      socket.emit("chess_move",{from:move.from,to:move.to,fen:game.fen()});
+      socket.emit("chess_move",{
+        from:move.from,
+        to:move.to,
+        fen:game.fen()
+      });
       draw();
     }
   }
