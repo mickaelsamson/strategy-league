@@ -15,13 +15,11 @@ body{
   display:flex;
 }
 
-/* MAIN */
 #main{
   flex:1;
   text-align:center;
 }
 
-/* SIDEBAR */
 #sidebar{
   width:260px;
   background:#111827;
@@ -48,7 +46,7 @@ body{
   height:100%;
 }
 
-/* CLICK GRID */
+/* CLICK */
 .square{
   position:absolute;
   width:64px;
@@ -89,7 +87,6 @@ body{
 
 <h2>♟️ Chess</h2>
 
-<!-- LOBBY -->
 <div id="lobbyControls">
   <input id="name" placeholder="Lobby name">
 
@@ -103,10 +100,8 @@ body{
   <button onclick="createLobby()">Create</button>
 </div>
 
-<!-- TIMER -->
 <div id="timerBar"><div id="timerFill"></div></div>
 
-<!-- BOARD -->
 <div id="boardWrapper">
   <img src="board.png" id="boardImg">
   <div id="piecesLayer"></div>
@@ -129,14 +124,13 @@ const user = JSON.parse(localStorage.getItem("user"));
 
 socket.emit("register_online", user.username);
 
-/* ================= GAME ================= */
-
+/* GAME */
 let game = new Chess();
 let selected = null;
 let playerColor = null;
 let totalTime = 60;
 
-/* PIECES MAP */
+/* 🔥 FIXED PIECE MAP */
 const pieceMap = {
   wP:"wP.svg", wR:"wR.svg", wN:"wN.svg",
   wB:"wB.svg", wQ:"wQ.svg", wK:"wK.svg",
@@ -144,14 +138,13 @@ const pieceMap = {
   bB:"bB.svg", bQ:"bQ.svg", bK:"bK.svg"
 };
 
-/* ================= SOCKET ================= */
+/* SOCKET */
 
 socket.on("chess_start", data=>{
   playerColor = data.color;
   totalTime = data.time;
 
   document.getElementById("lobbyControls").style.display="none";
-
   draw();
 });
 
@@ -172,7 +165,7 @@ socket.on("chess_end", ()=>{
   document.getElementById("lobbyControls").style.display="block";
 });
 
-/* ================= DRAW ================= */
+/* DRAW */
 
 function draw(){
 
@@ -191,7 +184,7 @@ function draw(){
       const sq = String.fromCharCode(97+x)+(8-y);
       const piece = board[y][x];
 
-      /* CLICK LAYER */
+      /* CLICK */
       const cell = document.createElement("div");
       cell.className = "square";
       cell.style.left = (x*size) + "px";
@@ -201,14 +194,16 @@ function draw(){
 
       clickLayer.appendChild(cell);
 
-      /* PIECES */
+      /* PIECE */
       if(piece){
         const img = document.createElement("img");
 
-        const key = piece.color.toUpperCase() + piece.type.toUpperCase();
-        img.src = "pieces/" + pieceMap[key];
+        /* 🔥 FIX ICI */
+        const key = piece.color + piece.type.toUpperCase();
 
+        img.src = "pieces/" + pieceMap[key];
         img.className = "piece";
+
         img.style.left = (x*size) + "px";
         img.style.top = (y*size) + "px";
 
@@ -219,7 +214,7 @@ function draw(){
   }
 }
 
-/* ================= MOVE ================= */
+/* MOVE */
 
 function clickCell(sq){
 
@@ -249,7 +244,7 @@ function clickCell(sq){
   }
 }
 
-/* ================= LOBBY ================= */
+/* LOBBY */
 
 function createLobby(){
   socket.emit("create_lobby",{
