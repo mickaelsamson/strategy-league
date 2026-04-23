@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Login</title>
+</head>
+
+<body style="background:#020617;color:white;text-align:center;font-family:Arial;">
+
+<h2>🔐 Login / Register</h2>
+
+<input id="email" placeholder="Email"><br>
+<input id="password" type="password" placeholder="Password"><br>
+<input id="firstName" placeholder="First Name"><br>
+<input id="lastName" placeholder="Last Name"><br>
+<input id="username" placeholder="Username"><br>
+
+<button onclick="login()">Login</button>
+<button onclick="register()">Register</button>
+
+<script>
+
+function login(){
+  fetch('/api/login',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      email:email.value,
+      password:password.value
+    })
+  })
+  .then(r=>r.json())
+  .then(u=>{
+    if(u.error) return alert(u.error);
+
+    localStorage.setItem("user", JSON.stringify(u));
+    window.location.href="/";
+  });
+}
+
+function register(){
+  fetch('/api/register',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      email:email.value,
+      password:password.value,
+      firstName:firstName.value,
+      lastName:lastName.value,
+      username:username.value
+    })
+  })
+  .then(r=>r.json())
+  .then(res=>{
+    if(res.error) alert(res.error);
+    else alert("Account created!");
+  });
+}
+
+</script>
+
+</body>
+</html>
