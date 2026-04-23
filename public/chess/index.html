@@ -3,90 +3,48 @@
 <head>
 <title>Chess Multiplayer</title>
 
-<!-- SOCKET -->
 <script src="/socket.io/socket.io.js"></script>
-
-<!-- CHESS ENGINE -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.11.0/chess.min.js"></script>
 
 <style>
 body{
-  margin:0;
-  background: radial-gradient(circle at top, #0f172a, #020617);
+  background:#020617;
   color:white;
-  font-family:Arial;
   text-align:center;
+  font-family:Arial;
 }
 
-/* HEADER */
-.header{
-  display:flex;
-  justify-content:space-between;
-  padding:15px 25px;
-}
-
-#player{
-  font-weight:bold;
-}
-
-/* STATUS */
-#status{
-  margin-top:10px;
-  font-size:18px;
-}
-
-/* BOARD */
 #board{
-  width:520px;
-  height:520px;
-  margin:30px auto;
+  width:480px;
+  margin:auto;
   display:grid;
   grid-template-columns:repeat(8,1fr);
-  border-radius:10px;
-  overflow:hidden;
-  box-shadow:0 0 30px rgba(0,0,0,0.6);
 }
 
-/* CELLS */
 .cell{
-  width:65px;
-  height:65px;
+  width:60px;
+  height:60px;
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:34px;
-  cursor:pointer;
-  user-select:none;
+  font-size:30px;
 }
 
-.white{ background:#f0d9b5; color:black; }
-.black{ background:#b58863; }
+.white{background:#eee;color:black;}
+.black{background:#444;}
 
-.selected{
-  outline:4px solid yellow;
-}
-
-.move{
-  box-shadow:inset 0 0 15px rgba(255,255,0,0.7);
-}
-
-.capture{
-  box-shadow:inset 0 0 15px rgba(255,0,0,0.7);
+button{
+  margin:10px;
+  padding:10px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="header">
-  <div id="player"></div>
-  <button onclick="logout()">Logout</button>
-</div>
+<h2>♟️ Chess Lobby</h2>
 
-<h2>♟️ Multiplayer Chess</h2>
-
-<div id="status">Connecting...</div>
-
+<div id="status"></div>
 <div id="board"></div>
 
 <script>
@@ -96,172 +54,81 @@ let game = new Chess();
 let selected = null;
 let playerColor = null;
 
-/* SESSION */
 const user = JSON.parse(localStorage.getItem("user"));
+socket.emit("chess_lobby_join", user.username);
 
-if(!user){
-  window.location.href="/login.html";
-}else{
-  document.getElementById("player").innerText = "👑 " + user.username;
+function toggleReady(){
+  socket.emit("chess_ready");
 }
 
-/* LOGOUT */
-function logout(){
-  localStorage.removeItem("user");
-  window.location.href="/login.html";
-}
+socket.on("chess_lobby", players=>{
+  document.getElementById("status").innerHTML =
+    players.map(p=>`${p.name} ${p.ready?'✅':'❌'}`).join("<br>") +
+    `<br><button onclick="toggleReady()">Ready</button>`;
+});
 
-/* JOIN GAME */
-socket.emit("chess_join", user.username);
-
-/* START */
 socket.on("chess_start", data=>{
   playerColor = data.color;
-
-  if(data.fen){
-    game.load(data.fen);
-  }
-
-  updateStatus();
+  document.getElementById("status").innerText = "Game started ("+playerColor+")";
   draw();
 });
 
-/* UPDATE FROM SERVER */
 socket.on("chess_update", data=>{
   game.load(data.fen);
-  updateStatus();
   draw();
 });
 
-/* FULL */
-socket.on("chess_full", ()=>{
-  document.getElementById("status").innerText = "Game full ❌";
+socket.on("chess_timer", players=>{
+  const me = players.find(p=>p.color===playerColor);
+  if(me){
+    document.getElementById("status").innerText = "Time: "+me.time;
+  }
 });
 
-/* DRAW BOARD */
+socket.on("chess_end", data=>{
+  alert("Winner: "+data.winner);
+});
+
 function draw(){
+  const el=document.getElementById("board");
+  el.innerHTML="";
 
-  const board = document.getElementById("board");
-  board.innerHTML = "";
-
-  const state = game.board();
+  const state=game.board();
 
   for(let y=0;y<8;y++){
     for(let x=0;x<8;x++){
+      const c=document.createElement("div");
+      c.className="cell "+((x+y)%2?"black":"white");
 
-      const cell = document.createElement("div");
-      cell.className = "cell " + ((x+y)%2 ? "black":"white");
+      const p=state[y][x];
+      c.innerText=p?p.type:"";
 
-      const piece = state[y][x];
+      const sq=String.fromCharCode(97+x)+(8-y);
 
-      if(piece){
-        const symbols = {
-          p:"♟", r:"♜", n:"♞", b:"♝", q:"♛", k:"♚",
-          P:"♙", R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔"
-        };
+      c.onclick=()=>clickCell(sq);
 
-        const key = piece.color === 'w'
-          ? piece.type.toUpperCase()
-          : piece.type;
-
-        cell.innerText = symbols[key];
-      }
-
-      const square = String.fromCharCode(97+x) + (8-y);
-
-      cell.onclick = ()=>clickCell(square, cell);
-
-      board.appendChild(cell);
+      el.appendChild(c);
     }
   }
 }
 
-/* CLICK */
-function clickCell(square, cell){
+function clickCell(sq){
 
-  if(game.turn() !== playerColor) return;
+  if(game.turn()!==playerColor) return;
 
-  if(selected === null){
-
-    const moves = game.moves({square, verbose:true});
-    if(moves.length === 0) return;
-
-    selected = square;
-    cell.classList.add("selected");
-
-    highlightMoves(moves);
-
+  if(!selected){
+    if(game.moves({square:sq}).length===0) return;
+    selected=sq;
   } else {
 
-    const move = game.move({
-      from:selected,
-      to:square,
-      promotion:'q'
-    });
-
-    clearHighlights();
-    selected = null;
+    const move=game.move({from:selected,to:sq,promotion:'q'});
+    selected=null;
 
     if(move){
-      socket.emit("chess_move", {
-        from: move.from,
-        to: move.to,
-        fen: game.fen()
-      });
-
+      socket.emit("chess_move",{from:move.from,to:move.to,fen:game.fen()});
       draw();
     }
   }
-}
-
-/* HIGHLIGHT */
-function highlightMoves(moves){
-  moves.forEach(m=>{
-    const index = squareToIndex(m.to);
-    const target = document.getElementById("board").children[index];
-
-    if(m.captured){
-      target.classList.add("capture");
-    } else {
-      target.classList.add("move");
-    }
-  });
-}
-
-/* CLEAR */
-function clearHighlights(){
-  document.querySelectorAll(".cell").forEach(c=>{
-    c.classList.remove("selected","move","capture");
-  });
-}
-
-/* UTILS */
-function squareToIndex(sq){
-  const file = sq.charCodeAt(0) - 97;
-  const rank = 8 - parseInt(sq[1]);
-  return rank * 8 + file;
-}
-
-/* STATUS */
-function updateStatus(){
-
-  let text = "";
-
-  if(!playerColor){
-    text = "Waiting for opponent...";
-  }
-  else if(game.in_checkmate()){
-    text = "♛ Checkmate!";
-  }
-  else if(game.in_check()){
-    text = "⚠ Check!";
-  }
-  else{
-    const turn = game.turn() === playerColor ? "Your turn" : "Opponent turn";
-    text = (playerColor === 'w' ? "White" : "Black") + " • " + turn;
-  }
-
-  document.getElementById("status").innerText = text;
 }
 
 </script>
