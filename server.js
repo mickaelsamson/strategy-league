@@ -1,3 +1,89 @@
+const express = require('express');
+const app = express();
+
+const http = require('http').createServer(app);
+const io = require('socket.io')(http); // 🔥 IMPORTANT (doit être ici)
+
+const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
+
+const User = require('./models/User');
+
+app.use(express.json());
+app.use(express.static('public'));
+
+app.get('/', (req,res)=>{
+  res.sendFile('index.html', { root: 'public' });
+});
+
+/* ================= AUTH ================= */
+
+app.post('/api/register', async (req,res)=>{
+  try{
+    let {email, password, firstName, lastName, username} = req.body;
+
+    if(!email || !password || !username){
+      return res.status(400).send({error:"Missing fields"});
+    }
+
+    email = email.toLowerCase().trim();
+
+    const exists = await User.findOne({email});
+    if(exists){
+      return res.status(400).send({error:"Email already used"});
+    }
+
+    const hashed = await bcrypt.hash(password,10);
+
+    await User.create({
+      email,
+      password: hashed,
+      firstName,
+      lastName,
+      username,
+      elo:1000
+    });
+
+    res.send({success:true});
+
+  }catch(err){
+    console.log("REGISTER ERROR:", err);
+    res.status(500).send({error:"Server error"});
+  }
+});
+
+app.post('/api/login', async (req,res)=>{
+  try{
+    let {email, password} = req.body;
+
+    if(!email || !password){
+      return res.status(400).send({error:"Missing fields"});
+    }
+
+    email = email.toLowerCase().trim();
+
+    const user = await User.findOne({email});
+    if(!user){
+      return res.status(400).send({error:"User not found"});
+    }
+
+    const valid = await bcrypt.compare(password, user.password);
+    if(!valid){
+      return res.status(400).send({error:"Wrong password"});
+    }
+
+    res.send({
+      username: user.username,
+      firstName: user.firstName,
+      elo: user.elo || 1000
+    });
+
+  }catch(err){
+    console.log("LOGIN ERROR:", err);
+    res.status(500).send({error:"Server error"});
+  }
+});
+
 /* ================= CHESS ================= */
 
 let onlineUsers = {};
@@ -185,3 +271,22 @@ io.on('connection', socket=>{
   });
 
 });
+
+/* ================= START ================= */
+
+async function startServer(){
+  try{
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("Mongo connected");
+
+    http.listen(process.env.PORT||3000, ()=>{
+      console.log("Server running");
+    });
+
+  }catch(err){
+    console.log("MONGO ERROR:", err.message);
+    process.exit(1);
+  }
+}
+
+startServer();
