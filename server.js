@@ -6,10 +6,6 @@ const mongoose = require('mongoose');
 
 const User = require('./models/User');
 
-mongoose.connect(process.env.MONGO_URI)
-.then(()=>console.log("Mongo connected"))
-.catch(err=>console.log("Mongo ERROR:", err.message));
-
 app.use(express.json());
 app.use(express.static('public'));
 
@@ -86,8 +82,12 @@ app.post('/api/login', async (req,res)=>{
 
 /* LEADERBOARD */
 app.get('/api/stats', async (req,res)=>{
-  const users = await User.find().sort({xp:-1});
-  res.send(users);
+  try{
+    const users = await User.find().sort({xp:-1});
+    res.send(users);
+  }catch(err){
+    res.status(500).send([]);
+  }
 });
 
 /* SOCKET */
@@ -142,6 +142,20 @@ io.on('connection',socket=>{
 
 });
 
-http.listen(process.env.PORT||3000, ()=>{
-  console.log("Server running");
-});
+/* 🔥 START SERVER ONLY AFTER MONGO */
+async function startServer(){
+  try{
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("Mongo connected");
+
+    http.listen(process.env.PORT||3000, ()=>{
+      console.log("Server running");
+    });
+
+  }catch(err){
+    console.log("Mongo ERROR:", err.message);
+    process.exit(1);
+  }
+}
+
+startServer();
