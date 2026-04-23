@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Strategy Hub</title>
+<title>Strategy Game</title>
 <script src="/socket.io/socket.io.js"></script>
 
 <style>
@@ -14,36 +14,19 @@ body{
 }
 
 .header{
-  font-size:24px;
-  padding:15px;
+  display:flex;
+  justify-content:space-between;
+  padding:10px 20px;
 }
 
-.auth{
-  margin:10px;
-}
-
-input{
-  padding:10px;
-  margin:5px;
-}
-
-button{
-  padding:10px 15px;
-  margin:5px;
-  cursor:pointer;
-}
-
-/* GAME */
 #gameContainer{
   position:relative;
-  width:100%;
   max-width:1000px;
   margin:auto;
 }
 
 #map{
   width:100%;
-  border-radius:10px;
 }
 
 .territory{
@@ -63,32 +46,22 @@ button{
   transform:scale(1.2);
 }
 
-/* COLORS */
 .blue{background:#3b82f6;}
 .red{background:#ef4444;}
 .green{background:#22c55e;}
 .purple{background:#a855f7;}
-
-#timer{margin:10px;}
-#leaderboard{margin:10px;}
 </style>
 
 </head>
 
 <body>
 
-<div class="header">🎮 Strategy Hub</div>
-
-<div class="auth">
-  <input id="usernameInput" placeholder="Username">
-  <input id="passwordInput" type="password" placeholder="Password">
-  <br>
-  <button onclick="login()">Login</button>
-  <button onclick="register()">Register</button>
+<div class="header">
+  <div id="player"></div>
+  <button onclick="logout()">Logout</button>
 </div>
 
 <div id="timer"></div>
-<div id="leaderboard"></div>
 
 <div id="gameContainer">
   <img id="map" src="map.png">
@@ -96,64 +69,23 @@ button{
 </div>
 
 <script>
-let socket = io();
+const socket = io();
 let selected = null;
 
-/* LOGIN */
-function login(){
+/* SESSION CHECK */
+const user = JSON.parse(localStorage.getItem("user"));
 
-  const username = document.getElementById("usernameInput").value.trim();
-  const password = document.getElementById("passwordInput").value.trim();
-
-  if(!username || !password){
-    alert("Fill all fields");
-    return;
-  }
-
-  fetch('/api/login',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({username,password})
-  })
-  .then(r=>r.json())
-  .then(u=>{
-    if(u.error){
-      alert(u.error);
-      return;
-    }
-
-    localStorage.setItem("user", u.username);
-    socket.emit("create", u.username);
-  })
-  .catch(err=>{
-    console.log("LOGIN ERROR:", err);
-  });
+if(!user){
+  window.location.href="/login.html";
+} else {
+  document.getElementById("player").innerText = user.username;
+  socket.emit("create", user.username);
 }
 
-/* REGISTER */
-function register(){
-
-  const username = document.getElementById("usernameInput").value.trim();
-  const password = document.getElementById("passwordInput").value.trim();
-
-  if(!username || !password){
-    alert("Fill all fields");
-    return;
-  }
-
-  fetch('/api/register',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({username,password})
-  })
-  .then(r=>r.json())
-  .then(res=>{
-    if(res.error){
-      alert(res.error);
-    } else {
-      alert("Account created!");
-    }
-  });
+/* LOGOUT */
+function logout(){
+  localStorage.removeItem("user");
+  window.location.href="/login.html";
 }
 
 /* POSITIONS */
@@ -196,17 +128,6 @@ socket.on("state", g=>{
 socket.on("timer",t=>{
   document.getElementById("timer").innerText="⏳ "+t;
 });
-
-/* LEADERBOARD */
-function loadLB(){
-  fetch('/api/stats')
-  .then(r=>r.json())
-  .then(data=>{
-    document.getElementById("leaderboard").innerHTML =
-      data.map((u,i)=>`${i+1}. ${u.username} — ${u.xp}`).join("<br>");
-  });
-}
-setInterval(loadLB,3000);
 
 /* FX */
 socket.on("attack",()=>{
