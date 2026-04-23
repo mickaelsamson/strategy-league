@@ -54,9 +54,9 @@ body{margin:0;background:#020617;color:white;font-family:Arial;display:flex;}
   height:80%;
 }
 
-/* UI */
 .player{padding:8px;border-bottom:1px solid #1f2937;}
 .lobby{background:#1f2937;margin:10px;padding:10px;border-radius:10px;}
+
 #turn{margin:10px;font-size:18px;}
 #status{color:#facc15;font-size:18px;}
 #disconnectTimer{color:#f87171;font-size:16px;margin:5px;}
@@ -70,8 +70,12 @@ button{
   color:white;
   cursor:pointer;
 }
-button:hover{
-  background:#2563eb;
+button:hover{background:#2563eb;}
+
+#endGameBtn{
+  display:none;
+  margin-top:10px;
+  background:#22c55e;
 }
 </style>
 </head>
@@ -105,10 +109,14 @@ button:hover{
   <div id="clickLayer"></div>
 </div>
 
-<!-- 🔥 UX BUTTONS -->
+<!-- 🔥 ABANDON (pendant game) -->
 <div>
-  <button onclick="resign()">Abandon</button>
-  <button onclick="goLobby()">Retour Lobby</button>
+  <button id="resignBtn" onclick="resign()">Abandon</button>
+</div>
+
+<!-- 🔥 FIN DE PARTIE -->
+<div>
+  <button id="endGameBtn" onclick="goMain()">Back to Main Menu</button>
 </div>
 
 </div>
@@ -134,6 +142,8 @@ let playerColor = null;
 
 let myName = "";
 let opponentName = "";
+
+let gameOver = false;
 
 /* PIECES */
 const pieceMap = {
@@ -189,9 +199,12 @@ function toggleReady(id){
   socket.emit("toggle_ready", id);
 }
 
-/* GAME */
-
+/* GAME START */
 socket.on("chess_start", data=>{
+  gameOver = false;
+  document.getElementById("endGameBtn").style.display = "none";
+  document.getElementById("resignBtn").style.display = "inline-block";
+
   playerColor = data.color;
 
   const white = data.players.white;
@@ -213,10 +226,15 @@ socket.on("chess_start", data=>{
   draw();
 });
 
+/* GAME UPDATE */
 socket.on("chess_update", data=>{
   if(data.fen) game.load(data.fen);
 
   document.getElementById("disconnectTimer").innerText = "";
+
+  if(!game.in_check() && !game.in_checkmate()){
+    document.getElementById("status").innerText = "";
+  }
 
   updateUI();
   draw();
@@ -240,11 +258,19 @@ socket.on("disconnect_timer", data=>{
   }
 });
 
+/* END GAME */
+function endGameUI(){
+  gameOver = true;
+  document.getElementById("resignBtn").style.display = "none";
+  document.getElementById("endGameBtn").style.display = "inline-block";
+}
+
 socket.on("player_left", data=>{
   document.getElementById("status").innerText =
-    "🏆 " + data.winner + " wins (opponent left)";
+    "🏆 " + data.winner + " wins";
 
   document.getElementById("disconnectTimer").innerText = "";
+  endGameUI();
 });
 
 /* UI */
@@ -266,6 +292,8 @@ function updateUI(){
 
     document.getElementById("status").innerText =
       "🏆 " + winner + " wins!";
+
+    endGameUI();
   }
   else if(game.in_check()){
     document.getElementById("status").innerText = "⚠️ CHECK!";
@@ -275,42 +303,22 @@ function updateUI(){
   }
 }
 
-/* KING CHECK */
-function getKingSquare(color){
-  const board = game.board();
-  for(let y=0;y<8;y++){
-    for(let x=0;x<8;x++){
-      const piece = board[y][x];
-      if(piece && piece.type==='k' && piece.color===color){
-        return String.fromCharCode(97+x)+(8-y);
-      }
-    }
-  }
-}
-
-/* DRAW */
+/* DRAW + MOVE identique */
 function draw(){
+  const p=document.getElementById("piecesLayer");
+  const c=document.getElementById("clickLayer");
+  p.innerHTML=""; c.innerHTML="";
+  const board=game.board();
 
-  const p = document.getElementById("piecesLayer");
-  const c = document.getElementById("clickLayer");
-
-  p.innerHTML="";
-  c.innerHTML="";
-
-  const board = game.board();
-
-  let checkSquare = null;
-  if(game.in_check()){
-    checkSquare = getKingSquare(game.turn());
-  }
+  let checkSquare=null;
+  if(game.in_check()) checkSquare=getKingSquare(game.turn());
 
   for(let y=0;y<8;y++){
     for(let x=0;x<8;x++){
+      const sq=String.fromCharCode(97+x)+(8-y);
+      const piece=board[y][x];
 
-      const sq = String.fromCharCode(97+x)+(8-y);
-      const piece = board[y][x];
-
-      const cell = document.createElement("div");
+      const cell=document.createElement("div");
       cell.className="square";
       cell.style.left=(x*12.5)+"%";
       cell.style.top=(y*12.5)+"%";
@@ -338,47 +346,45 @@ function draw(){
   }
 }
 
-/* MOVE */
 function clickCell(sq){
-
-  if(game.turn() !== playerColor) return;
+  if(game.turn()!==playerColor || gameOver) return;
 
   if(!selected){
-    const moves = game.moves({square:sq, verbose:true});
+    const moves=game.moves({square:sq,verbose:true});
     if(moves.length===0) return;
-
-    selected = sq;
-    possibleMoves = moves.map(m=>m.to);
-
+    selected=sq;
+    possibleMoves=moves.map(m=>m.to);
   }else{
-
-    const move = game.move({
-      from:selected,
-      to:sq,
-      promotion:'q'
-    });
-
-    selected = null;
-    possibleMoves = [];
-
+    const move=game.move({from:selected,to:sq,promotion:'q'});
+    selected=null; possibleMoves=[];
     if(move){
       socket.emit("chess_move",{fen:game.fen()});
     }
   }
-
-  updateUI();
-  draw();
+  updateUI(); draw();
 }
 
-/* UX BUTTONS */
+function getKingSquare(color){
+  const b=game.board();
+  for(let y=0;y<8;y++){
+    for(let x=0;x<8;x++){
+      const p=b[y][x];
+      if(p && p.type==='k' && p.color===color){
+        return String.fromCharCode(97+x)+(8-y);
+      }
+    }
+  }
+}
+
+/* BUTTONS */
 function resign(){
   if(confirm("Abandon game?")){
     socket.emit("resign");
   }
 }
 
-function goLobby(){
-  location.reload();
+function goMain(){
+  window.location.href = "/";
 }
 
 draw();
