@@ -6,7 +6,7 @@ const UserSchema = new mongoose.Schema({
 
   firstName: String,
   lastName: String,
-  username: String, // pseudo
+  username: { type: String, required: true },
 
   xp: { type: Number, default: 0 }
 });
