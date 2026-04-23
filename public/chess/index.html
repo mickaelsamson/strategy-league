@@ -9,45 +9,60 @@
 <style>
 body{
   margin:0;
-  background:#020617;
+  background: radial-gradient(circle,#0f172a,#020617);
   color:white;
   font-family:Arial;
   display:flex;
 }
 
-/* LEFT MAIN */
+/* MAIN */
 #main{
   flex:1;
   text-align:center;
 }
 
-/* RIGHT SIDEBAR */
+/* SIDEBAR */
 #sidebar{
-  width:200px;
+  width:250px;
   background:#111827;
   padding:10px;
-  border-left:2px solid #1f2937;
 }
 
 .player{
-  padding:6px;
+  padding:8px;
   border-bottom:1px solid #1f2937;
+  display:flex;
+  justify-content:space-between;
 }
+
+.player:hover{
+  background:#1f2937;
+}
+
+.status{
+  font-size:12px;
+}
+
+.idle{color:lightgreen;}
+.playing{color:red;}
 
 /* LOBBY */
 .lobby{
   background:#1f2937;
   margin:10px auto;
-  padding:10px;
-  border-radius:10px;
-  width:300px;
+  padding:15px;
+  border-radius:12px;
+  width:320px;
+  box-shadow:0 0 10px rgba(0,0,0,0.5);
 }
 
 button{
   margin:5px;
-  padding:8px;
+  padding:8px 12px;
   border-radius:8px;
+  cursor:pointer;
 }
+
 </style>
 </head>
 
@@ -73,9 +88,8 @@ button{
 
 </div>
 
-<!-- SIDEBAR -->
 <div id="sidebar">
-  <h3>Online</h3>
+  <h3>Players</h3>
   <div id="players"></div>
 </div>
 
@@ -88,8 +102,22 @@ socket.emit("register_online", user.username);
 
 /* ONLINE LIST */
 socket.on("online_users", users=>{
+
   document.getElementById("players").innerHTML =
-    users.map(u=>`<div class="player">${u}</div>`).join("");
+    Object.entries(users).map(([name,data])=>`
+      <div class="player">
+        <div>
+          ${name} (${data.elo})
+          <div class="status ${data.status}">
+            ${data.status}
+          </div>
+        </div>
+
+        ${name!==user.username ? 
+          `<button onclick="invite('${name}')">+</button>` : ""}
+      </div>
+    `).join("");
+
 });
 
 /* CREATE */
@@ -102,27 +130,41 @@ function createLobby(){
 
 /* LOBBIES */
 socket.on("lobbies_update", lobbies=>{
+
   document.getElementById("lobbies").innerHTML =
     Object.values(lobbies).map(l=>`
       <div class="lobby">
         <b>${l.name}</b> (${l.time}s)<br>
-        Players: ${l.players.map(p=>p.username).join(", ")}<br>
+        ${l.players.map(p=>p.username+" ("+p.elo+")").join(", ")}<br>
         <button onclick="join('${l.id}')">Join</button>
-        <button onclick="invite('${l.id}')">+ Invite</button>
+        <button onclick="inviteLobby('${l.id}')">Invite</button>
       </div>
     `).join("");
+
 });
 
 function join(id){
   socket.emit("join_lobby", id);
 }
 
-function invite(lobbyId){
-  const name = prompt("Enter username to invite:");
-  if(name){
-    socket.emit("invite_player",{target:name,lobbyId});
+let currentLobby=null;
+
+function inviteLobby(id){
+  currentLobby=id;
+}
+
+function invite(name){
+  if(currentLobby){
+    socket.emit("invite_player",{target:name,lobbyId:currentLobby});
   }
 }
+
+/* INVITE RECEIVE */
+socket.on("invite_received", data=>{
+  if(confirm(data.from+" invited you")){
+    socket.emit("join_lobby", data.lobbyId);
+  }
+});
 
 /* GAME */
 let game=new Chess();
