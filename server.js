@@ -45,8 +45,6 @@ let onlineUsers = {};
 let lobbies = {};
 let chessGames = {};
 
-/* ================= UTILS ================= */
-
 function update(){
   io.emit("online_users", onlineUsers);
   io.emit("lobbies_update", lobbies);
@@ -147,6 +145,9 @@ io.on('connection', socket=>{
 
       const game = createGame(l);
 
+      const p1 = l.players[0];
+      const p2 = l.players[1];
+
       l.players.forEach((p,i)=>{
         const s = io.sockets.sockets.get(p.id);
 
@@ -156,9 +157,14 @@ io.on('connection', socket=>{
         s.chessGame = game.id;
         s.color = i===0 ? 'w':'b';
 
+        /* 🔥 NOMS ENVOYÉS */
         s.emit("chess_start",{
           color:s.color,
-          time:l.time
+          time:l.time,
+          players:{
+            white:p1.username,
+            black:p2.username
+          }
         });
       });
 
