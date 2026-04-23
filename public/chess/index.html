@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Chess Arena</title>
+<title>Chess Rooms</title>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.11.0/chess.min.js"></script>
@@ -15,143 +15,52 @@ body{
   text-align:center;
 }
 
-/* HEADER */
-.header{
-  display:flex;
-  justify-content:space-around;
-  align-items:center;
-  margin-top:15px;
-}
-
-.playerBox{
+.room{
   background:#1f2937;
-  padding:10px 20px;
-  border-radius:12px;
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-
-.avatar{
-  width:40px;
-  height:40px;
-  border-radius:50%;
-  background:#374151;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:bold;
-}
-
-/* BOARD */
-#board{
-  width:520px;
-  margin:20px auto;
-  display:grid;
-  grid-template-columns:repeat(8,1fr);
-  border-radius:12px;
-  overflow:hidden;
-  box-shadow:0 0 25px rgba(0,0,0,0.6);
-}
-
-.cell{
-  width:65px;
-  height:65px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:34px;
-  cursor:pointer;
-  transition:0.2s;
-}
-
-.white{background:#f0d9b5;color:black;}
-.black{background:#b58863;}
-
-.selected{
-  outline:4px solid yellow;
-}
-
-.move{
-  background:rgba(255,255,0,0.3);
-}
-
-.capture{
-  background:rgba(255,0,0,0.4);
-}
-
-/* HISTORY */
-#history{
-  width:300px;
-  margin:20px auto;
-  text-align:left;
-  background:#111827;
+  margin:10px auto;
   padding:10px;
   border-radius:10px;
-  max-height:200px;
-  overflow-y:auto;
-}
-
-/* LOBBY */
-#lobby{
-  margin-top:20px;
+  width:300px;
 }
 
 button{
-  padding:8px 12px;
-  border-radius:8px;
+  padding:8px;
   margin:5px;
-  background:#1f2937;
+  border-radius:8px;
+  background:#374151;
   color:white;
   cursor:pointer;
 }
 
-button:hover{
-  background:#374151;
+#board{
+  width:480px;
+  margin:auto;
+  display:grid;
+  grid-template-columns:repeat(8,1fr);
 }
+
+.cell{
+  width:60px;
+  height:60px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.white{background:#eee;color:black;}
+.black{background:#444;}
 </style>
 </head>
 
 <body>
 
-<h2>♟️ Chess Arena</h2>
+<h2>♟️ Chess Rooms</h2>
 
-<!-- PLAYERS -->
-<div class="header">
-  <div class="playerBox" id="p1">
-    <div class="avatar">W</div>
-    <span id="player1">Waiting...</span>
-  </div>
+<div id="rooms"></div>
 
-  <div class="playerBox" id="p2">
-    <div class="avatar">B</div>
-    <span id="player2">Waiting...</span>
-  </div>
-</div>
-
-<!-- TIME SELECT -->
-<div>
-  Time:
-  <select id="time">
-    <option value="60">1 min</option>
-    <option value="300" selected>5 min</option>
-    <option value="600">10 min</option>
-  </select>
-</div>
-
-<!-- LOBBY -->
-<div id="lobby"></div>
-
-<!-- STATUS -->
 <div id="status"></div>
 
-<!-- BOARD -->
 <div id="board"></div>
-
-<!-- HISTORY -->
-<div id="history"></div>
-
-<button onclick="rematch()">Rematch</button>
 
 <script>
 
@@ -164,48 +73,34 @@ const user = JSON.parse(localStorage.getItem("user"));
 
 socket.emit("register_online", user.username);
 
-/* ONLINE */
-socket.on("online_users", users=>{
-  document.getElementById("lobby").innerHTML =
-    "<h3>Players</h3>" +
-    users.map(u => `
-      <div>
-        ${u}
-        ${u !== user.username ? `<button onclick="invite('${u}')">Invite</button>`:""}
-      </div>
-    `).join("");
+/* ROOMS */
+socket.on("rooms_update", rooms=>{
+
+  document.getElementById("rooms").innerHTML = Object.entries(rooms).map(([key,r])=>`
+    <div class="room">
+      <h3>${r.name} (${r.time}s)</h3>
+      Players: ${r.players.map(p=>p.username).join(", ") || "Empty"}
+      <br>
+      <button onclick="join('${key}')">Join</button>
+    </div>
+  `).join("");
 });
 
-/* INVITE */
-function invite(name){
-  const time = parseInt(document.getElementById("time").value);
-
-  socket.emit("invite_player", {target:name,time});
+function join(room){
+  socket.emit("join_room", room);
 }
-
-socket.on("invite_received", data=>{
-  if(confirm(`${data.from} invites you (${data.time}s)`)){
-    socket.emit("accept_invite",{opponent:data.from,time:data.time});
-  }
-});
 
 /* START */
 socket.on("chess_start", data=>{
   playerColor = data.color;
-
-  document.getElementById("player1").innerText =
-    playerColor==='w'?user.username:"Opponent";
-
-  document.getElementById("player2").innerText =
-    playerColor==='b'?user.username:"Opponent";
-
+  document.getElementById("status").innerText =
+    "Game started ("+(playerColor==='w'?'White':'Black')+")";
   draw();
 });
 
 /* UPDATE */
 socket.on("chess_update", data=>{
   game.load(data.fen);
-  updateHistory();
   draw();
 });
 
@@ -214,19 +109,9 @@ socket.on("chess_timer", players=>{
   const me = players.find(p=>p.color===playerColor);
   if(me){
     document.getElementById("status").innerText =
-      "Time: "+me.time+"s";
+      "Time: "+me.time;
   }
 });
-
-/* END */
-socket.on("chess_end", data=>{
-  alert("Winner: "+data.winner);
-});
-
-/* REMATCH */
-function rematch(){
-  socket.emit("chess_rematch");
-}
 
 /* DRAW */
 function draw(){
@@ -243,86 +128,34 @@ function draw(){
       c.className="cell "+((x+y)%2?"black":"white");
 
       const p=state[y][x];
-
-      if(p){
-        const pieces = {
-          p:"♟", r:"♜", n:"♞", b:"♝", q:"♛", k:"♚",
-          P:"♙", R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔"
-        };
-
-        const key = p.color === 'w' ? p.type.toUpperCase() : p.type;
-        c.innerText = pieces[key];
-      }
+      c.innerText=p?p.type:"";
 
       const sq=String.fromCharCode(97+x)+(8-y);
 
-      c.onclick=()=>clickCell(sq,c);
+      c.onclick=()=>clickCell(sq);
 
       el.appendChild(c);
     }
   }
 }
 
-/* CLICK */
-function clickCell(sq,cell){
+function clickCell(sq){
 
   if(game.turn()!==playerColor) return;
 
   if(!selected){
-
-    const moves=game.moves({square:sq,verbose:true});
-    if(moves.length===0) return;
-
+    if(game.moves({square:sq}).length===0) return;
     selected=sq;
-    cell.classList.add("selected");
-
-    highlight(moves);
-
   } else {
 
     const move=game.move({from:selected,to:sq,promotion:'q'});
     selected=null;
-    clearHighlights();
 
     if(move){
       socket.emit("chess_move",{from:move.from,to:move.to,fen:game.fen()});
       draw();
     }
   }
-}
-
-/* HIGHLIGHT */
-function highlight(moves){
-
-  moves.forEach(m=>{
-    const index=squareToIndex(m.to);
-    const cell=document.getElementById("board").children[index];
-
-    if(m.captured){
-      cell.classList.add("capture");
-    } else {
-      cell.classList.add("move");
-    }
-  });
-}
-
-function clearHighlights(){
-  document.querySelectorAll(".cell").forEach(c=>{
-    c.classList.remove("selected","move","capture");
-  });
-}
-
-function squareToIndex(sq){
-  const file=sq.charCodeAt(0)-97;
-  const rank=8-parseInt(sq[1]);
-  return rank*8+file;
-}
-
-/* HISTORY */
-function updateHistory(){
-  const history = game.history();
-  document.getElementById("history").innerHTML =
-    history.map((m,i)=>`${i+1}. ${m}`).join("<br>");
 }
 
 </script>
