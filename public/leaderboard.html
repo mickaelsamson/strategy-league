@@ -6,133 +6,77 @@
 <style>
 body{
   margin:0;
-  font-family:Arial;
-  background: radial-gradient(circle at top, #0f172a, #020617);
+  background: radial-gradient(circle at top,#0f172a,#020617);
   color:white;
+  font-family:Arial;
+  text-align:center;
 }
 
-/* HEADER */
-.header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:20px 40px;
+.tabs{
+  margin:20px;
 }
 
-.logo{
-  font-size:24px;
-  font-weight:bold;
-  color:#facc15;
-}
-
-.back{
-  background:#111827;
-  padding:8px 16px;
-  border-radius:10px;
+button{
+  padding:10px;
+  margin:5px;
+  border-radius:8px;
   cursor:pointer;
 }
 
-/* TITLE */
-.title{
-  text-align:center;
-  font-size:28px;
-  margin:10px;
+.table{
+  width:400px;
+  margin:auto;
+  text-align:left;
 }
 
-/* LIST */
-.list{
-  max-width:400px;
-  margin:20px auto;
-}
-
-/* PLAYER CARD */
-.player{
+.row{
   display:flex;
   justify-content:space-between;
-  align-items:center;
-  background: linear-gradient(145deg,#1f2937,#020617);
-  padding:12px 16px;
-  margin:10px 0;
-  border-radius:12px;
-  box-shadow:0 0 10px rgba(0,0,0,0.6);
-  transition:0.2s;
+  padding:8px;
+  border-bottom:1px solid #333;
 }
 
-.player:hover{
-  transform:scale(1.03);
-}
-
-/* RANK */
-.rank{
+.top{
+  color:gold;
   font-weight:bold;
-  width:30px;
 }
-
-/* NAME */
-.name{
-  flex:1;
-  text-align:left;
-  padding-left:10px;
-}
-
-/* XP */
-.xp{
-  font-weight:bold;
-  color:#facc15;
-}
-
-/* TOP 3 */
-.top1{background:linear-gradient(145deg,#facc15,#ca8a04); color:black;}
-.top2{background:linear-gradient(145deg,#cbd5f5,#64748b);}
-.top3{background:linear-gradient(145deg,#fca5a5,#7f1d1d);}
 </style>
 </head>
 
 <body>
 
-<div class="header">
-  <div class="logo">🏆 Leaderboard</div>
-  <div class="back" onclick="goBack()">← Back</div>
+<h2>🏆 Leaderboard</h2>
+
+<div class="tabs">
+  <button onclick="load('global')">Global</button>
+  <button onclick="load('chess')">Chess</button>
+  <button onclick="load('strategy')">Strategy</button>
 </div>
 
-<div class="title">Top Players</div>
-
-<div id="list" class="list"></div>
+<div id="table" class="table"></div>
 
 <script>
 
-function goBack(){
-  window.location.href = "/";
+async function load(type){
+
+  const res = await fetch("/api/leaderboard/"+type);
+  const data = await res.json();
+
+  const table = document.getElementById("table");
+
+  table.innerHTML = data.map((u,i)=>`
+    <div class="row ${i<3?'top':''}">
+      <span>#${i+1} ${u.username}</span>
+      <span>${
+        type==='chess'?u.chessElo:
+        type==='strategy'?u.strategyPoints:
+        u.xp
+      }</span>
+    </div>
+  `).join("");
 }
 
-function loadLeaderboard(){
-  fetch('/api/stats')
-  .then(r=>r.json())
-  .then(data=>{
-
-    const list = document.getElementById("list");
-
-    list.innerHTML = data.map((u,i)=>{
-
-      let extraClass = "";
-      if(i===0) extraClass="top1";
-      if(i===1) extraClass="top2";
-      if(i===2) extraClass="top3";
-
-      return `
-        <div class="player ${extraClass}">
-          <div class="rank">${i+1}</div>
-          <div class="name">${u.username || "Unknown"}</div>
-          <div class="xp">${u.xp || 0} XP</div>
-        </div>
-      `;
-
-    }).join("");
-
-  });
-}
-
-loadLeaderboard();
+load("global");
 
 </script>
 
