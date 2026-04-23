@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Strategy Game</title>
+<title>Strategy Hub</title>
 <script src="/socket.io/socket.io.js"></script>
 
 <style>
 body{
   margin:0;
-  background:#020617;
+  background: radial-gradient(circle at top, #0f172a, #020617);
   color:white;
   font-family:Arial;
   text-align:center;
@@ -17,7 +17,25 @@ body{
 .header{
   display:flex;
   justify-content:space-between;
-  padding:10px 20px;
+  padding:15px 25px;
+  align-items:center;
+}
+
+#player{
+  font-weight:bold;
+}
+
+button{
+  padding:8px 14px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+/* TIMER */
+#timer{
+  font-size:18px;
+  margin:10px;
 }
 
 /* GAME CONTAINER */
@@ -28,14 +46,14 @@ body{
   margin:auto;
 }
 
-/* MAP IMAGE */
+/* MAP */
 #map{
   width:100%;
-  display:block;
-  border-radius:10px;
+  border-radius:12px;
+  box-shadow:0 0 30px rgba(0,0,0,0.6);
 }
 
-/* SVG OVERLAY */
+/* OVERLAY */
 #overlay{
   position:absolute;
   top:0;
@@ -46,32 +64,75 @@ body{
 
 /* TERRITORIES */
 .territory{
-  fill:rgba(255,255,255,0.1);
-  stroke:#000;
-  stroke-width:2;
+  position:absolute;
+  width:60px;
+  height:60px;
+  border-radius:50%;
+  transform:translate(-50%, -50%);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
+  color:white;
   cursor:pointer;
   transition:0.2s;
+  border:2px solid rgba(0,0,0,0.6);
 }
 
+/* HOVER */
 .territory:hover{
-  fill:rgba(255,255,255,0.3);
+  transform:translate(-50%, -50%) scale(1.2);
+  filter:brightness(1.3);
 }
 
+/* SELECTED */
 .selected{
-  stroke:yellow;
-  stroke-width:4;
+  box-shadow:0 0 20px yellow;
+  transform:translate(-50%, -50%) scale(1.25);
 }
 
 /* COLORS */
-.blue{ fill:#3b82f6; }
-.red{ fill:#ef4444; }
-.green{ fill:#22c55e; }
-.purple{ fill:#a855f7; }
-
-/* TIMER */
-#timer{
-  margin:10px;
+.blue{
+  background:linear-gradient(145deg,#3b82f6,#1d4ed8);
+  box-shadow:0 0 12px rgba(59,130,246,0.6);
 }
+
+.red{
+  background:linear-gradient(145deg,#ef4444,#991b1b);
+  box-shadow:0 0 12px rgba(239,68,68,0.6);
+}
+
+.green{
+  background:linear-gradient(145deg,#22c55e,#166534);
+  box-shadow:0 0 12px rgba(34,197,94,0.6);
+}
+
+.purple{
+  background:linear-gradient(145deg,#a855f7,#6b21a8);
+  box-shadow:0 0 12px rgba(168,85,247,0.6);
+}
+
+/* PULSE ANIMATION */
+@keyframes pulse{
+  0%{box-shadow:0 0 10px rgba(255,255,255,0.2);}
+  50%{box-shadow:0 0 20px rgba(255,255,255,0.5);}
+  100%{box-shadow:0 0 10px rgba(255,255,255,0.2);}
+}
+
+.active-turn{
+  animation:pulse 2s infinite;
+}
+
+/* ATTACK FX */
+.flash{
+  animation:flash 0.2s;
+}
+
+@keyframes flash{
+  from{background:#220000;}
+  to{background:#020617;}
+}
+
 </style>
 
 </head>
@@ -87,25 +148,23 @@ body{
 
 <div id="gameContainer">
 
-  <!-- TA MAP -->
   <img src="map.png" id="map">
 
-  <!-- OVERLAY SVG -->
-  <svg id="overlay" viewBox="0 0 1000 700">
+  <div id="overlay">
 
     <!-- TOP -->
-    <polygon id="t0" class="territory" points="300,120 450,120 375,260"/>
-    <polygon id="t1" class="territory" points="450,120 600,120 525,260"/>
-    <polygon id="t2" class="territory" points="600,120 750,120 675,260"/>
+    <div id="t0" class="territory" style="top:18%; left:30%"></div>
+    <div id="t1" class="territory" style="top:18%; left:50%"></div>
+    <div id="t2" class="territory" style="top:18%; left:70%"></div>
 
     <!-- MIDDLE -->
-    <polygon id="t3" class="territory" points="375,260 525,260 450,400"/>
-    <polygon id="t4" class="territory" points="525,260 675,260 600,400"/>
+    <div id="t3" class="territory" style="top:40%; left:40%"></div>
+    <div id="t4" class="territory" style="top:40%; left:60%"></div>
 
     <!-- BOTTOM -->
-    <polygon id="t5" class="territory" points="450,400 600,400 525,560"/>
+    <div id="t5" class="territory" style="top:65%; left:50%"></div>
 
-  </svg>
+  </div>
 
 </div>
 
@@ -119,7 +178,7 @@ const user = JSON.parse(localStorage.getItem("user"));
 if(!user){
   window.location.href="/login.html";
 }else{
-  player.innerText = user.username;
+  player.innerText = "👑 " + user.username;
   socket.emit("create", user.username);
 }
 
@@ -139,7 +198,8 @@ socket.on("state", g=>{
     const el = document.getElementById("t"+i);
     if(!el) return;
 
-    el.setAttribute("class","territory " + colors[t.owner % colors.length]);
+    el.className = "territory " + colors[t.owner % colors.length];
+    el.innerText = t.troops;
 
     el.onclick = ()=>{
 
@@ -162,13 +222,13 @@ socket.on("state", g=>{
 
 /* TIMER */
 socket.on("timer",t=>{
-  timer.innerText = "⏳ " + t;
+  timer.innerText = "⏳ Turn: " + t;
 });
 
 /* ATTACK FX */
 socket.on("attack",()=>{
-  document.body.style.background="#220000";
-  setTimeout(()=>document.body.style.background="#020617",200);
+  document.body.classList.add("flash");
+  setTimeout(()=>document.body.classList.remove("flash"),200);
 });
 </script>
 
