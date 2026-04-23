@@ -1,21 +1,24 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Chess Rooms</title>
+<title>Chess Lobby</title>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.11.0/chess.min.js"></script>
 
 <style>
 body{
-  margin:0;
-  background: radial-gradient(circle at top,#0f172a,#020617);
+  background:#020617;
   color:white;
   font-family:Arial;
   text-align:center;
 }
 
-.room{
+#lobbies{
+  margin:20px;
+}
+
+.lobby{
   background:#1f2937;
   margin:10px auto;
   padding:10px;
@@ -24,98 +27,129 @@ body{
 }
 
 button{
-  padding:8px;
   margin:5px;
+  padding:8px;
   border-radius:8px;
-  background:#374151;
-  color:white;
-  cursor:pointer;
 }
 
-#board{
-  width:480px;
-  margin:auto;
-  display:grid;
-  grid-template-columns:repeat(8,1fr);
+#invitePopup{
+  position:fixed;
+  top:20%;
+  left:50%;
+  transform:translateX(-50%);
+  background:#111827;
+  padding:20px;
+  display:none;
 }
-
-.cell{
-  width:60px;
-  height:60px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-
-.white{background:#eee;color:black;}
-.black{background:#444;}
 </style>
 </head>
 
 <body>
 
-<h2>♟️ Chess Rooms</h2>
+<h2>♟️ Chess Lobby</h2>
 
-<div id="rooms"></div>
+<!-- CREATE -->
+<div>
+  <input id="name" placeholder="Lobby name">
+  <select id="mode">
+    <option value="30">Blitz (30s)</option>
+    <option value="60">Rapid (60s)</option>
+    <option value="90">Classic (90s)</option>
+    <option value="120">Snail (120s)</option>
+  </select>
+  <button onclick="createLobby()">Create</button>
+</div>
 
-<div id="status"></div>
+<!-- LOBBIES -->
+<div id="lobbies"></div>
 
+<!-- POPUP INVITE -->
+<div id="invitePopup"></div>
+
+<!-- GAME -->
 <div id="board"></div>
 
 <script>
 
 const socket = io();
-let game = new Chess();
-let selected = null;
-let playerColor = null;
-
 const user = JSON.parse(localStorage.getItem("user"));
 
 socket.emit("register_online", user.username);
 
-/* ROOMS */
-socket.on("rooms_update", rooms=>{
+/* CREATE */
+function createLobby(){
+  socket.emit("create_lobby",{
+    name:document.getElementById("name").value,
+    time:parseInt(document.getElementById("mode").value)
+  });
+}
 
-  document.getElementById("rooms").innerHTML = Object.entries(rooms).map(([key,r])=>`
-    <div class="room">
-      <h3>${r.name} (${r.time}s)</h3>
-      Players: ${r.players.map(p=>p.username).join(", ") || "Empty"}
-      <br>
-      <button onclick="join('${key}')">Join</button>
+/* DISPLAY LOBBIES */
+socket.on("lobbies_update", lobbies=>{
+
+  document.getElementById("lobbies").innerHTML =
+    Object.values(lobbies).map(l=>`
+      <div class="lobby">
+        <b>${l.name}</b> (${l.time}s)<br>
+        Players: ${l.players.map(p=>p.username).join(", ")}<br>
+        <button onclick="join('${l.id}')">Join</button>
+        <button onclick="openInvite('${l.id}')">➕ Invite</button>
+      </div>
+    `).join("");
+});
+
+function join(id){
+  socket.emit("join_lobby", id);
+}
+
+/* INVITE UI */
+let currentLobby = null;
+
+function openInvite(id){
+  currentLobby = id;
+  socket.emit("get_online");
+}
+
+socket.on("online_users", users=>{
+  const popup = document.getElementById("invitePopup");
+
+  popup.style.display="block";
+
+  popup.innerHTML = users.map(u=>`
+    <div>
+      ${u}
+      <button onclick="invite('${u}')">Invite</button>
     </div>
   `).join("");
 });
 
-function join(room){
-  socket.emit("join_room", room);
+function invite(user){
+  socket.emit("invite_player",{target:user,lobbyId:currentLobby});
 }
 
-/* START */
+/* INVITE RECEIVE */
+socket.on("invite_received", data=>{
+  if(confirm(data.from+" invited you")){
+    socket.emit("join_lobby", data.lobbyId);
+  }
+});
+
+/* GAME */
+let game = new Chess();
+let selected=null;
+let playerColor=null;
+
 socket.on("chess_start", data=>{
   playerColor = data.color;
-  document.getElementById("status").innerText =
-    "Game started ("+(playerColor==='w'?'White':'Black')+")";
   draw();
 });
 
-/* UPDATE */
 socket.on("chess_update", data=>{
   game.load(data.fen);
   draw();
 });
 
-/* TIMER */
-socket.on("chess_timer", players=>{
-  const me = players.find(p=>p.color===playerColor);
-  if(me){
-    document.getElementById("status").innerText =
-      "Time: "+me.time;
-  }
-});
-
-/* DRAW */
 function draw(){
-
   const el=document.getElementById("board");
   el.innerHTML="";
 
@@ -123,9 +157,11 @@ function draw(){
 
   for(let y=0;y<8;y++){
     for(let x=0;x<8;x++){
-
       const c=document.createElement("div");
-      c.className="cell "+((x+y)%2?"black":"white");
+      c.style.display="inline-block";
+      c.style.width="60px";
+      c.style.height="60px";
+      c.style.background=(x+y)%2?"#444":"#eee";
 
       const p=state[y][x];
       c.innerText=p?p.type:"";
@@ -136,6 +172,7 @@ function draw(){
 
       el.appendChild(c);
     }
+    el.appendChild(document.createElement("br"));
   }
 }
 
