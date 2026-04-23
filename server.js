@@ -44,87 +44,36 @@ app.post('/api/register', async (req,res)=>{
     res.send({success:true});
 
   }catch(err){
-    console.log(err);
     res.status(500).send({error:"Server error"});
   }
 });
 
-app.post('/api/login', async (req,res)=>{
-  try{
-    let {email, password} = req.body;
+/* ===== ELO SYSTEM ===== */
 
-    email = email.toLowerCase().trim();
+async function updateElo(winner, loser){
 
-    const user = await User.findOne({email});
-    if(!user){
-      return res.status(400).send({error:"User not found"});
-    }
+  const K = 20;
 
-    const valid = await bcrypt.compare(password, user.password);
-    if(!valid){
-      return res.status(400).send({error:"Wrong password"});
-    }
+  const w = await User.findOne({username:winner});
+  const l = await User.findOne({username:loser});
 
-    res.send({
-      username: user.username,
-      firstName: user.firstName,
-      xp: user.xp
-    });
+  if(!w || !l) return;
 
-  }catch(err){
-    console.log(err);
-    res.status(500).send({error:"Server error"});
-  }
-});
+  const expectedW = 1 / (1 + Math.pow(10,(l.xp - w.xp)/400));
+  const expectedL = 1 / (1 + Math.pow(10,(w.xp - l.xp)/400));
 
-/* ===== GAME STRATEGY ===== */
+  w.xp = Math.round(w.xp + K*(1-expectedW));
+  l.xp = Math.round(l.xp + K*(0-expectedL));
 
-let games = {};
-const TURN_TIME = 30;
-
-function createGame(id){
-  return {
-    id,
-    players:[],
-    turn:0,
-    timeLeft:TURN_TIME,
-    territories:Array(8).fill().map((_,i)=>({
-      owner: i % 2,
-      troops:3
-    }))
-  };
+  await w.save();
+  await l.save();
 }
 
-function startTimer(g){
-  if(g.timer) clearInterval(g.timer);
-
-  g.timer=setInterval(()=>{
-    g.timeLeft--;
-
-    io.to(g.id).emit("timer",g.timeLeft);
-
-    if(g.timeLeft<=0){
-      if(g.players.length > 0){
-        g.turn=(g.turn+1)%g.players.length;
-      }
-      g.timeLeft=TURN_TIME;
-    }
-  },1000);
-}
-
-function sendState(g){
-  io.to(g.id).emit('state', {
-    players: g.players,
-    turn: g.turn,
-    timeLeft: g.timeLeft,
-    territories: g.territories
-  });
-}
-
-/* ===== CHESS MATCHMAKING ===== */
+/* ===== CHESS ===== */
 
 let lobby = [];
 let chessGames = {};
+let onlineUsers = {};
 
 function createChessGame(p1, p2){
 
@@ -132,22 +81,22 @@ function createChessGame(p1, p2){
 
   const game = {
     id,
-    players: [
-      {id:p1.id, color:'w', time:300},
-      {id:p2.id, color:'b', time:300}
+    players:[
+      {id:p1.id, username:p1.username, color:'w', time:300},
+      {id:p2.id, username:p2.username, color:'b', time:300}
     ],
-    fen: null,
+    fen:null,
     turn:'w',
     timer:null
   };
 
   chessGames[id] = game;
-  startChessTimer(game);
+  startTimer(game);
 
   return game;
 }
 
-function startChessTimer(g){
+function startTimer(g){
 
   if(g.timer) clearInterval(g.timer);
 
@@ -161,7 +110,13 @@ function startChessTimer(g){
     io.to(g.id).emit("chess_timer", g.players);
 
     if(current.time <= 0){
-      io.to(g.id).emit("chess_end", {winner: g.turn === 'w' ? 'Black' : 'White'});
+
+      const winner = g.players.find(p=>p.color !== g.turn);
+
+      io.to(g.id).emit("chess_end",{winner:winner.username});
+
+      updateElo(winner.username, current.username);
+
       clearInterval(g.timer);
     }
 
@@ -170,66 +125,48 @@ function startChessTimer(g){
 
 /* ===== SOCKET ===== */
 
-io.on('connection',socket=>{
+io.on('connection', socket => {
 
-  /* ===== STRATEGY ===== */
-
-  socket.on('create',name=>{
-    if(!name) return;
-
-    let id=Math.random().toString(36).substr(2,4).toUpperCase();
-    let g=createGame(id);
-
-    g.players.push(name);
-    games[id]=g;
-
-    socket.join(id);
-    socket.gameId=id;
-    socket.playerIndex=0;
-
-    startTimer(g);
-
-    socket.emit('created',id);
-    sendState(g);
+  /* ONLINE */
+  socket.on("register_online", username=>{
+    socket.username = username;
+    onlineUsers[username] = socket.id;
+    io.emit("online_users", Object.keys(onlineUsers));
   });
 
-  socket.on('move',({from,to})=>{
-    let g=games[socket.gameId];
-    if(!g) return;
+  socket.on("disconnect", ()=>{
+    delete onlineUsers[socket.username];
+    lobby = lobby.filter(s=>s!==socket);
+    io.emit("online_users", Object.keys(onlineUsers));
+  });
 
-    let f=g.territories[from];
-    let t=g.territories[to];
-
-    if(!f || !t) return;
-
-    if(f.owner===socket.playerIndex){
-
-      if(f.troops>t.troops){
-        t.owner=socket.playerIndex;
-        t.troops=f.troops-1;
-        f.troops=1;
-
-        io.to(g.id).emit("attack",{to});
-      } else {
-        f.troops=Math.max(1, f.troops-1);
-      }
-
-      if(g.players.length > 0){
-        g.turn=(g.turn+1)%g.players.length;
-      }
-
-      g.timeLeft=TURN_TIME;
-
-      sendState(g);
+  /* INVITES */
+  socket.on("invite_player", target=>{
+    const id = onlineUsers[target];
+    if(id){
+      io.to(id).emit("invite_received", socket.username);
     }
   });
 
-  /* ===== CHESS LOBBY ===== */
+  socket.on("accept_invite", opponent=>{
+    const s2Id = onlineUsers[opponent];
+    const s2 = io.sockets.sockets.get(s2Id);
+    if(!s2) return;
 
-  socket.on("chess_lobby_join", name=>{
-    socket.name = name;
+    const game = createChessGame(socket, s2);
+
+    [socket, s2].forEach((p,i)=>{
+      p.join(game.id);
+      p.chessGame = game.id;
+      p.color = i===0?'w':'b';
+
+      p.emit("chess_start",{color:p.color});
+    });
+  });
+
+  /* MATCHMAKING */
+  socket.on("chess_lobby_join", ()=>{
     socket.ready = false;
-
     lobby.push(socket);
     updateLobby();
   });
@@ -242,39 +179,37 @@ io.on('connection',socket=>{
 
   function updateLobby(){
     io.emit("chess_lobby", lobby.map(s=>({
-      name:s.name,
+      name:s.username,
       ready:s.ready
     })));
   }
 
   function tryMatch(){
 
-    const readyPlayers = lobby.filter(s=>s.ready);
+    const ready = lobby.filter(s=>s.ready);
 
-    if(readyPlayers.length >= 2){
+    if(ready.length >= 2){
 
-      const p1 = readyPlayers[0];
-      const p2 = readyPlayers[1];
+      const p1 = ready[0];
+      const p2 = ready[1];
 
       lobby = lobby.filter(s=>s!==p1 && s!==p2);
 
-      const game = createChessGame(p1, p2);
+      const game = createChessGame(p1,p2);
 
       [p1,p2].forEach((p,i)=>{
         p.join(game.id);
         p.chessGame = game.id;
-        p.color = i===0 ? 'w':'b';
+        p.color = i===0?'w':'b';
 
-        p.emit("chess_start", {
-          color: p.color,
-          gameId: game.id
-        });
+        p.emit("chess_start",{color:p.color});
       });
 
       updateLobby();
     }
   }
 
+  /* MOVE */
   socket.on("chess_move", ({from,to,fen})=>{
     const g = chessGames[socket.chessGame];
     if(!g) return;
@@ -282,35 +217,33 @@ io.on('connection',socket=>{
     if(socket.color !== g.turn) return;
 
     g.fen = fen;
-    g.turn = g.turn === 'w' ? 'b' : 'w';
+    g.turn = g.turn === 'w' ? 'b':'w';
 
-    io.to(g.id).emit("chess_update", {
-      fen:g.fen,
-      turn:g.turn
-    });
+    io.to(g.id).emit("chess_update",{fen:g.fen, turn:g.turn});
   });
 
-  socket.on("disconnect", ()=>{
-    lobby = lobby.filter(s=>s!==socket);
+  /* REMATCH */
+  socket.on("chess_rematch", ()=>{
+    const g = chessGames[socket.chessGame];
+    if(!g) return;
+
+    const players = g.players.map(p=>io.sockets.sockets.get(p.id));
+
+    if(players.length === 2){
+      const newGame = createChessGame(players[0], players[1]);
+
+      players.forEach((p,i)=>{
+        p.join(newGame.id);
+        p.chessGame = newGame.id;
+        p.color = i===0?'w':'b';
+
+        p.emit("chess_start",{color:p.color});
+      });
+    }
   });
 
 });
 
-/* START SERVER AFTER MONGO */
-
-async function startServer(){
-  try{
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log("Mongo connected");
-
-    http.listen(process.env.PORT||3000, ()=>{
-      console.log("Server running");
-    });
-
-  }catch(err){
-    console.log("Mongo ERROR:", err.message);
-    process.exit(1);
-  }
-}
-
-startServer();
+mongoose.connect(process.env.MONGO_URI).then(()=>{
+  http.listen(process.env.PORT||3000);
+});
