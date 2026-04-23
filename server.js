@@ -39,7 +39,7 @@ app.post('/api/register', async (req,res)=>{
       firstName,
       lastName,
       username,
-      elo: 1000
+      elo:1000
     });
 
     res.send({success:true});
@@ -138,7 +138,8 @@ io.on('connection', socket=>{
     onlineUsers[username]={
       id:socket.id,
       elo:socket.elo,
-      status:"idle"
+      status:"idle",
+      avatar:`https://api.dicebear.com/7.x/bottts/svg?seed=${username}`
     };
 
     update();
@@ -216,3 +217,21 @@ io.on('connection', socket=>{
   });
 
 });
+
+/* ================= START ================= */
+
+async function startServer(){
+  try{
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("Mongo connected");
+
+    http.listen(process.env.PORT||3000, ()=>{
+      console.log("Server running");
+    });
+
+  }catch(err){
+    process.exit(1);
+  }
+}
+
+startServer();
