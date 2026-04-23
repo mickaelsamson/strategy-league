@@ -78,7 +78,7 @@ body{
 
 <h2>♟️ Chess Lobby</h2>
 
-<!-- 🔥 LOBBY CONTROLS -->
+<!-- LOBBY -->
 <div id="lobbyControls">
   <input id="name" placeholder="Lobby name">
 
@@ -97,7 +97,6 @@ body{
 
 </div>
 
-<!-- SIDEBAR -->
 <div id="sidebar">
   <h3>Players</h3>
   <div id="players"></div>
@@ -114,7 +113,7 @@ let currentUsers={};
 
 socket.emit("register_online", user.username);
 
-/* ONLINE USERS */
+/* USERS */
 socket.on("online_users", users=>{
   currentUsers=users;
 
@@ -179,8 +178,7 @@ function join(id){
 }
 
 function invite(name){
-  const lobbyId = Object.keys(currentUsers).length ? Object.keys(currentUsers)[0] : null;
-  socket.emit("invite_player",{target:name,lobbyId});
+  socket.emit("invite_player",{target:name});
 }
 
 /* ================= GAME ================= */
@@ -189,15 +187,18 @@ let game=new Chess();
 let selected=null;
 let playerColor=null;
 
-/* 🔥 PIECES UNICODE */
-const pieces = {
+/* 🔥 PIECES */
+const whitePieces = {
+  p:"♙", r:"♖", n:"♘", b:"♗", q:"♕", k:"♔"
+};
+
+const blackPieces = {
   p:"♟", r:"♜", n:"♞", b:"♝", q:"♛", k:"♚"
 };
 
 socket.on("chess_start", data=>{
   playerColor=data.color;
 
-  /* 🔥 HIDE LOBBY */
   document.getElementById("lobbyControls").style.display="none";
 
   draw();
@@ -212,7 +213,7 @@ socket.on("chess_end", ()=>{
   document.getElementById("lobbyControls").style.display="block";
 });
 
-/* DRAW BOARD */
+/* DRAW */
 function draw(){
   const el=document.getElementById("board");
   el.innerHTML="";
@@ -223,15 +224,23 @@ function draw(){
     for(let x=0;x<8;x++){
 
       const c=document.createElement("div");
+
       c.style.display="inline-block";
       c.style.width="60px";
       c.style.height="60px";
-      c.style.background=(x+y)%2?"#444":"#eee";
+
+      /* 🎨 COLORS */
+      c.style.background = (x+y)%2 ? "#769656" : "#eeeed2";
 
       const p=state[y][x];
 
-      c.innerText = p ? pieces[p.type] : "";
-      c.style.fontSize="28px";
+      if(p){
+        c.innerText = p.color === "w"
+          ? whitePieces[p.type]
+          : blackPieces[p.type];
+      }
+
+      c.style.fontSize="36px";
       c.style.textAlign="center";
       c.style.lineHeight="60px";
 
@@ -245,7 +254,7 @@ function draw(){
   }
 }
 
-/* CLICK */
+/* MOVE */
 function clickCell(sq){
 
   if(game.turn()!==playerColor) return;
