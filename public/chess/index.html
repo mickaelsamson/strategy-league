@@ -27,12 +27,13 @@ body{
   padding:10px;
 }
 
-/* BOARD */
+/* BOARD PRO FIX */
 #boardWrapper{
   position:relative;
   width:90vw;
   max-width:520px;
-  aspect-ratio:1/1;
+  height:90vw;
+  max-height:520px;
   margin:20px auto;
 }
 
@@ -64,8 +65,9 @@ body{
   position:absolute;
   width:12.5%;
   height:12.5%;
-  object-fit:contain; /* 🔥 FIX IMPORTANT */
+  object-fit:contain;
   pointer-events:none;
+  display:block;
 }
 
 /* TIMER */
@@ -204,7 +206,7 @@ function invitePlayer(username){
   });
 }
 
-socket.on("invite_received", data=>{
+socket.on("invite", data=>{
   const accept = confirm(`${data.from} invited you`);
 
   if(accept){
@@ -251,7 +253,7 @@ function toggleReady(id){
 }
 
 /* GAME */
-socket.on("chess_start", data=>{
+socket.on("start", data=>{
   playerColor = data.color;
   totalTime = data.time;
 
@@ -261,7 +263,7 @@ socket.on("chess_start", data=>{
   draw();
 });
 
-socket.on("chess_update", data=>{
+socket.on("update", data=>{
   game.load(data.fen);
   draw();
 });
@@ -326,11 +328,7 @@ function clickCell(sq){
     selected = null;
 
     if(move){
-      socket.emit("chess_move",{
-        from:move.from,
-        to:move.to,
-        fen:game.fen()
-      });
+      socket.emit("move",{ fen:game.fen() });
       draw();
     }
   }
