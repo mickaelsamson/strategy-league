@@ -60,6 +60,19 @@ body{margin:0;background:#020617;color:white;font-family:Arial;display:flex;}
 #turn{margin:10px;font-size:18px;}
 #status{color:#facc15;font-size:18px;}
 #disconnectTimer{color:#f87171;font-size:16px;margin:5px;}
+
+button{
+  padding:8px 12px;
+  margin:5px;
+  border:none;
+  border-radius:8px;
+  background:#3b82f6;
+  color:white;
+  cursor:pointer;
+}
+button:hover{
+  background:#2563eb;
+}
 </style>
 </head>
 
@@ -90,6 +103,12 @@ body{margin:0;background:#020617;color:white;font-family:Arial;display:flex;}
   <img src="/chess/board.png">
   <div id="piecesLayer"></div>
   <div id="clickLayer"></div>
+</div>
+
+<!-- 🔥 UX BUTTONS -->
+<div>
+  <button onclick="resign()">Abandon</button>
+  <button onclick="goLobby()">Retour Lobby</button>
 </div>
 
 </div>
@@ -124,7 +143,7 @@ const pieceMap = {
   bB:"bB.svg", bQ:"bQ.svg", bK:"bK.svg"
 };
 
-/* PLAYERS ONLINE */
+/* PLAYERS */
 socket.on("online_users", users=>{
   document.getElementById("players").innerHTML =
     Object.entries(users).map(([name,data])=>`
@@ -170,7 +189,8 @@ function toggleReady(id){
   socket.emit("toggle_ready", id);
 }
 
-/* GAME START */
+/* GAME */
+
 socket.on("chess_start", data=>{
   playerColor = data.color;
 
@@ -193,7 +213,6 @@ socket.on("chess_start", data=>{
   draw();
 });
 
-/* GAME UPDATE */
 socket.on("chess_update", data=>{
   if(data.fen) game.load(data.fen);
 
@@ -203,7 +222,7 @@ socket.on("chess_update", data=>{
   draw();
 });
 
-/* 🔥 OPPONENT DISCONNECTED */
+/* DISCONNECT */
 socket.on("opponent_disconnected", data=>{
   document.getElementById("status").innerText =
     "⚠️ " + data.player + " disconnected";
@@ -212,7 +231,6 @@ socket.on("opponent_disconnected", data=>{
     "Waiting: 60s";
 });
 
-/* 🔥 TIMER */
 socket.on("disconnect_timer", data=>{
   if(data.time <= 0){
     document.getElementById("disconnectTimer").innerText = "";
@@ -222,7 +240,6 @@ socket.on("disconnect_timer", data=>{
   }
 });
 
-/* 🔥 PLAYER LEFT */
 socket.on("player_left", data=>{
   document.getElementById("status").innerText =
     "🏆 " + data.winner + " wins (opponent left)";
@@ -351,6 +368,17 @@ function clickCell(sq){
 
   updateUI();
   draw();
+}
+
+/* UX BUTTONS */
+function resign(){
+  if(confirm("Abandon game?")){
+    socket.emit("resign");
+  }
+}
+
+function goLobby(){
+  location.reload();
 }
 
 draw();
