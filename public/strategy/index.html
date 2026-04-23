@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Strategy</title>
+<script src="/socket.io/socket.io.js"></script>
+</head>
+<body style="background:#020617;color:white;text-align:center;">
+<h2>Strategy</h2>
+<div id="game"></div>
+<script>
+const socket=io();
+socket.emit("create","Player");
+socket.on("state",g=>{console.log(g);});
+</script>
+</body>
+</html>
