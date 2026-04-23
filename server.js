@@ -10,8 +10,9 @@ const User = require('./models/User');
 app.use(express.json());
 app.use(express.static('public'));
 
+/* ===== ROUTE ROOT (FIX CLEAN) ===== */
 app.get('/', (req,res)=>{
-  res.sendFile(__dirname + '/public/index.html');
+  res.sendFile('index.html', { root: 'public' });
 });
 
 /* ===== AUTH ===== */
@@ -115,13 +116,15 @@ function startTimer(g){
     io.to(g.id).emit("timer",g.timeLeft);
 
     if(g.timeLeft<=0){
-      g.turn=(g.turn+1)%g.players.length;
+      if(g.players.length > 0){ // 🔧 SAFE FIX
+        g.turn=(g.turn+1)%g.players.length;
+      }
       g.timeLeft=TURN_TIME;
     }
   },1000);
 }
 
-/* ✅ FIX ICI : on envoie un objet propre */
+/* SEND STATE CLEAN */
 function sendState(g){
   io.to(g.id).emit('state', {
     players: g.players,
@@ -174,7 +177,10 @@ io.on('connection',socket=>{
         f.troops=Math.max(1, f.troops-1);
       }
 
-      g.turn=(g.turn+1)%g.players.length;
+      if(g.players.length > 0){ // 🔧 SAFE FIX
+        g.turn=(g.turn+1)%g.players.length;
+      }
+
       g.timeLeft=TURN_TIME;
 
       sendState(g);
