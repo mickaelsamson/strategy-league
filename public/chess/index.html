@@ -27,7 +27,7 @@ body{
   padding:10px;
 }
 
-/* BOARD PRO FIX */
+/* BOARD PRO FIX (responsive sans aspect-ratio) */
 #boardWrapper{
   position:relative;
   width:90vw;
@@ -60,7 +60,7 @@ body{
   cursor:pointer;
 }
 
-/* PIECES FIX */
+/* PIECES */
 .piece{
   position:absolute;
   width:12.5%;
@@ -297,7 +297,10 @@ function draw(){
         const img = document.createElement("img");
 
         const key = piece.color + piece.type.toUpperCase();
+
+        // 🔥 FIX ICI → chemin relatif au dossier /public/chess/
         img.src = "pieces/" + pieceMap[key];
+
         img.className = "piece";
 
         img.style.left = (x*12.5) + "%";
