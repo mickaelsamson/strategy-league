@@ -19,24 +19,14 @@ body{margin:0;background:#020617;color:white;font-family:Arial;display:flex;}
   margin:20px auto;
 }
 
-#boardWrapper img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-}
+#boardWrapper img{width:100%;height:100%;object-fit:cover;}
 
 #piecesLayer,#clickLayer{
   position:absolute;
   top:0;left:0;width:100%;height:100%;
 }
 
-.square{
-  position:absolute;
-  width:12.5%;
-  height:12.5%;
-  cursor:pointer;
-}
-
+.square{position:absolute;width:12.5%;height:12.5%;cursor:pointer;}
 .selected{outline:3px solid #3b82f6;}
 .move{background:rgba(34,197,94,0.4);border-radius:50%;}
 .check{background:rgba(239,68,68,0.6);}
@@ -49,17 +39,14 @@ body{margin:0;background:#020617;color:white;font-family:Arial;display:flex;}
   align-items:center;
   justify-content:center;
 }
-.piece img{
-  width:80%;
-  height:80%;
-}
+.piece img{width:80%;height:80%;}
 
 .player{padding:8px;border-bottom:1px solid #1f2937;}
 .lobby{background:#1f2937;margin:10px;padding:10px;border-radius:10px;}
 
 #turn{margin:10px;font-size:18px;}
 #status{color:#facc15;font-size:18px;}
-#disconnectTimer{color:#f87171;font-size:16px;margin:5px;}
+#disconnectTimer{color:#f87171;margin:5px;}
 
 button{
   padding:8px 12px;
@@ -72,11 +59,8 @@ button{
 }
 button:hover{background:#2563eb;}
 
-#endGameBtn{
-  display:none;
-  margin-top:10px;
-  background:#22c55e;
-}
+#endGameBtn{display:none;background:#22c55e;}
+#resignBtn{display:none;}
 </style>
 </head>
 
@@ -90,6 +74,7 @@ button:hover{background:#2563eb;}
 <div id="status"></div>
 <div id="disconnectTimer"></div>
 
+<!-- 🔥 LOBBY CONTROLS -->
 <div id="lobbyControls">
   <input id="name" placeholder="Lobby name">
   <select id="mode">
@@ -98,6 +83,7 @@ button:hover{background:#2563eb;}
     <option value="120">Snail</option>
   </select>
   <button onclick="createLobby()">Create</button>
+  <button onclick="goMain()">Back to Main Menu</button> <!-- 🔥 AJOUT -->
 </div>
 
 <h3>Lobbies</h3>
@@ -109,10 +95,12 @@ button:hover{background:#2563eb;}
   <div id="clickLayer"></div>
 </div>
 
+<!-- 🔥 GAME BUTTON -->
 <div>
   <button id="resignBtn" onclick="resign()">Abandon</button>
 </div>
 
+<!-- 🔥 END GAME -->
 <div>
   <button id="endGameBtn" onclick="goMain()">Back to Main Menu</button>
 </div>
@@ -140,16 +128,7 @@ let playerColor = null;
 
 let myName = "";
 let opponentName = "";
-
 let gameOver = false;
-
-/* PIECES */
-const pieceMap = {
-  wP:"wP.svg", wR:"wR.svg", wN:"wN.svg",
-  wB:"wB.svg", wQ:"wQ.svg", wK:"wK.svg",
-  bP:"bP.svg", bR:"bR.svg", bN:"bN.svg",
-  bB:"bB.svg", bQ:"bQ.svg", bK:"bK.svg"
-};
 
 /* PLAYERS */
 socket.on("online_users", users=>{
@@ -189,32 +168,20 @@ function createLobby(){
   });
 }
 
-function join(id){
-  socket.emit("join_lobby", id);
-}
-
-function toggleReady(id){
-  socket.emit("toggle_ready", id);
-}
+function join(id){ socket.emit("join_lobby", id); }
+function toggleReady(id){ socket.emit("toggle_ready", id); }
 
 /* GAME START */
 socket.on("chess_start", data=>{
   gameOver = false;
-  document.getElementById("endGameBtn").style.display = "none";
+
   document.getElementById("resignBtn").style.display = "inline-block";
+  document.getElementById("endGameBtn").style.display = "none";
 
   playerColor = data.color;
 
-  const white = data.players.white;
-  const black = data.players.black;
-
-  if(playerColor === 'w'){
-    myName = white;
-    opponentName = black;
-  }else{
-    myName = black;
-    opponentName = white;
-  }
+  myName = data.color === 'w' ? data.players.white : data.players.black;
+  opponentName = data.color === 'w' ? data.players.black : data.players.white;
 
   document.getElementById("status").innerText = "";
   document.getElementById("disconnectTimer").innerText = "";
@@ -224,36 +191,21 @@ socket.on("chess_start", data=>{
   draw();
 });
 
-/* GAME UPDATE */
+/* UPDATE */
 socket.on("chess_update", data=>{
   if(data.fen) game.load(data.fen);
-
-  document.getElementById("disconnectTimer").innerText = "";
-
-  if(!game.in_check() && !game.in_checkmate()){
-    document.getElementById("status").innerText = "";
-  }
-
-  updateUI();
-  draw();
+  updateUI(); draw();
 });
 
-/* DISCONNECT */
+/* DISCONNECT + TIMER */
 socket.on("opponent_disconnected", data=>{
   document.getElementById("status").innerText =
     "⚠️ " + data.player + " disconnected";
-
-  document.getElementById("disconnectTimer").innerText =
-    "Waiting: 60s";
 });
 
 socket.on("disconnect_timer", data=>{
-  if(data.time <= 0){
-    document.getElementById("disconnectTimer").innerText = "";
-  } else {
-    document.getElementById("disconnectTimer").innerText =
-      "Waiting: " + data.time + "s";
-  }
+  document.getElementById("disconnectTimer").innerText =
+    data.time > 0 ? "Waiting: " + data.time + "s" : "";
 });
 
 /* END GAME */
@@ -266,31 +218,18 @@ function endGameUI(){
 socket.on("player_left", data=>{
   document.getElementById("status").innerText =
     "🏆 " + data.winner + " wins";
-
-  document.getElementById("disconnectTimer").innerText = "";
   endGameUI();
 });
 
 /* UI */
 function updateUI(){
 
-  const turnPlayer =
-    (game.turn() === playerColor)
-    ? myName
-    : opponentName;
-
   document.getElementById("turn").innerText =
-    "Turn: " + turnPlayer;
+    "Turn: " + (game.turn() === playerColor ? myName : opponentName);
 
   if(game.in_checkmate()){
-    const winner =
-      (game.turn() === playerColor)
-      ? opponentName
-      : myName;
-
     document.getElementById("status").innerText =
-      "🏆 " + winner + " wins!";
-
+      "🏆 " + (game.turn() === playerColor ? opponentName : myName) + " wins!";
     endGameUI();
   }
   else if(game.in_check()){
@@ -301,21 +240,15 @@ function updateUI(){
   }
 }
 
-/* DRAW */
+/* DRAW + MOVE identique */
 function draw(){
-
   const p=document.getElementById("piecesLayer");
   const c=document.getElementById("clickLayer");
-
   p.innerHTML=""; c.innerHTML="";
   const board=game.board();
 
-  let checkSquare=null;
-  if(game.in_check()) checkSquare=getKingSquare(game.turn());
-
   for(let y=0;y<8;y++){
     for(let x=0;x<8;x++){
-
       const sq=String.fromCharCode(97+x)+(8-y);
       const piece=board[y][x];
 
@@ -323,11 +256,6 @@ function draw(){
       cell.className="square";
       cell.style.left=(x*12.5)+"%";
       cell.style.top=(y*12.5)+"%";
-
-      if(selected===sq) cell.classList.add("selected");
-      if(possibleMoves.includes(sq)) cell.classList.add("move");
-      if(sq===checkSquare) cell.classList.add("check");
-
       cell.onclick=()=>clickCell(sq);
       c.appendChild(cell);
 
@@ -338,7 +266,7 @@ function draw(){
         wrapper.style.top=(y*12.5)+"%";
 
         const img=document.createElement("img");
-        img.src="/chess/pieces/"+pieceMap[piece.color+piece.type.toUpperCase()];
+        img.src="/chess/pieces/"+piece.color+piece.type.toUpperCase()+".svg";
 
         wrapper.appendChild(img);
         p.appendChild(wrapper);
@@ -347,7 +275,6 @@ function draw(){
   }
 }
 
-/* MOVE */
 function clickCell(sq){
   if(game.turn()!==playerColor || gameOver) return;
 
@@ -359,31 +286,15 @@ function clickCell(sq){
   }else{
     const move=game.move({from:selected,to:sq,promotion:'q'});
     selected=null; possibleMoves=[];
-    if(move){
-      socket.emit("chess_move",{fen:game.fen()});
-    }
+    if(move) socket.emit("chess_move",{fen:game.fen()});
   }
   updateUI(); draw();
-}
-
-function getKingSquare(color){
-  const b=game.board();
-  for(let y=0;y<8;y++){
-    for(let x=0;x<8;x++){
-      const p=b[y][x];
-      if(p && p.type==='k' && p.color===color){
-        return String.fromCharCode(97+x)+(8-y);
-      }
-    }
-  }
 }
 
 /* BUTTONS */
 function resign(){
   if(confirm("Abandon game?")){
     socket.emit("resign");
-
-    // 🔥 FIX INSTANT UI
     document.getElementById("status").innerText = "You resigned";
     endGameUI();
   }
