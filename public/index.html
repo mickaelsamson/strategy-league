@@ -29,10 +29,9 @@ body{
   background:#111827;
   padding:10px 20px;
   border-radius:12px;
-  box-shadow:0 0 10px rgba(0,0,0,0.5);
 }
 
-/* MAIN */
+/* MENU */
 .container{
   display:flex;
   justify-content:center;
@@ -41,7 +40,6 @@ body{
   gap:30px;
 }
 
-/* CARDS */
 .card{
   width:260px;
   height:180px;
@@ -53,7 +51,6 @@ body{
   align-items:center;
   cursor:pointer;
   transition:0.3s;
-  box-shadow:0 0 20px rgba(0,0,0,0.6);
 }
 
 .card:hover{
@@ -63,32 +60,10 @@ body{
 
 .icon{
   font-size:40px;
-  margin-bottom:10px;
 }
 
 .title{
   font-size:20px;
-  font-weight:bold;
-}
-
-.subtitle{
-  font-size:13px;
-  opacity:0.7;
-}
-
-/* BUTTON */
-button{
-  padding:10px 20px;
-  border:none;
-  border-radius:10px;
-  background:#3b82f6;
-  color:white;
-  cursor:pointer;
-  transition:0.2s;
-}
-
-button:hover{
-  background:#2563eb;
 }
 </style>
 
@@ -98,37 +73,37 @@ button:hover{
 
 <div class="header">
   <div class="logo">👑 Strategy Hub</div>
-  <div class="player" id="playerName">Guest</div>
+  <div class="player" id="playerName"></div>
 </div>
 
 <div class="container">
 
   <div class="card" onclick="play()">
     <div class="icon">⚔️</div>
-    <div class="title">Battle</div>
-    <div class="subtitle">Start a match</div>
+    <div class="title">Play</div>
   </div>
 
   <div class="card" onclick="leaderboard()">
     <div class="icon">🏆</div>
     <div class="title">Leaderboard</div>
-    <div class="subtitle">Top players</div>
   </div>
 
-  <div class="card" onclick="profile()">
-    <div class="icon">👤</div>
-    <div class="title">Profile</div>
-    <div class="subtitle">Your stats</div>
+  <div class="card" onclick="logout()">
+    <div class="icon">🚪</div>
+    <div class="title">Logout</div>
   </div>
 
 </div>
 
 <script>
 
-/* LOAD USER */
-const user = localStorage.getItem("user");
-if(user){
-  document.getElementById("playerName").innerText = user;
+/* SESSION CHECK */
+const user = JSON.parse(localStorage.getItem("user"));
+
+if(!user){
+  window.location.href="/login.html";
+} else {
+  document.getElementById("playerName").innerText = user.username;
 }
 
 /* NAV */
@@ -140,8 +115,9 @@ function leaderboard(){
   window.location.href="/leaderboard.html";
 }
 
-function profile(){
-  alert("Coming soon 👀");
+function logout(){
+  localStorage.removeItem("user");
+  window.location.href="/login.html";
 }
 
 </script>
