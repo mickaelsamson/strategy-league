@@ -7,10 +7,26 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.11.0/chess.min.js"></script>
 
 <style>
-body{margin:0;background:#020617;color:white;font-family:Arial;display:flex;}
-#main{flex:1;text-align:center;}
-#sidebar{width:260px;background:#111827;padding:10px;}
+body{
+  margin:0;
+  background:#020617;
+  color:white;
+  font-family:Arial;
+  display:flex;
+}
 
+#main{
+  flex:1;
+  text-align:center;
+}
+
+#sidebar{
+  width:260px;
+  background:#111827;
+  padding:10px;
+}
+
+/* BOARD */
 #boardWrapper{
   position:relative;
   width:90vw;
@@ -26,21 +42,60 @@ body{margin:0;background:#020617;color:white;font-family:Arial;display:flex;}
   border-radius:12px;
 }
 
-#piecesLayer,#clickLayer{
+#piecesLayer, #clickLayer{
   position:absolute;
-  top:0;left:0;
-  width:100%;height:100%;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
 }
 
-.square,.piece{
+.square{
   position:absolute;
   width:12.5%;
   height:12.5%;
+  cursor:pointer;
 }
 
+/* 🔥 FIX DEFINITIF SVG */
 .piece{
-  object-fit:contain;
+  position:absolute;
+  width:12.5%;
+  height:12.5%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   pointer-events:none;
+}
+
+.piece img{
+  width:80%;
+  height:80%;
+  object-fit:contain;
+}
+
+/* UI */
+.player{
+  padding:8px;
+  border-bottom:1px solid #1f2937;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  cursor:pointer;
+}
+
+.player img{
+  width:30px;
+  height:30px;
+  border-radius:50%;
+}
+
+.lobby{
+  background:#1f2937;
+  padding:10px;
+  margin:10px;
+  border-radius:10px;
 }
 </style>
 </head>
@@ -51,18 +106,22 @@ body{margin:0;background:#020617;color:white;font-family:Arial;display:flex;}
 
 <h2>♟️ Chess</h2>
 
-<input id="name" placeholder="Lobby name">
-<select id="mode">
-<option value="30">Blitz</option>
-<option value="60">Rapid</option>
-<option value="120">Snail</option>
-</select>
-<button onclick="createLobby()">Create</button>
+<div id="lobbyControls">
+  <input id="name" placeholder="Lobby name">
+
+  <select id="mode">
+    <option value="30">Blitz</option>
+    <option value="60">Rapid</option>
+    <option value="120">Snail</option>
+  </select>
+
+  <button onclick="createLobby()">Create</button>
+</div>
 
 <div id="boardWrapper">
-<img src="/chess/board.png">
-<div id="piecesLayer"></div>
-<div id="clickLayer"></div>
+  <img src="/chess/board.png">
+  <div id="piecesLayer"></div>
+  <div id="clickLayer"></div>
 </div>
 
 <h3>Lobbies</h3>
@@ -71,8 +130,8 @@ body{margin:0;background:#020617;color:white;font-family:Arial;display:flex;}
 </div>
 
 <div id="sidebar">
-<h3>Players</h3>
-<div id="players"></div>
+  <h3>Players</h3>
+  <div id="players"></div>
 </div>
 
 <script>
@@ -80,22 +139,41 @@ body{margin:0;background:#020617;color:white;font-family:Arial;display:flex;}
 const socket = io();
 const user = JSON.parse(localStorage.getItem("user"));
 
-socket.emit("register_online", user.username);
+if(user){
+  socket.emit("register_online", user.username);
+}
 
+/* GAME */
 let game = new Chess();
 let selected = null;
 let playerColor = null;
 
 const pieceMap = {
-  wP:"wP.svg",wR:"wR.svg",wN:"wN.svg",
-  wB:"wB.svg",wQ:"wQ.svg",wK:"wK.svg",
-  bP:"bP.svg",bR:"bR.svg",bN:"bN.svg",
-  bB:"bB.svg",bQ:"bQ.svg",bK:"bK.svg"
+  wP:"wP.svg", wR:"wR.svg", wN:"wN.svg",
+  wB:"wB.svg", wQ:"wQ.svg", wK:"wK.svg",
+  bP:"bP.svg", bR:"bR.svg", bN:"bN.svg",
+  bB:"bB.svg", bQ:"bQ.svg", bK:"bK.svg"
 };
 
-/* LOBBIES */
+/* PLAYERS */
+socket.on("online_users", users=>{
+  document.getElementById("players").innerHTML =
+    Object.entries(users).map(([name,data])=>`
+      <div class="player">
+        <img src="${data.avatar}">
+        <div>
+          <div>${name} (${data.elo})</div>
+          <div style="font-size:12px;color:${data.status==="playing"?"red":"lightgreen"};">
+            ${data.status}
+          </div>
+        </div>
+      </div>
+    `).join("");
+});
 
+/* LOBBIES */
 socket.on("lobbies_update", lobbies=>{
+
   const list = Object.values(lobbies);
 
   document.getElementById("lobbies").innerHTML =
@@ -104,7 +182,7 @@ socket.on("lobbies_update", lobbies=>{
       const me = l.players.find(p=>p.username===user.username);
 
       return `
-      <div>
+      <div class="lobby">
         ${l.name} (${l.time}s)<br>
         Players: ${l.players.map(p=>p.username + (p.ready?" ✅":" ❌")).join(",")}<br>
 
@@ -133,7 +211,7 @@ function join(id){
   socket.emit("join_lobby", id);
 }
 
-/* GAME */
+/* GAME SOCKET */
 
 socket.on("chess_start", data=>{
   playerColor = data.color;
@@ -146,14 +224,15 @@ socket.on("chess_update", data=>{
   draw();
 });
 
-/* DRAW */
+/* DRAW FIX FINAL */
 
 function draw(){
-  const p = document.getElementById("piecesLayer");
-  const c = document.getElementById("clickLayer");
 
-  p.innerHTML="";
-  c.innerHTML="";
+  const piecesLayer = document.getElementById("piecesLayer");
+  const clickLayer = document.getElementById("clickLayer");
+
+  piecesLayer.innerHTML = "";
+  clickLayer.innerHTML = "";
 
   const board = game.board();
 
@@ -164,20 +243,27 @@ function draw(){
       const piece = board[y][x];
 
       const cell = document.createElement("div");
-      cell.className="square";
-      cell.style.left=(x*12.5)+"%";
-      cell.style.top=(y*12.5)+"%";
-      cell.onclick=()=>clickCell(sq);
-      c.appendChild(cell);
+      cell.className = "square";
+      cell.style.left = (x*12.5) + "%";
+      cell.style.top = (y*12.5) + "%";
+      cell.onclick = ()=>clickCell(sq);
+
+      clickLayer.appendChild(cell);
 
       if(piece){
-        const img=document.createElement("img");
-        const key=piece.color+piece.type.toUpperCase();
-        img.src="/chess/pieces/"+pieceMap[key];
-        img.className="piece";
-        img.style.left=(x*12.5)+"%";
-        img.style.top=(y*12.5)+"%";
-        p.appendChild(img);
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "piece";
+        wrapper.style.left = (x*12.5) + "%";
+        wrapper.style.top = (y*12.5) + "%";
+
+        const img = document.createElement("img");
+        const key = piece.color + piece.type.toUpperCase();
+
+        img.src = "/chess/pieces/" + pieceMap[key];
+
+        wrapper.appendChild(img);
+        piecesLayer.appendChild(wrapper);
       }
     }
   }
@@ -187,14 +273,20 @@ function draw(){
 
 function clickCell(sq){
 
-  if(game.turn()!==playerColor) return;
+  if(game.turn() !== playerColor) return;
 
   if(!selected){
-    if(game.moves({square:sq}).length===0) return;
-    selected=sq;
-  }else{
-    const move=game.move({from:selected,to:sq,promotion:'q'});
-    selected=null;
+    if(game.moves({square:sq}).length === 0) return;
+    selected = sq;
+  } else {
+
+    const move = game.move({
+      from:selected,
+      to:sq,
+      promotion:'q'
+    });
+
+    selected = null;
 
     if(move){
       socket.emit("chess_move",{fen:game.fen()});
@@ -206,5 +298,6 @@ function clickCell(sq){
 draw();
 
 </script>
+
 </body>
 </html>
