@@ -1,23 +1,44 @@
 <!DOCTYPE html>
 <html>
 <head>
-<script src="/socket.io/socket.io.js"></script>
-<style>
-body{background:#020617;color:white;font-family:Arial}
-.cell{
-  width:60px;height:60px;
-  display:inline-flex;
-  justify-content:center;
-  align-items:center;
-  margin:2px;
-  cursor:pointer;
-}
-</style>
+  <title>Strategy Hub</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body{
+      background:#020617;
+      color:white;
+      font-family:Arial;
+      text-align:center;
+    }
+
+    #game{
+      margin-top:20px;
+    }
+
+    .cell{
+      width:60px;
+      height:60px;
+      display:inline-flex;
+      justify-content:center;
+      align-items:center;
+      margin:3px;
+      cursor:pointer;
+      font-weight:bold;
+      border-radius:6px;
+    }
+
+    input, button{
+      padding:10px;
+      margin:5px;
+    }
+  </style>
 </head>
 
 <body>
 
-<input id="name" placeholder="Name">
+<h2>🎮 Strategy Hub</h2>
+
+<input id="usernameInput" placeholder="Enter your name">
 <button onclick="login()">Login</button>
 
 <div id="timer"></div>
@@ -27,24 +48,40 @@ body{background:#020617;color:white;font-family:Arial}
 
 <script>
 let socket = io();
-let selected=null;
+let selected = null;
 
 /* LOGIN */
 function login(){
-  if(!name.value.trim()){
-    alert("Enter name");
+
+  const input = document.getElementById("usernameInput");
+
+  if(!input){
+    alert("Input not found");
+    return;
+  }
+
+  const username = input.value.trim();
+
+  if(!username){
+    alert("Enter a name");
     return;
   }
 
   fetch('/api/login',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({username:name.value})
+    body:JSON.stringify({username})
   })
   .then(r=>r.json())
   .then(u=>{
+    console.log("Logged:", u);
+
     localStorage.setItem("user", u.username);
+
     socket.emit("create", u.username);
+  })
+  .catch(err=>{
+    console.log("LOGIN ERROR:", err);
   });
 }
 
@@ -55,19 +92,25 @@ socket.on("state", g=>{
 
 /* DRAW GAME */
 function draw(g){
-  game.innerHTML="";
+
+  const game = document.getElementById("game");
+  game.innerHTML = "";
+
+  const colors = ["#3b82f6","#ef4444","#22c55e","#a855f7"];
 
   g.territories.forEach((t,i)=>{
-    let d=document.createElement("div");
-    d.className="cell";
-    d.style.background = ["blue","red","green","purple"][t.owner];
-    d.innerText=t.troops;
+    let d = document.createElement("div");
 
-    d.onclick=()=>{
-      if(selected===null) selected=i;
-      else{
+    d.className = "cell";
+    d.style.background = colors[t.owner % colors.length];
+    d.innerText = t.troops;
+
+    d.onclick = ()=>{
+      if(selected === null){
+        selected = i;
+      } else {
         socket.emit("move",{from:selected,to:i});
-        selected=null;
+        selected = null;
       }
     };
 
@@ -77,7 +120,7 @@ function draw(g){
 
 /* TIMER */
 socket.on("timer",t=>{
-  timer.innerText="⏳ "+t;
+  document.getElementById("timer").innerText = "⏳ " + t;
 });
 
 /* LEADERBOARD */
@@ -85,14 +128,15 @@ function loadLB(){
   fetch('/api/stats')
   .then(r=>r.json())
   .then(data=>{
-    leaderboard.innerHTML = data.map((u,i)=>`
-      ${i+1}. ${u.username || "Unknown"} — ${u.xp || 0}
-    `).join("<br>");
+    document.getElementById("leaderboard").innerHTML =
+      data.map((u,i)=>`${i+1}. ${u.username || "Unknown"} — ${u.xp || 0}`)
+      .join("<br>");
   });
 }
+
 setInterval(loadLB,3000);
 
-/* FX */
+/* ATTACK FX */
 socket.on("attack",()=>{
   alert("💥 Attack!");
 });
