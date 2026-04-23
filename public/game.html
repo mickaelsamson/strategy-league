@@ -13,21 +13,40 @@ body{
   text-align:center;
 }
 
+/* HEADER */
 .header{
   display:flex;
   justify-content:space-between;
   padding:10px 20px;
 }
 
-svg{
+/* GAME CONTAINER */
+#gameContainer{
+  position:relative;
   width:90%;
-  max-width:900px;
+  max-width:1000px;
   margin:auto;
+}
+
+/* MAP IMAGE */
+#map{
+  width:100%;
+  display:block;
+  border-radius:10px;
+}
+
+/* SVG OVERLAY */
+#overlay{
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
 }
 
 /* TERRITORIES */
 .territory{
-  fill:#1f2937;
+  fill:rgba(255,255,255,0.1);
   stroke:#000;
   stroke-width:2;
   cursor:pointer;
@@ -35,7 +54,7 @@ svg{
 }
 
 .territory:hover{
-  filter:brightness(1.5);
+  fill:rgba(255,255,255,0.3);
 }
 
 .selected{
@@ -43,16 +62,15 @@ svg{
   stroke-width:4;
 }
 
+/* COLORS */
 .blue{ fill:#3b82f6; }
 .red{ fill:#ef4444; }
 .green{ fill:#22c55e; }
 .purple{ fill:#a855f7; }
 
-text{
-  pointer-events:none;
-  fill:white;
-  font-size:12px;
-  text-anchor:middle;
+/* TIMER */
+#timer{
+  margin:10px;
 }
 </style>
 
@@ -67,27 +85,35 @@ text{
 
 <div id="timer"></div>
 
-<!-- SVG MAP -->
-<svg viewBox="0 0 400 300">
+<div id="gameContainer">
 
-  <!-- TERRITORIES -->
-  <g id="map">
+  <!-- TA MAP -->
+  <img src="map.png" id="map">
 
-    <polygon id="t0" class="territory" points="20,50 80,50 60,100"/>
-    <polygon id="t1" class="territory" points="80,50 140,50 120,100"/>
-    <polygon id="t2" class="territory" points="140,50 200,50 180,100"/>
-    <polygon id="t3" class="territory" points="60,100 120,100 100,150"/>
-    <polygon id="t4" class="territory" points="120,100 180,100 160,150"/>
-    <polygon id="t5" class="territory" points="100,150 160,150 130,200"/>
+  <!-- OVERLAY SVG -->
+  <svg id="overlay" viewBox="0 0 1000 700">
 
-  </g>
+    <!-- TOP -->
+    <polygon id="t0" class="territory" points="300,120 450,120 375,260"/>
+    <polygon id="t1" class="territory" points="450,120 600,120 525,260"/>
+    <polygon id="t2" class="territory" points="600,120 750,120 675,260"/>
 
-</svg>
+    <!-- MIDDLE -->
+    <polygon id="t3" class="territory" points="375,260 525,260 450,400"/>
+    <polygon id="t4" class="territory" points="525,260 675,260 600,400"/>
+
+    <!-- BOTTOM -->
+    <polygon id="t5" class="territory" points="450,400 600,400 525,560"/>
+
+  </svg>
+
+</div>
 
 <script>
 const socket = io();
 let selected = null;
 
+/* SESSION */
 const user = JSON.parse(localStorage.getItem("user"));
 
 if(!user){
@@ -97,12 +123,13 @@ if(!user){
   socket.emit("create", user.username);
 }
 
+/* LOGOUT */
 function logout(){
   localStorage.removeItem("user");
   window.location.href="/login.html";
 }
 
-/* DRAW STATE */
+/* STATE */
 socket.on("state", g=>{
 
   const colors = ["blue","red","green","purple"];
@@ -115,14 +142,18 @@ socket.on("state", g=>{
     el.setAttribute("class","territory " + colors[t.owner % colors.length]);
 
     el.onclick = ()=>{
+
       if(selected === null){
         selected = i;
         el.classList.add("selected");
       } else {
         socket.emit("move",{from:selected,to:i});
         selected = null;
-        document.querySelectorAll(".territory").forEach(e=>e.classList.remove("selected"));
+
+        document.querySelectorAll(".territory")
+          .forEach(e=>e.classList.remove("selected"));
       }
+
     };
 
   });
@@ -134,7 +165,7 @@ socket.on("timer",t=>{
   timer.innerText = "⏳ " + t;
 });
 
-/* FX */
+/* ATTACK FX */
 socket.on("attack",()=>{
   document.body.style.background="#220000";
   setTimeout(()=>document.body.style.background="#020617",200);
