@@ -15,7 +15,6 @@ body{
   display:flex;
 }
 
-/* LAYOUT */
 #main{
   flex:1;
   text-align:center;
@@ -27,7 +26,6 @@ body{
   padding:10px;
 }
 
-/* BOARD PRO FIX (responsive sans aspect-ratio) */
 #boardWrapper{
   position:relative;
   width:90vw;
@@ -52,7 +50,6 @@ body{
   height:100%;
 }
 
-/* CASES */
 .square{
   position:absolute;
   width:12.5%;
@@ -60,7 +57,6 @@ body{
   cursor:pointer;
 }
 
-/* PIECES */
 .piece{
   position:absolute;
   width:12.5%;
@@ -70,7 +66,6 @@ body{
   display:block;
 }
 
-/* TIMER */
 #timerBar{
   width:320px;
   height:10px;
@@ -87,7 +82,6 @@ body{
   transition:width 1s linear;
 }
 
-/* PLAYERS */
 .player{
   padding:8px;
   border-bottom:1px solid #1f2937;
@@ -102,7 +96,6 @@ body{
   border-radius:50%;
 }
 
-/* LOBBY */
 .lobby{
   background:#1f2937;
   padding:10px;
@@ -156,7 +149,6 @@ const user = JSON.parse(localStorage.getItem("user"));
 
 socket.emit("register_online", user.username);
 
-/* GAME */
 let game = new Chess();
 let selected = null;
 let playerColor = null;
@@ -169,7 +161,6 @@ const pieceMap = {
   bB:"bB.svg", bQ:"bQ.svg", bK:"bK.svg"
 };
 
-/* PLAYERS */
 window.onlineUsers = {};
 
 socket.on("online_users", users=>{
@@ -189,7 +180,6 @@ socket.on("online_users", users=>{
     `).join("");
 });
 
-/* INVITE */
 function invitePlayer(username){
 
   const lobby = Object.values(window.currentLobbies || {})
@@ -208,13 +198,11 @@ function invitePlayer(username){
 
 socket.on("invite", data=>{
   const accept = confirm(`${data.from} invited you`);
-
   if(accept){
     socket.emit("join_lobby", data.lobbyId);
   }
 });
 
-/* LOBBIES */
 socket.on("lobbies_update", lobbies=>{
 
   window.currentLobbies = lobbies;
@@ -252,7 +240,6 @@ function toggleReady(id){
   socket.emit("toggle_ready", id);
 }
 
-/* GAME */
 socket.on("start", data=>{
   playerColor = data.color;
   totalTime = data.time;
@@ -268,7 +255,6 @@ socket.on("update", data=>{
   draw();
 });
 
-/* DRAW */
 function draw(){
 
   const piecesLayer = document.getElementById("piecesLayer");
@@ -293,28 +279,25 @@ function draw(){
 
       clickLayer.appendChild(cell);
 
-      
       if(piece){
-      const img = document.createElement("img");
+        const img = document.createElement("img");
 
-      const key = piece.color + piece.type.toUpperCase();
+        const key = piece.color + piece.type.toUpperCase();
 
-      // ✅ FIX ABSOLU
-      img.src = "/chess/pieces/" + pieceMap[key];
+        // ✅ FIX FINAL ICI
+        img.src = "/chess/pieces/" + pieceMap[key];
 
-      img.className = "piece";
+        img.className = "piece";
 
-      img.style.left = (x*12.5) + "%";
-      img.style.top = (y*12.5) + "%";
+        img.style.left = (x*12.5) + "%";
+        img.style.top = (y*12.5) + "%";
 
-      piecesLayer.appendChild(img);
-        
-      }          
+        piecesLayer.appendChild(img);
+      }
     }
   }
 }
 
-/* MOVE */
 function clickCell(sq){
 
   if(game.turn() !== playerColor) return;
@@ -339,7 +322,6 @@ function clickCell(sq){
   }
 }
 
-/* LOBBY */
 function createLobby(){
   socket.emit("create_lobby",{
     name:document.getElementById("name").value,
