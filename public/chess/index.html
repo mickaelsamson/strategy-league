@@ -9,19 +9,17 @@
 <style>
 body{
   margin:0;
-  background: radial-gradient(circle,#0f172a,#020617);
+  background:#020617;
   color:white;
   font-family:Arial;
   display:flex;
 }
 
-/* MAIN */
 #main{
   flex:1;
   text-align:center;
 }
 
-/* SIDEBAR */
 #sidebar{
   width:250px;
   background:#111827;
@@ -33,10 +31,17 @@ body{
   border-bottom:1px solid #1f2937;
   display:flex;
   justify-content:space-between;
+  cursor:pointer;
 }
 
 .player:hover{
   background:#1f2937;
+}
+
+.avatar{
+  width:35px;
+  height:35px;
+  border-radius:50%;
 }
 
 .status{
@@ -46,23 +51,17 @@ body{
 .idle{color:lightgreen;}
 .playing{color:red;}
 
-/* LOBBY */
-.lobby{
-  background:#1f2937;
-  margin:10px auto;
-  padding:15px;
+#profilePopup{
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  background:#111827;
+  padding:20px;
   border-radius:12px;
-  width:320px;
-  box-shadow:0 0 10px rgba(0,0,0,0.5);
+  display:none;
+  text-align:center;
 }
-
-button{
-  margin:5px;
-  padding:8px 12px;
-  border-radius:8px;
-  cursor:pointer;
-}
-
 </style>
 </head>
 
@@ -93,20 +92,26 @@ button{
   <div id="players"></div>
 </div>
 
+<div id="profilePopup"></div>
+
 <script>
 
 const socket=io();
 const user=JSON.parse(localStorage.getItem("user"));
 
+let currentUsers={};
+
 socket.emit("register_online", user.username);
 
-/* ONLINE LIST */
+/* ONLINE */
 socket.on("online_users", users=>{
+  currentUsers=users;
 
   document.getElementById("players").innerHTML =
     Object.entries(users).map(([name,data])=>`
-      <div class="player">
+      <div class="player" onclick="openProfile('${name}')">
         <div>
+          <img src="${data.avatar}" class="avatar">
           ${name} (${data.elo})
           <div class="status ${data.status}">
             ${data.status}
@@ -114,13 +119,32 @@ socket.on("online_users", users=>{
         </div>
 
         ${name!==user.username ? 
-          `<button onclick="invite('${name}')">+</button>` : ""}
+          `<button onclick="invite('${name}');event.stopPropagation()">+</button>` : ""}
       </div>
     `).join("");
-
 });
 
-/* CREATE */
+/* PROFILE */
+function openProfile(name){
+  const data=currentUsers[name];
+
+  const popup=document.getElementById("profilePopup");
+
+  popup.style.display="block";
+
+  popup.innerHTML=`
+    <img src="${data.avatar}" class="avatar"><br><br>
+    <b>${name}</b><br>
+    ELO: ${data.elo}<br><br>
+    <button onclick="closeProfile()">Close</button>
+  `;
+}
+
+function closeProfile(){
+  document.getElementById("profilePopup").style.display="none";
+}
+
+/* LOBBY */
 function createLobby(){
   socket.emit("create_lobby",{
     name:document.getElementById("name").value,
@@ -128,43 +152,25 @@ function createLobby(){
   });
 }
 
-/* LOBBIES */
 socket.on("lobbies_update", lobbies=>{
-
   document.getElementById("lobbies").innerHTML =
     Object.values(lobbies).map(l=>`
-      <div class="lobby">
+      <div>
         <b>${l.name}</b> (${l.time}s)<br>
-        ${l.players.map(p=>p.username+" ("+p.elo+")").join(", ")}<br>
+        ${l.players.map(p=>p.username).join(", ")}<br>
         <button onclick="join('${l.id}')">Join</button>
-        <button onclick="inviteLobby('${l.id}')">Invite</button>
       </div>
     `).join("");
-
 });
 
 function join(id){
   socket.emit("join_lobby", id);
 }
 
-let currentLobby=null;
-
-function inviteLobby(id){
-  currentLobby=id;
-}
-
 function invite(name){
-  if(currentLobby){
-    socket.emit("invite_player",{target:name,lobbyId:currentLobby});
-  }
+  const lobbyId = Object.keys(currentUsers).length ? Object.keys(lobbies)[0] : null;
+  socket.emit("invite_player",{target:name,lobbyId});
 }
-
-/* INVITE RECEIVE */
-socket.on("invite_received", data=>{
-  if(confirm(data.from+" invited you")){
-    socket.emit("join_lobby", data.lobbyId);
-  }
-});
 
 /* GAME */
 let game=new Chess();
