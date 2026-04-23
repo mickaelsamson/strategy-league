@@ -4,11 +4,12 @@
 <link rel="stylesheet" href="style.css">
 <script src="/socket.io/socket.io.js"></script>
 </head>
+
 <body>
 
 <div>
-<input id="name" placeholder="Name">
-<button onclick="login()">Login</button>
+  <input id="name" placeholder="Name">
+  <button onclick="login()">Login</button>
 </div>
 
 <div id="timer"></div>
@@ -16,37 +17,59 @@
 
 <script>
 let socket = io();
+let selected = null;
+let currentUser = null;
 
+/* LOGIN */
 function login(){
-fetch('/api/login',{
-method:'POST',
-headers:{'Content-Type':'application/json'},
-body:JSON.stringify({username:name.value})
-})
-.then(r=>r.json())
-.then(()=>{
-startGame();
-});
+  fetch('/api/login',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username:name.value})
+  })
+  .then(r=>r.json())
+  .then(u=>{
+    currentUser = u.username;
+    localStorage.setItem("user", u.username);
+
+    console.log("Logged in:", u);
+
+    // démarre une game automatiquement
+    socket.emit("create", u.username);
+  });
 }
 
-function startGame(){
-socket.emit("create", name.value);
-}
-
+/* TIMER */
 socket.on("timer",t=>{
-timer.innerText="⏳ "+t;
+  timer.innerText="⏳ "+t;
 });
 
-socket.on("attack",()=>alert("Attack!"));
-
-function loadLB(){
-fetch('/api/stats')
-.then(r=>r.json())
-.then(d=>{
-leaderboard.innerHTML=d.map((u,i)=>i+1+". "+u.username+" "+u.xp).join("<br>");
+/* ATTACK FX */
+socket.on("attack",()=>{
+  show("💥 Attack!");
 });
+
+function show(txt){
+  let d=document.createElement("div");
+  d.className="float";
+  d.innerText=txt;
+  document.body.appendChild(d);
+  setTimeout(()=>d.remove(),1200);
 }
+
+/* LEADERBOARD FIX */
+function loadLB(){
+  fetch('/api/stats')
+  .then(r=>r.json())
+  .then(data=>{
+    leaderboard.innerHTML = data.map((u,i)=>`
+      ${i+1}. ${u.username || "Unknown"} — ${u.xp || 0}
+    `).join("<br>");
+  });
+}
+
 setInterval(loadLB,3000);
+
 </script>
 
 </body>
