@@ -98,7 +98,7 @@ function createGame(id){
     players:[],
     turn:0,
     timeLeft:TURN_TIME,
-    territories:Array(12).fill().map((_,i)=>({
+    territories:Array(8).fill().map((_,i)=>({
       owner: i % 2,
       troops:3
     }))
