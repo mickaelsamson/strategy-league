@@ -14,6 +14,23 @@ app.get('/', (req,res)=>{
   res.sendFile('index.html', { root: 'public' });
 });
 
+/* ===== LEADERBOARDS ===== */
+
+app.get("/api/leaderboard/global", async (req,res)=>{
+  const users = await User.find().sort({xp:-1}).limit(50);
+  res.send(users);
+});
+
+app.get("/api/leaderboard/chess", async (req,res)=>{
+  const users = await User.find().sort({chessElo:-1}).limit(50);
+  res.send(users);
+});
+
+app.get("/api/leaderboard/strategy", async (req,res)=>{
+  const users = await User.find().sort({strategyPoints:-1}).limit(50);
+  res.send(users);
+});
+
 /* ===== AUTH ===== */
 
 app.post('/api/register', async (req,res)=>{
