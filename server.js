@@ -23,6 +23,9 @@ let chessGames = {};
 
 let pendingDisconnects = {};
 let playerGames = {};
+let rematchRequests = {};
+
+/* ================= UTILS ================= */
 
 function update(){
   io.emit("online_users", onlineUsers);
@@ -71,10 +74,8 @@ io.on('connection', socket=>{
       status:"idle"
     };
 
-    if(pendingDisconnects[username]){
-      clearInterval(pendingDisconnects[username]);
-      delete pendingDisconnects[username];
-
+    /* RECONNECT */
+    if(playerGames[username]){
       const gameId = playerGames[username];
       const game = chessGames[gameId];
 
@@ -97,7 +98,6 @@ io.on('connection', socket=>{
         });
 
         socket.emit("chess_update",{fen:game.fen});
-        socket.emit("disconnect_timer",{time:0});
       }
     }
 
@@ -141,8 +141,6 @@ io.on('connection', socket=>{
             });
 
             delete chessGames[gameId];
-            delete playerGames[username];
-            delete playerGames[opponent.username];
           }
 
         },1000);
@@ -154,7 +152,82 @@ io.on('connection', socket=>{
     update();
   });
 
-  /* 🔥 FIX ABANDON */
+  /* ================= REMATCH ================= */
+
+  socket.on("rematch", ()=>{
+
+    const username = socket.username;
+    const gameId = playerGames[username];
+
+    if(!gameId) return;
+
+    if(!rematchRequests[gameId]){
+      rematchRequests[gameId] = [];
+    }
+
+    if(!rematchRequests[gameId].includes(username)){
+      rematchRequests[gameId].push(username);
+    }
+
+    const game = chessGames[gameId];
+
+    /* 🔥 SI LA GAME N'EXISTE PLUS → ON LA RECRÉE */
+    if(!game){
+      const players = Object.keys(playerGames)
+        .filter(u => playerGames[u] === gameId);
+
+      if(players.length === 2){
+
+        const sockets = players.map(u => onlineUsers[u]?.id);
+
+        chessGames[gameId] = {
+          id: gameId,
+          players:[
+            {id:sockets[0], username:players[0], color:'w'},
+            {id:sockets[1], username:players[1], color:'b'}
+          ],
+          fen:null,
+          turn:'w'
+        };
+      }
+    }
+
+    const updatedGame = chessGames[gameId];
+    if(!updatedGame) return;
+
+    if(rematchRequests[gameId].length === 2){
+
+      rematchRequests[gameId] = [];
+
+      updatedGame.players.forEach(p=>{
+        const s = io.sockets.sockets.get(p.id);
+
+        if(s){
+          s.emit("chess_start",{
+            color:p.color,
+            players:{
+              white: updatedGame.players.find(p=>p.color==='w').username,
+              black: updatedGame.players.find(p=>p.color==='b').username
+            }
+          });
+        }
+      });
+
+    }else{
+
+      const opponent = updatedGame.players.find(p=>p.username !== username);
+
+      if(opponent){
+        io.to(opponent.id).emit("rematch_requested",{
+          from: username
+        });
+      }
+    }
+
+  });
+
+  /* ================= RESIGN ================= */
+
   socket.on("resign", ()=>{
 
     const username = socket.username;
@@ -175,13 +248,10 @@ io.on('connection', socket=>{
     });
 
     delete chessGames[gameId];
-    delete playerGames[username];
-    if(opponent) delete playerGames[opponent.username];
-
-    update();
   });
 
-  /* CREATE */
+  /* ================= LOBBY ================= */
+
   socket.on("create_lobby", ({name,time})=>{
     const id = Math.random().toString(36).substr(2,5);
 
@@ -199,7 +269,6 @@ io.on('connection', socket=>{
     update();
   });
 
-  /* JOIN */
   socket.on("join_lobby", id=>{
     const l = lobbies[id];
     if(!l || l.players.length>=2) return;
@@ -213,7 +282,6 @@ io.on('connection', socket=>{
     update();
   });
 
-  /* READY */
   socket.on("toggle_ready", id=>{
     const l = lobbies[id];
     if(!l) return;
@@ -229,9 +297,6 @@ io.on('connection', socket=>{
 
       const game = createGame(l);
 
-      const p1 = l.players[0];
-      const p2 = l.players[1];
-
       l.players.forEach((p,i)=>{
         const s = io.sockets.sockets.get(p.id);
 
@@ -244,8 +309,8 @@ io.on('connection', socket=>{
         s.emit("chess_start",{
           color:s.color,
           players:{
-            white:p1.username,
-            black:p2.username
+            white:l.players[0].username,
+            black:l.players[1].username
           }
         });
       });
@@ -254,6 +319,8 @@ io.on('connection', socket=>{
       update();
     }
   });
+
+  /* ================= MOVE ================= */
 
   socket.on("chess_move", ({fen})=>{
     const g = chessGames[socket.chessGame];
@@ -269,9 +336,15 @@ io.on('connection', socket=>{
 
 });
 
+/* ================= START ================= */
+
 async function startServer(){
   await mongoose.connect(process.env.MONGO_URI);
-  http.listen(process.env.PORT||3000);
+  console.log("Mongo connected");
+
+  http.listen(process.env.PORT||3000, ()=>{
+    console.log("Server running");
+  });
 }
 
 startServer();
