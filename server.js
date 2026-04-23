@@ -20,12 +20,9 @@ app.get('/', (req,res)=>{
 let onlineUsers = {};
 let lobbies = {};
 let chessGames = {};
-
-let pendingDisconnects = {};
 let playerGames = {};
 let rematchRequests = {};
-
-/* ================= UTILS ================= */
+let pendingDisconnects = {};
 
 function update(){
   io.emit("online_users", onlineUsers);
@@ -39,7 +36,6 @@ function createGame(lobby){
   const [p1,p2] = lobby.players;
   const id = Math.random().toString(36).substr(2,6);
 
-  /* 🎲 RANDOM COLORS */
   const swap = Math.random() < 0.5;
 
   const white = swap ? p2 : p1;
@@ -79,23 +75,17 @@ io.on('connection', socket=>{
       status:"idle"
     };
 
-    /* RECONNECT */
     if(playerGames[username]){
-      const gameId = playerGames[username];
-      const game = chessGames[gameId];
-
+      const game = chessGames[playerGames[username]];
       if(game){
+        const p = game.players.find(x=>x.username===username);
 
-        const player = game.players.find(p=>p.username===username);
-
-        socket.join(gameId);
-        socket.chessGame = gameId;
-        socket.color = player.color;
-
-        onlineUsers[username].status = "playing";
+        socket.join(game.id);
+        socket.chessGame = game.id;
+        socket.color = p.color;
 
         socket.emit("chess_start",{
-          color:player.color,
+          color:p.color,
           players:{
             white: game.players.find(p=>p.color==='w').username,
             black: game.players.find(p=>p.color==='b').username
@@ -110,47 +100,35 @@ io.on('connection', socket=>{
   });
 
   socket.on("disconnect", ()=>{
-
     const username = socket.username;
-    if(!username) return;
-
     delete onlineUsers[username];
 
     const gameId = playerGames[username];
     const game = chessGames[gameId];
 
     if(game){
-
-      const opponent = game.players.find(p=>p.username !== username);
+      const opponent = game.players.find(p=>p.username!==username);
 
       if(opponent){
-
-        io.to(opponent.id).emit("opponent_disconnected",{
-          player: username
-        });
+        io.to(opponent.id).emit("opponent_disconnected",{player:username});
 
         let timeLeft = 60;
 
         const interval = setInterval(()=>{
-
           timeLeft--;
 
-          io.to(opponent.id).emit("disconnect_timer",{time: timeLeft});
+          io.to(opponent.id).emit("disconnect_timer",{time:timeLeft});
 
-          if(timeLeft <= 0){
-
+          if(timeLeft<=0){
             clearInterval(interval);
 
-            io.to(opponent.id).emit("player_left",{
-              winner: opponent.username
-            });
+            io.to(opponent.id).emit("player_left",{winner:opponent.username});
 
             delete chessGames[gameId];
           }
-
         },1000);
 
-        pendingDisconnects[username] = interval;
+        pendingDisconnects[username]=interval;
       }
     }
 
@@ -164,11 +142,7 @@ io.on('connection', socket=>{
     const username = socket.username;
     const gameId = playerGames[username];
 
-    if(!gameId) return;
-
-    if(!rematchRequests[gameId]){
-      rematchRequests[gameId] = [];
-    }
+    if(!rematchRequests[gameId]) rematchRequests[gameId]=[];
 
     if(!rematchRequests[gameId].includes(username)){
       rematchRequests[gameId].push(username);
@@ -176,49 +150,41 @@ io.on('connection', socket=>{
 
     let game = chessGames[gameId];
 
-    /* 🔥 RECREATE GAME IF NEEDED */
     if(!game){
-      const players = Object.keys(playerGames)
-        .filter(u => playerGames[u] === gameId);
+      const players = Object.keys(playerGames).filter(u=>playerGames[u]===gameId);
 
-      if(players.length === 2){
-
-        const sockets = players.map(u => onlineUsers[u]?.id);
-
+      if(players.length===2){
         game = {
-          id: gameId,
+          id:gameId,
           players:[
-            {id:sockets[0], username:players[0], color:'w'},
-            {id:sockets[1], username:players[1], color:'b'}
+            {id:onlineUsers[players[0]].id, username:players[0], color:'w'},
+            {id:onlineUsers[players[1]].id, username:players[1], color:'b'}
           ],
           fen:null,
           turn:'w'
         };
-
-        chessGames[gameId] = game;
+        chessGames[gameId]=game;
       }
     }
 
-    if(!game) return;
+    if(rematchRequests[gameId].length===2){
 
-    /* 🔥 BOTH ACCEPTED */
-    if(rematchRequests[gameId].length === 2){
+      rematchRequests[gameId]=[];
 
-      rematchRequests[gameId] = [];
+      /* 🔥 SWAP + FIX SOCKET */
+      game.players = game.players.map(p=>{
+        const newColor = p.color==='w'?'b':'w';
+        const s = io.sockets.sockets.get(p.id);
+        if(s) s.color = newColor;
 
-      /* 🔁 SWAP COLORS */
-      game.players = game.players.map(p=>({
-        id:p.id,
-        username:p.username,
-        color: p.color === 'w' ? 'b' : 'w'
-      }));
+        return {id:p.id, username:p.username, color:newColor};
+      });
 
-      game.fen = null;
-      game.turn = 'w';
+      game.fen=null;
+      game.turn='w';
 
       game.players.forEach(p=>{
         const s = io.sockets.sockets.get(p.id);
-
         if(s){
           s.emit("chess_start",{
             color:p.color,
@@ -231,13 +197,9 @@ io.on('connection', socket=>{
       });
 
     }else{
-
-      const opponent = game.players.find(p=>p.username !== username);
-
+      const opponent = game.players.find(p=>p.username!==username);
       if(opponent){
-        io.to(opponent.id).emit("rematch_requested",{
-          from: username
-        });
+        io.to(opponent.id).emit("rematch_requested",{from:username});
       }
     }
 
@@ -246,90 +208,64 @@ io.on('connection', socket=>{
   /* ================= RESIGN ================= */
 
   socket.on("resign", ()=>{
-
-    const username = socket.username;
-    const gameId = playerGames[username];
-    const game = chessGames[gameId];
-
+    const game = chessGames[playerGames[socket.username]];
     if(!game) return;
 
-    const opponent = game.players.find(p=>p.username !== username);
+    const opponent = game.players.find(p=>p.username!==socket.username);
 
     game.players.forEach(p=>{
-      const s = io.sockets.sockets.get(p.id);
-      if(s){
-        s.emit("player_left",{
-          winner: opponent.username
-        });
-      }
+      io.to(p.id).emit("player_left",{winner:opponent.username});
     });
 
-    delete chessGames[gameId];
+    delete chessGames[game.id];
   });
 
   /* ================= LOBBY ================= */
 
   socket.on("create_lobby", ({name,time})=>{
-    const id = Math.random().toString(36).substr(2,5);
+    const id=Math.random().toString(36).substr(2,5);
 
-    lobbies[id] = {
+    lobbies[id]={
       id,
       name,
       time,
-      players:[{
-        id:socket.id,
-        username:socket.username,
-        ready:false
-      }]
+      players:[{id:socket.id, username:socket.username, ready:false}]
     };
 
     update();
   });
 
   socket.on("join_lobby", id=>{
-    const l = lobbies[id];
-    if(!l || l.players.length>=2) return;
+    const l=lobbies[id];
+    if(!l||l.players.length>=2) return;
 
-    l.players.push({
-      id:socket.id,
-      username:socket.username,
-      ready:false
-    });
-
+    l.players.push({id:socket.id, username:socket.username, ready:false});
     update();
   });
 
   socket.on("toggle_ready", id=>{
-    const l = lobbies[id];
-    if(!l) return;
-
-    const player = l.players.find(p=>p.id===socket.id);
-    if(!player) return;
-
-    player.ready = !player.ready;
+    const l=lobbies[id];
+    const p=l.players.find(p=>p.id===socket.id);
+    p.ready=!p.ready;
 
     update();
 
     if(l.players.length===2 && l.players.every(p=>p.ready)){
+      const game=createGame(l);
 
-      const game = createGame(l);
-
-      l.players.forEach((p,i)=>{
-        const s = io.sockets.sockets.get(p.id);
-
-        onlineUsers[p.username].status="playing";
-
-        const playerData = game.players.find(pl=>pl.username===p.username);
+      l.players.forEach(pl=>{
+        const s=io.sockets.sockets.get(pl.id);
+        const data=game.players.find(p=>p.username===pl.username);
 
         s.join(game.id);
-        s.chessGame = game.id;
-        s.color = playerData.color;
+        s.chessGame=game.id;
+        s.color=data.color;
 
         s.emit("chess_start",{
-          color:s.color,
+          color:data.color,
           players:{
-            white: game.players.find(pl=>pl.color==='w').username,
-            black: game.players.find(pl=>pl.color==='b').username
+            white: game.players.find(p=>p.color==='w').username,
+            black: game.players.find(p=>p.color==='b').username
           }
         });
       });
@@ -339,31 +275,21 @@ io.on('connection', socket=>{
     }
   });
 
-  /* ================= MOVE ================= */
-
   socket.on("chess_move", ({fen})=>{
-    const g = chessGames[socket.chessGame];
-    if(!g) return;
+    const g=chessGames[socket.chessGame];
+    if(!g || socket.color!==g.turn) return;
 
-    if(socket.color !== g.turn) return;
+    g.fen=fen;
+    g.turn=g.turn==='w'?'b':'w';
 
-    g.fen = fen;
-    g.turn = g.turn==='w'?'b':'w';
-
-    io.to(g.id).emit("chess_update",{fen:g.fen});
+    io.to(g.id).emit("chess_update",{fen});
   });
 
 });
 
-/* ================= START ================= */
-
 async function startServer(){
   await mongoose.connect(process.env.MONGO_URI);
-  console.log("Mongo connected");
-
-  http.listen(process.env.PORT||3000, ()=>{
-    console.log("Server running");
-  });
+  http.listen(process.env.PORT||3000);
 }
 
 startServer();
