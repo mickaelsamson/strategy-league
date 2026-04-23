@@ -46,6 +46,7 @@ app.post('/api/register', async (req,res)=>{
     res.send({success:true});
 
   }catch(err){
+    console.log(err);
     res.status(500).send({error:"Server error"});
   }
 });
@@ -97,29 +98,40 @@ function sendState(g){
 }
 
 /* =========================
-   CHESS ROOMS SYSTEM
+   CHESS LOBBY SYSTEM
 ========================= */
 
 let onlineUsers = {};
+let lobbies = {};
 let chessGames = {};
 
-let rooms = {
-  blitz: {name:"Blitz", time:60, players:[]},
-  rapid: {name:"Rapid", time:300, players:[]},
-  classic: {name:"Classic", time:600, players:[]}
-};
+function createLobby(name, time, host){
+  const id = Math.random().toString(36).substr(2,5);
 
-function createChessGame(room){
+  lobbies[id] = {
+    id,
+    name,
+    time,
+    players:[{
+      id:host.id,
+      username:host.username
+    }]
+  };
 
-  const [p1, p2] = room.players;
+  return lobbies[id];
+}
+
+function createChessGame(lobby){
+
+  const [p1,p2] = lobby.players;
 
   const id = Math.random().toString(36).substr(2,6);
 
   const game = {
     id,
     players:[
-      {id:p1.id, username:p1.username, color:'w', time:room.time},
-      {id:p2.id, username:p2.username, color:'b', time:room.time}
+      {id:p1.id, username:p1.username, color:'w', time:lobby.time},
+      {id:p2.id, username:p2.username, color:'b', time:lobby.time}
     ],
     fen:null,
     turn:'w',
@@ -133,20 +145,18 @@ function createChessGame(room){
 }
 
 function startChessTimer(g){
-
   if(g.timer) clearInterval(g.timer);
 
-  g.timer = setInterval(()=>{
-
-    const current = g.players.find(p=>p.color === g.turn);
+  g.timer=setInterval(()=>{
+    const current = g.players.find(p=>p.color===g.turn);
     if(!current) return;
 
     current.time--;
 
     io.to(g.id).emit("chess_timer", g.players);
 
-    if(current.time <= 0){
-      const winner = g.players.find(p=>p.color !== g.turn);
+    if(current.time<=0){
+      const winner = g.players.find(p=>p.color!==g.turn);
       io.to(g.id).emit("chess_end",{winner:winner.username});
       clearInterval(g.timer);
     }
@@ -158,109 +168,58 @@ function startChessTimer(g){
    SOCKET
 ========================= */
 
-io.on('connection', socket => {
+io.on('connection', socket=>{
 
-  /* ===== STRATEGY ===== */
-
-  socket.on('create',name=>{
-    if(!name) return;
-
-    let id=Math.random().toString(36).substr(2,4).toUpperCase();
-    let g=createGame(id);
-
-    g.players.push(name);
-    games[id]=g;
-
-    socket.join(id);
-    socket.gameId=id;
-    socket.playerIndex=0;
-
-    startTimer(g);
-
-    socket.emit('created',id);
-    sendState(g);
-  });
-
-  socket.on('move',({from,to})=>{
-    let g=games[socket.gameId];
-    if(!g) return;
-
-    let f=g.territories[from];
-    let t=g.territories[to];
-
-    if(!f || !t) return;
-
-    if(f.owner===socket.playerIndex){
-
-      if(f.troops>t.troops){
-        t.owner=socket.playerIndex;
-        t.troops=f.troops-1;
-        f.troops=1;
-
-        io.to(g.id).emit("attack",{to});
-      } else {
-        f.troops=Math.max(1, f.troops-1);
-      }
-
-      if(g.players.length > 0){
-        g.turn=(g.turn+1)%g.players.length;
-      }
-
-      g.timeLeft=TURN_TIME;
-
-      sendState(g);
-    }
-  });
-
-  /* ===== CHESS ===== */
+  /* ===== ONLINE USERS ===== */
 
   socket.on("register_online", username=>{
     socket.username = username;
     onlineUsers[username] = socket.id;
-    io.emit("online_users", Object.keys(onlineUsers));
-    updateRooms();
+    updateAll();
   });
 
   socket.on("disconnect", ()=>{
     delete onlineUsers[socket.username];
 
-    Object.values(rooms).forEach(r=>{
-      r.players = r.players.filter(p=>p.id !== socket.id);
+    Object.values(lobbies).forEach(l=>{
+      l.players = l.players.filter(p=>p.id!==socket.id);
     });
 
-    io.emit("online_users", Object.keys(onlineUsers));
-    updateRooms();
+    updateAll();
   });
 
-  function updateRooms(){
-    io.emit("rooms_update", rooms);
+  function updateAll(){
+    io.emit("lobbies_update", lobbies);
+    io.emit("online_users", Object.keys(onlineUsers));
   }
 
-  socket.on("join_room", roomKey=>{
+  /* ===== CREATE LOBBY ===== */
 
-    const room = rooms[roomKey];
-    if(!room) return;
+  socket.on("create_lobby", ({name,time})=>{
+    if(!name) name = "Lobby";
 
-    if(room.players.length >= 2) return;
+    createLobby(name,time,socket);
+    updateAll();
+  });
 
-    Object.values(rooms).forEach(r=>{
-      r.players = r.players.filter(p=>p.id !== socket.id);
+  /* ===== JOIN LOBBY ===== */
+
+  socket.on("join_lobby", id=>{
+    const l = lobbies[id];
+    if(!l || l.players.length>=2) return;
+
+    l.players.push({
+      id:socket.id,
+      username:socket.username
     });
 
-    room.players.push({
-      id: socket.id,
-      username: socket.username
-    });
+    updateAll();
 
-    socket.roomKey = roomKey;
+    if(l.players.length===2){
 
-    updateRooms();
+      const game = createChessGame(l);
 
-    if(room.players.length === 2){
-
-      const game = createChessGame(room);
-
-      room.players.forEach((p,i)=>{
+      l.players.forEach((p,i)=>{
         const s = io.sockets.sockets.get(p.id);
 
         s.join(game.id);
@@ -269,51 +228,46 @@ io.on('connection', socket => {
 
         s.emit("chess_start",{
           color:s.color,
-          time:room.time
+          time:l.time
         });
       });
 
-      room.players = [];
-      updateRooms();
+      delete lobbies[id];
+      updateAll();
     }
   });
 
-  socket.on("leave_room", ()=>{
-    Object.values(rooms).forEach(r=>{
-      r.players = r.players.filter(p=>p.id !== socket.id);
-    });
-    updateRooms();
+  /* ===== INVITE ===== */
+
+  socket.on("invite_player", ({target,lobbyId})=>{
+    const id = onlineUsers[target];
+    if(id){
+      io.to(id).emit("invite_received",{
+        from:socket.username,
+        lobbyId
+      });
+    }
   });
+
+  socket.on("accept_invite", ({lobbyId})=>{
+    const l = lobbies[lobbyId];
+    if(!l) return;
+
+    socket.emit("join_lobby", lobbyId);
+  });
+
+  /* ===== MOVE ===== */
 
   socket.on("chess_move", ({from,to,fen})=>{
     const g = chessGames[socket.chessGame];
     if(!g) return;
 
-    if(socket.color !== g.turn) return;
+    if(socket.color!==g.turn) return;
 
     g.fen = fen;
-    g.turn = g.turn === 'w' ? 'b':'w';
+    g.turn = g.turn==='w'?'b':'w';
 
     io.to(g.id).emit("chess_update",{fen:g.fen});
-  });
-
-  socket.on("chess_rematch", ()=>{
-    const g = chessGames[socket.chessGame];
-    if(!g) return;
-
-    const players = g.players.map(p=>io.sockets.sockets.get(p.id));
-
-    const room = {time:300, players:players};
-
-    const game = createChessGame(room);
-
-    players.forEach((p,i)=>{
-      p.join(game.id);
-      p.chessGame = game.id;
-      p.color = i===0?'w':'b';
-
-      p.emit("chess_start",{color:p.color});
-    });
   });
 
 });
