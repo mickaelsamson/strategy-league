@@ -11,126 +11,56 @@ body{
   color:white;
 }
 
-/* HEADER */
-.header{
-  display:flex;
-  justify-content:space-between;
-  padding:20px 30px;
-  align-items:center;
-}
-
-.logo{
-  font-size:24px;
-  font-weight:bold;
-  color:#facc15;
-}
-
-/* GRID */
 .container{
   display:flex;
   justify-content:center;
   gap:40px;
-  margin-top:80px;
-  flex-wrap:wrap;
+  margin-top:100px;
 }
 
-/* CARD */
 .card{
-  width:260px;
-  height:180px;
-  background:linear-gradient(145deg,#1f2937,#020617);
-  border-radius:20px;
+  width:220px;
+  height:150px;
+  background:#111827;
+  border-radius:15px;
   display:flex;
   flex-direction:column;
   justify-content:center;
   align-items:center;
   cursor:pointer;
   transition:0.3s;
-  box-shadow:0 0 20px rgba(0,0,0,0.5);
 }
 
 .card:hover{
-  transform:scale(1.08);
-  box-shadow:0 0 25px rgba(250,204,21,0.6);
-}
-
-.icon{
-  font-size:40px;
-  margin-bottom:10px;
-}
-
-.title{
-  font-size:18px;
-  font-weight:bold;
-}
-
-/* BACK */
-.back{
-  margin-top:40px;
-  text-align:center;
-}
-
-button{
-  padding:10px 20px;
-  border:none;
-  border-radius:10px;
-  cursor:pointer;
+  transform:scale(1.1);
 }
 </style>
-
 </head>
 
 <body>
 
-<div class="header">
-  <div class="logo">🎮 Choose Your Game</div>
-  <div id="player"></div>
-</div>
+<h2 style="text-align:center;">Choose Game</h2>
 
 <div class="container">
 
-  <!-- STRATEGY -->
   <div class="card" onclick="goStrategy()">
-    <div class="icon">⚔️</div>
-    <div class="title">Strategy War</div>
+    ⚔️ Strategy
   </div>
 
-  <!-- CHESS -->
   <div class="card" onclick="goChess()">
-    <div class="icon">♟️</div>
-    <div class="title">Chess (Soon)</div>
+    ♟️ Chess
   </div>
 
-</div>
-
-<div class="back">
-  <button onclick="goBack()">⬅ Back</button>
 </div>
 
 <script>
-
-/* SESSION */
-const user = JSON.parse(localStorage.getItem("user"));
-
-if(!user){
-  window.location.href="/login.html";
-}else{
-  document.getElementById("player").innerText = "👑 " + user.username;
-}
-
-/* NAV */
 function goStrategy(){
-  window.location.href="/game.html";
+  window.location.href="/strategy/";
 }
 
 function goChess(){
-  alert("Coming soon 👀");
+  window.location.href="/chess/";
 }
-
-function goBack(){
-  window.location.href="/";
-}
-
 </script>
 
 </body>
