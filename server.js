@@ -21,6 +21,10 @@ let onlineUsers = {};
 let lobbies = {};
 let chessGames = {};
 
+/* 🔥 NEW */
+let pendingDisconnects = {};
+let playerGames = {}; // username → gameId
+
 function update(){
   io.emit("online_users", onlineUsers);
   io.emit("lobbies_update", lobbies);
@@ -45,6 +49,11 @@ function createGame(lobby){
   };
 
   chessGames[id] = game;
+
+  /* 🔥 LINK USERS TO GAME */
+  playerGames[p1.username] = id;
+  playerGames[p2.username] = id;
+
   return game;
 }
 
@@ -64,26 +73,55 @@ io.on('connection', socket=>{
       status:"idle"
     };
 
+    /* 🔥 RECONNECT LOGIC */
+    if(pendingDisconnects[username]){
+      clearTimeout(pendingDisconnects[username]);
+      delete pendingDisconnects[username];
+
+      const gameId = playerGames[username];
+      const game = chessGames[gameId];
+
+      if(game){
+
+        const player = game.players.find(p=>p.username===username);
+
+        socket.join(gameId);
+        socket.chessGame = gameId;
+        socket.color = player.color;
+
+        onlineUsers[username].status = "playing";
+
+        socket.emit("chess_start",{
+          color:player.color,
+          players:{
+            white: game.players.find(p=>p.color==='w').username,
+            black: game.players.find(p=>p.color==='b').username
+          }
+        });
+
+        socket.emit("chess_update",{fen:game.fen});
+      }
+    }
+
     update();
   });
 
-  /* 🔥 DISCONNECT FIX */
   socket.on("disconnect", ()=>{
 
     const username = socket.username;
-
     if(!username) return;
 
     delete onlineUsers[username];
 
-    /* 🔥 CHECK SI DANS UNE GAME */
-    Object.values(chessGames).forEach(game=>{
+    /* 🔥 START 60s TIMER */
+    pendingDisconnects[username] = setTimeout(()=>{
 
-      const player = game.players.find(p=>p.id === socket.id);
+      const gameId = playerGames[username];
+      const game = chessGames[gameId];
 
-      if(player){
+      if(game){
 
-        const opponent = game.players.find(p=>p.id !== socket.id);
+        const opponent = game.players.find(p=>p.username !== username);
 
         if(opponent){
           io.to(opponent.id).emit("player_left",{
@@ -91,14 +129,14 @@ io.on('connection', socket=>{
           });
         }
 
-        delete chessGames[game.id];
+        delete chessGames[gameId];
+        delete playerGames[username];
+        delete playerGames[opponent.username];
       }
-    });
 
-    /* 🔥 REMOVE FROM LOBBY */
-    Object.values(lobbies).forEach(lobby=>{
-      lobby.players = lobby.players.filter(p=>p.id !== socket.id);
-    });
+      delete pendingDisconnects[username];
+
+    }, 60000);
 
     update();
   });
