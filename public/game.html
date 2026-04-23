@@ -13,18 +13,27 @@ body{
   text-align:center;
 }
 
-/* TOP BAR */
 .header{
-  padding:15px;
   font-size:24px;
+  padding:15px;
 }
 
-/* LOGIN */
-.login{
+.auth{
   margin:10px;
 }
 
-/* GAME AREA */
+input{
+  padding:10px;
+  margin:5px;
+}
+
+button{
+  padding:10px 15px;
+  margin:5px;
+  cursor:pointer;
+}
+
+/* GAME */
 #gameContainer{
   position:relative;
   width:100%;
@@ -32,13 +41,11 @@ body{
   margin:auto;
 }
 
-/* MAP IMAGE */
 #map{
   width:100%;
   border-radius:10px;
 }
 
-/* TERRITORIES */
 .territory{
   position:absolute;
   width:60px;
@@ -50,12 +57,10 @@ body{
   font-weight:bold;
   cursor:pointer;
   transition:0.2s;
-  box-shadow:0 0 10px rgba(0,0,0,0.5);
 }
 
 .territory:hover{
   transform:scale(1.2);
-  box-shadow:0 0 15px gold;
 }
 
 /* COLORS */
@@ -64,32 +69,30 @@ body{
 .green{background:#22c55e;}
 .purple{background:#a855f7;}
 
-/* UI */
 #timer{margin:10px;}
 #leaderboard{margin:10px;}
 </style>
+
 </head>
 
 <body>
 
 <div class="header">🎮 Strategy Hub</div>
 
-<div class="login">
-  <input id="usernameInput" placeholder="Name">
+<div class="auth">
+  <input id="usernameInput" placeholder="Username">
+  <input id="passwordInput" type="password" placeholder="Password">
+  <br>
   <button onclick="login()">Login</button>
+  <button onclick="register()">Register</button>
 </div>
 
 <div id="timer"></div>
 <div id="leaderboard"></div>
 
 <div id="gameContainer">
-
-  <!-- TA MAP -->
   <img id="map" src="map.png">
-
-  <!-- TERRITORIES -->
   <div id="territoriesLayer"></div>
-
 </div>
 
 <script>
@@ -98,36 +101,70 @@ let selected = null;
 
 /* LOGIN */
 function login(){
+
   const username = document.getElementById("usernameInput").value.trim();
-  if(!username) return alert("Enter name");
+  const password = document.getElementById("passwordInput").value.trim();
+
+  if(!username || !password){
+    alert("Fill all fields");
+    return;
+  }
 
   fetch('/api/login',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({username})
+    body:JSON.stringify({username,password})
   })
   .then(r=>r.json())
   .then(u=>{
+    if(u.error){
+      alert(u.error);
+      return;
+    }
+
     localStorage.setItem("user", u.username);
     socket.emit("create", u.username);
+  })
+  .catch(err=>{
+    console.log("LOGIN ERROR:", err);
   });
 }
 
-/* POSITIONS (map simple, upgradeable) */
+/* REGISTER */
+function register(){
+
+  const username = document.getElementById("usernameInput").value.trim();
+  const password = document.getElementById("passwordInput").value.trim();
+
+  if(!username || !password){
+    alert("Fill all fields");
+    return;
+  }
+
+  fetch('/api/register',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username,password})
+  })
+  .then(r=>r.json())
+  .then(res=>{
+    if(res.error){
+      alert(res.error);
+    } else {
+      alert("Account created!");
+    }
+  });
+}
+
+/* POSITIONS */
 const positions = [
   [10,60],[25,40],[40,55],[55,45],[70,60],
   [15,75],[30,70],[50,70],[70,75],
   [25,85],[50,85],[70,90]
 ];
 
-/* GAME STATE */
+/* DRAW */
 socket.on("state", g=>{
-  draw(g);
-});
-
-/* DRAW MAP TERRITORIES */
-function draw(g){
-
   const layer = document.getElementById("territoriesLayer");
   layer.innerHTML="";
 
@@ -153,7 +190,7 @@ function draw(g){
 
     layer.appendChild(d);
   });
-}
+});
 
 /* TIMER */
 socket.on("timer",t=>{
@@ -173,13 +210,9 @@ setInterval(loadLB,3000);
 
 /* FX */
 socket.on("attack",()=>{
-  flash();
-});
-
-function flash(){
   document.body.style.background="#220000";
   setTimeout(()=>document.body.style.background="#020617",200);
-}
+});
 </script>
 
 </body>
