@@ -7,7 +7,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.11.0/chess.min.js"></script>
 
 <style>
-body{margin:0;background:#020617;color:white;font-family:Arial;text-align:center;}
+body{margin:0;background:#020617;color:white;font-family:Arial;display:flex;}
+
+#main{flex:1;text-align:center;}
+#sidebar{width:260px;background:#111827;padding:10px;}
 
 #boardWrapper{
   position:relative;
@@ -25,14 +28,14 @@ body{margin:0;background:#020617;color:white;font-family:Arial;text-align:center
 
 #piecesLayer,#clickLayer{
   position:absolute;
-  top:0;left:0;
-  width:100%;height:100%;
+  top:0;left:0;width:100%;height:100%;
 }
 
 .square{
   position:absolute;
   width:12.5%;
   height:12.5%;
+  cursor:pointer;
 }
 
 .selected{outline:3px solid #3b82f6;}
@@ -52,22 +55,57 @@ body{margin:0;background:#020617;color:white;font-family:Arial;text-align:center
 }
 
 /* UI */
-#turn{font-size:18px;margin:10px;}
-#status{font-size:18px;color:#facc15;}
+.player{
+  padding:8px;
+  border-bottom:1px solid #1f2937;
+  cursor:pointer;
+}
+
+.lobby{
+  background:#1f2937;
+  margin:10px;
+  padding:10px;
+  border-radius:10px;
+}
+
+#turn{margin:10px;font-size:18px;}
+#status{color:#facc15;}
 </style>
 </head>
 
 <body>
+
+<div id="main">
 
 <h2>♟️ Chess</h2>
 
 <div id="turn">Turn: -</div>
 <div id="status"></div>
 
+<div id="lobbyControls">
+  <input id="name" placeholder="Lobby name">
+  <select id="mode">
+    <option value="30">Blitz</option>
+    <option value="60">Rapid</option>
+    <option value="120">Snail</option>
+  </select>
+  <button onclick="createLobby()">Create</button>
+</div>
+
+<h3>Lobbies</h3>
+<div id="lobbies"></div>
+
 <div id="boardWrapper">
   <img src="/chess/board.png">
   <div id="piecesLayer"></div>
   <div id="clickLayer"></div>
+</div>
+
+</div>
+
+<div id="sidebar">
+  <h3>Players Online</h3>
+  <div id="players"></div>
 </div>
 
 <script>
@@ -79,12 +117,12 @@ if(user){
   socket.emit("register_online", user.username);
 }
 
+/* GAME */
 let game = new Chess();
 let selected = null;
 let possibleMoves = [];
 let playerColor = null;
 
-/* 🔥 NOM DES JOUEURS */
 let myName = user?.username || "You";
 let opponentName = "Opponent";
 
@@ -96,49 +134,102 @@ const pieceMap = {
   bB:"bB.svg", bQ:"bQ.svg", bK:"bK.svg"
 };
 
-/* START */
+/* ================= PLAYERS ONLINE ================= */
+
+window.onlineUsers = {};
+
+socket.on("online_users", users=>{
+  window.onlineUsers = users;
+
+  document.getElementById("players").innerHTML =
+    Object.entries(users).map(([name,data])=>`
+      <div class="player">
+        ${name} (${data.elo})
+      </div>
+    `).join("");
+});
+
+/* ================= LOBBIES ================= */
+
+socket.on("lobbies_update", lobbies=>{
+
+  window.currentLobbies = lobbies;
+
+  const list = Object.values(lobbies);
+
+  document.getElementById("lobbies").innerHTML =
+    list.length === 0 ? "<p>No lobbies</p>" :
+    list.map(l=>{
+
+      const players = l.players.map(p=>
+        `${p.username} ${p.ready ? "✅" : "❌"}`
+      ).join(", ");
+
+      const me = l.players.find(p=>p.username===user.username);
+
+      return `
+        <div class="lobby">
+          <b>${l.name}</b> (${l.time}s)<br>
+          Players: ${players}<br>
+
+          ${
+            !me
+            ? `<button onclick="join('${l.id}')">Join</button>`
+            : `<button onclick="toggleReady('${l.id}')">
+                ${me.ready ? "Unready" : "Ready"}
+              </button>`
+          }
+        </div>
+      `;
+    }).join("");
+});
+
+function createLobby(){
+  socket.emit("create_lobby",{
+    name:document.getElementById("name").value,
+    time:parseInt(document.getElementById("mode").value)
+  });
+}
+
+function join(id){
+  socket.emit("join_lobby", id);
+}
+
+function toggleReady(id){
+  socket.emit("toggle_ready", id);
+}
+
+/* ================= GAME ================= */
+
 socket.on("chess_start", data=>{
   playerColor = data.color;
 
-  /* 🔥 on reconstruit noms */
-  if(playerColor === 'w'){
-    myName = user.username;
-    opponentName = "Player Black";
-  }else{
-    myName = user.username;
-    opponentName = "Player White";
-  }
+  opponentName = (playerColor === 'w') ? "Black" : "White";
 
   game.reset();
   updateUI();
   draw();
 });
 
-/* UPDATE */
 socket.on("chess_update", data=>{
   if(data.fen) game.load(data.fen);
   updateUI();
   draw();
 });
 
-/* UI */
+/* ================= UI ================= */
+
 function updateUI(){
 
-  let turnColor = game.turn();
-
-  let currentPlayer =
-    (turnColor === playerColor)
+  const turnPlayer =
+    (game.turn() === playerColor)
     ? myName
     : opponentName;
 
   document.getElementById("turn").innerText =
-    "Turn: " + currentPlayer;
+    "Turn: " + turnPlayer;
 
-  /* 🔥 FIX CHECK */
-  if(game.in_check() && !game.in_checkmate()){
-    document.getElementById("status").innerText = "⚠️ CHECK!";
-  }
-  else if(game.in_checkmate()){
+  if(game.in_checkmate()){
     const winner =
       (game.turn() === playerColor)
       ? opponentName
@@ -147,12 +238,16 @@ function updateUI(){
     document.getElementById("status").innerText =
       "🏆 " + winner + " wins!";
   }
+  else if(game.in_check()){
+    document.getElementById("status").innerText = "⚠️ CHECK!";
+  }
   else{
     document.getElementById("status").innerText = "";
   }
 }
 
-/* DRAW */
+/* ================= DRAW ================= */
+
 function draw(){
 
   const p = document.getElementById("piecesLayer");
@@ -197,7 +292,8 @@ function draw(){
   }
 }
 
-/* MOVE */
+/* ================= MOVE ================= */
+
 function clickCell(sq){
 
   if(game.turn() !== playerColor) return;
