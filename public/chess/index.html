@@ -41,6 +41,11 @@ body{margin:0;background:#020617;color:white;font-family:Arial;display:flex;}
 .selected{outline:3px solid #3b82f6;}
 .move{background:rgba(34,197,94,0.4);border-radius:50%;}
 
+/* 🔥 ROI EN ECHEC */
+.check{
+  background:rgba(239,68,68,0.6);
+}
+
 .piece{
   position:absolute;
   width:12.5%;
@@ -246,6 +251,21 @@ function updateUI(){
   }
 }
 
+/* 🔥 FIND KING IN CHECK */
+function getKingSquare(color){
+  const board = game.board();
+
+  for(let y=0;y<8;y++){
+    for(let x=0;x<8;x++){
+      const piece = board[y][x];
+      if(piece && piece.type === 'k' && piece.color === color){
+        return String.fromCharCode(97+x)+(8-y);
+      }
+    }
+  }
+  return null;
+}
+
 /* ================= DRAW ================= */
 
 function draw(){
@@ -257,6 +277,12 @@ function draw(){
   c.innerHTML="";
 
   const board = game.board();
+
+  let checkSquare = null;
+
+  if(game.in_check()){
+    checkSquare = getKingSquare(game.turn());
+  }
 
   for(let y=0;y<8;y++){
     for(let x=0;x<8;x++){
@@ -271,6 +297,11 @@ function draw(){
 
       if(selected === sq) cell.classList.add("selected");
       if(possibleMoves.includes(sq)) cell.classList.add("move");
+
+      /* 🔥 ROI EN ROUGE */
+      if(sq === checkSquare){
+        cell.classList.add("check");
+      }
 
       cell.onclick=()=>clickCell(sq);
       c.appendChild(cell);
