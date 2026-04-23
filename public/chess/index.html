@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Chess</title>
+<title>Chess Multiplayer</title>
 
-<!-- ENGINE (ta version qui marche) -->
+<!-- SOCKET -->
+<script src="/socket.io/socket.io.js"></script>
+
+<!-- CHESS ENGINE -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.11.0/chess.min.js"></script>
 
 <style>
@@ -24,6 +27,12 @@ body{
 
 #player{
   font-weight:bold;
+}
+
+/* STATUS */
+#status{
+  margin-top:10px;
+  font-size:18px;
 }
 
 /* BOARD */
@@ -53,7 +62,6 @@ body{
 .white{ background:#f0d9b5; color:black; }
 .black{ background:#b58863; }
 
-/* STATES */
 .selected{
   outline:4px solid yellow;
 }
@@ -65,12 +73,6 @@ body{
 .capture{
   box-shadow:inset 0 0 15px rgba(255,0,0,0.7);
 }
-
-/* STATUS */
-#status{
-  font-size:18px;
-  margin-top:10px;
-}
 </style>
 </head>
 
@@ -81,16 +83,18 @@ body{
   <button onclick="logout()">Logout</button>
 </div>
 
-<h2>♟️ Chess</h2>
+<h2>♟️ Multiplayer Chess</h2>
 
-<div id="status"></div>
+<div id="status">Connecting...</div>
 
 <div id="board"></div>
 
 <script>
 
-const game = new Chess();
+const socket = io();
+let game = new Chess();
 let selected = null;
+let playerColor = null;
 
 /* SESSION */
 const user = JSON.parse(localStorage.getItem("user"));
@@ -107,13 +111,34 @@ function logout(){
   window.location.href="/login.html";
 }
 
-/* PIECES */
-const pieces = {
-  p:"♟", r:"♜", n:"♞", b:"♝", q:"♛", k:"♚",
-  P:"♙", R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔"
-};
+/* JOIN GAME */
+socket.emit("chess_join", user.username);
 
-/* DRAW */
+/* START */
+socket.on("chess_start", data=>{
+  playerColor = data.color;
+
+  if(data.fen){
+    game.load(data.fen);
+  }
+
+  updateStatus();
+  draw();
+});
+
+/* UPDATE FROM SERVER */
+socket.on("chess_update", data=>{
+  game.load(data.fen);
+  updateStatus();
+  draw();
+});
+
+/* FULL */
+socket.on("chess_full", ()=>{
+  document.getElementById("status").innerText = "Game full ❌";
+});
+
+/* DRAW BOARD */
 function draw(){
 
   const board = document.getElementById("board");
@@ -125,11 +150,22 @@ function draw(){
     for(let x=0;x<8;x++){
 
       const cell = document.createElement("div");
-
       cell.className = "cell " + ((x+y)%2 ? "black":"white");
 
       const piece = state[y][x];
-      cell.innerText = piece ? pieces[piece.type === piece.type.toLowerCase() ? piece.type : piece.type.toUpperCase()] : "";
+
+      if(piece){
+        const symbols = {
+          p:"♟", r:"♜", n:"♞", b:"♝", q:"♛", k:"♚",
+          P:"♙", R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔"
+        };
+
+        const key = piece.color === 'w'
+          ? piece.type.toUpperCase()
+          : piece.type;
+
+        cell.innerText = symbols[key];
+      }
 
       const square = String.fromCharCode(97+x) + (8-y);
 
@@ -138,17 +174,16 @@ function draw(){
       board.appendChild(cell);
     }
   }
-
-  updateStatus();
 }
 
 /* CLICK */
 function clickCell(square, cell){
 
+  if(game.turn() !== playerColor) return;
+
   if(selected === null){
 
-    const moves = game.moves({ square, verbose:true });
-
+    const moves = game.moves({square, verbose:true});
     if(moves.length === 0) return;
 
     selected = square;
@@ -159,15 +194,21 @@ function clickCell(square, cell){
   } else {
 
     const move = game.move({
-      from: selected,
-      to: square,
-      promotion: 'q'
+      from:selected,
+      to:square,
+      promotion:'q'
     });
 
     clearHighlights();
     selected = null;
 
     if(move){
+      socket.emit("chess_move", {
+        from: move.from,
+        to: move.to,
+        fen: game.fen()
+      });
+
       draw();
     }
   }
@@ -175,7 +216,6 @@ function clickCell(square, cell){
 
 /* HIGHLIGHT */
 function highlightMoves(moves){
-
   moves.forEach(m=>{
     const index = squareToIndex(m.to);
     const target = document.getElementById("board").children[index];
@@ -186,7 +226,6 @@ function highlightMoves(moves){
       target.classList.add("move");
     }
   });
-
 }
 
 /* CLEAR */
@@ -208,21 +247,22 @@ function updateStatus(){
 
   let text = "";
 
-  if(game.in_checkmate()){
+  if(!playerColor){
+    text = "Waiting for opponent...";
+  }
+  else if(game.in_checkmate()){
     text = "♛ Checkmate!";
   }
   else if(game.in_check()){
     text = "⚠ Check!";
   }
   else{
-    text = (game.turn() === 'w' ? "White" : "Black") + " to move";
+    const turn = game.turn() === playerColor ? "Your turn" : "Opponent turn";
+    text = (playerColor === 'w' ? "White" : "Black") + " • " + turn;
   }
 
   document.getElementById("status").innerText = text;
 }
-
-/* INIT */
-draw();
 
 </script>
 
