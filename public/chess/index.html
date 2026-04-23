@@ -14,7 +14,7 @@ body{
   font-family:Arial;
   display:flex;
 }
-  
+
 #main{
   flex:1;
   text-align:center;
@@ -26,15 +26,20 @@ body{
   padding:10px;
 }
 
+/* BOARD FIX */
 #boardWrapper{
   position:relative;
-  width:512px;
+  width:90vw;
+  max-width:520px;
+  aspect-ratio:1/1;
   margin:20px auto;
 }
 
 #boardImg{
   width:100%;
-  border-radius:10px;
+  height:100%;
+  object-fit:cover;
+  border-radius:12px;
 }
 
 #piecesLayer, #clickLayer{
@@ -45,20 +50,21 @@ body{
   height:100%;
 }
 
-.square{
+.square, .piece{
   position:absolute;
-  width:64px;
-  height:64px;
+  width:12.5%;
+  height:12.5%;
+}
+
+.square{
   cursor:pointer;
 }
 
 .piece{
-  position:absolute;
-  width:64px;
-  height:64px;
   pointer-events:none;
 }
 
+/* TIMER */
 #timerBar{
   width:320px;
   height:10px;
@@ -72,8 +78,10 @@ body{
   height:100%;
   width:100%;
   background:linear-gradient(90deg, #22c55e, #eab308, #ef4444);
+  transition:width 1s linear;
 }
 
+/* PLAYERS */
 .player{
   padding:8px;
   border-bottom:1px solid #1f2937;
@@ -88,6 +96,7 @@ body{
   border-radius:50%;
 }
 
+/* LOBBY */
 .lobby{
   background:#1f2937;
   padding:10px;
@@ -141,8 +150,7 @@ const user = JSON.parse(localStorage.getItem("user"));
 
 socket.emit("register_online", user.username);
 
-/* ================= GAME ================= */
-
+/* GAME */
 let game = new Chess();
 let selected = null;
 let playerColor = null;
@@ -155,30 +163,27 @@ const pieceMap = {
   bB:"bB.svg", bQ:"bQ.svg", bK:"bK.svg"
 };
 
-/* ================= PLAYERS ================= */
-
+/* PLAYERS */
 window.onlineUsers = {};
 
 socket.on("online_users", users=>{
   window.onlineUsers = users;
 
-  const container = document.getElementById("players");
-
-  container.innerHTML = Object.entries(users).map(([name,data])=>`
-    <div class="player" onclick="invitePlayer('${name}')">
-      <img src="${data.avatar}">
-      <div>
-        <div>${name} (${data.elo})</div>
-        <div style="font-size:12px;color:${data.status==="playing"?"red":"lightgreen"};">
-          ${data.status}
+  document.getElementById("players").innerHTML =
+    Object.entries(users).map(([name,data])=>`
+      <div class="player" onclick="invitePlayer('${name}')">
+        <img src="${data.avatar}">
+        <div>
+          <div>${name} (${data.elo})</div>
+          <div style="font-size:12px;color:${data.status==="playing"?"red":"lightgreen"};">
+            ${data.status}
+          </div>
         </div>
       </div>
-    </div>
-  `).join("");
+    `).join("");
 });
 
-/* ================= INVITE ================= */
-
+/* INVITE */
 function invitePlayer(username){
 
   const lobby = Object.values(window.currentLobbies || {})
@@ -203,60 +208,52 @@ socket.on("invite_received", data=>{
   }
 });
 
-/* ================= LOBBIES ================= */
-
+/* LOBBIES */
 socket.on("lobbies_update", lobbies=>{
 
   window.currentLobbies = lobbies;
 
-  const container = document.getElementById("lobbies");
   const list = Object.values(lobbies);
 
-  if(list.length === 0){
-    container.innerHTML = "<p>No lobbies</p>";
-    return;
-  }
+  document.getElementById("lobbies").innerHTML =
+    list.length === 0 ? "<p>No lobbies</p>" :
+    list.map(l=>{
 
-  container.innerHTML = list.map(l=>{
+      const players = l.players.map(p=>
+        `${p.username} ${p.ready ? "✅" : "❌"}`
+      ).join(", ");
 
-    const players = l.players.map(p=>
-      `${p.username} ${p.ready ? "✅" : "❌"}`
-    ).join(", ");
+      const me = l.players.find(p=>p.username===user.username);
 
-    const me = l.players.find(p=>p.username===user.username);
+      return `
+        <div class="lobby">
+          <b>${l.name}</b> (${l.time}s)<br>
+          Players: ${players}<br>
 
-    return `
-      <div class="lobby">
-        <b>${l.name}</b> (${l.time}s)<br>
-        Players: ${players}<br>
-
-        ${
-          !me
-          ? `<button onclick="join('${l.id}')">Join</button>`
-          : `<button onclick="toggleReady('${l.id}')">
-              ${me.ready ? "Unready" : "Ready"}
-            </button>`
-        }
-      </div>
-    `;
-
-  }).join("");
-
+          ${
+            !me
+            ? `<button onclick="join('${l.id}')">Join</button>`
+            : `<button onclick="toggleReady('${l.id}')">
+                ${me.ready ? "Unready" : "Ready"}
+              </button>`
+          }
+        </div>
+      `;
+    }).join("");
 });
-
-/* ================= READY ================= */
 
 function toggleReady(id){
   socket.emit("toggle_ready", id);
 }
 
-/* ================= GAME SOCKET ================= */
-
+/* GAME SOCKET */
 socket.on("chess_start", data=>{
   playerColor = data.color;
   totalTime = data.time;
 
+  document.getElementById("timerFill").style.width = "100%";
   document.getElementById("lobbyControls").style.display="none";
+
   draw();
 });
 
@@ -273,8 +270,7 @@ socket.on("chess_timer", players=>{
   document.getElementById("timerFill").style.width = percent + "%";
 });
 
-/* ================= DRAW ================= */
-
+/* DRAW */
 function draw(){
 
   const piecesLayer = document.getElementById("piecesLayer");
@@ -284,7 +280,6 @@ function draw(){
   clickLayer.innerHTML = "";
 
   const board = game.board();
-  const size = 64;
 
   for(let y=0;y<8;y++){
     for(let x=0;x<8;x++){
@@ -294,8 +289,8 @@ function draw(){
 
       const cell = document.createElement("div");
       cell.className = "square";
-      cell.style.left = (x*size) + "px";
-      cell.style.top = (y*size) + "px";
+      cell.style.left = (x*12.5) + "%";
+      cell.style.top = (y*12.5) + "%";
       cell.onclick = ()=>clickCell(sq);
 
       clickLayer.appendChild(cell);
@@ -307,8 +302,8 @@ function draw(){
         img.src = "pieces/" + pieceMap[key];
         img.className = "piece";
 
-        img.style.left = (x*size) + "px";
-        img.style.top = (y*size) + "px";
+        img.style.left = (x*12.5) + "%";
+        img.style.top = (y*12.5) + "%";
 
         piecesLayer.appendChild(img);
       }
@@ -317,8 +312,7 @@ function draw(){
   }
 }
 
-/* ================= MOVE ================= */
-
+/* MOVE */
 function clickCell(sq){
 
   if(game.turn() !== playerColor) return;
@@ -347,8 +341,7 @@ function clickCell(sq){
   }
 }
 
-/* ================= LOBBY ================= */
-
+/* LOBBY */
 function createLobby(){
   socket.emit("create_lobby",{
     name:document.getElementById("name").value,
