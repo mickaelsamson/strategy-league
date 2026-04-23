@@ -230,6 +230,13 @@ socket.on("player_left", data=>{
   endGameUI();
 });
 
+/* ================= ELO ================= */
+
+socket.on("elo_update", data=>{
+  document.getElementById("status").innerText =
+    "ELO: " + data.elo + " (" + (data.gain>0?"+":"") + data.gain + ")";
+});
+
 /* ================= REMATCH ================= */
 
 function rematch(){
