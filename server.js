@@ -71,7 +71,6 @@ io.on('connection', socket=>{
       status:"idle"
     };
 
-    /* 🔥 RECONNECT */
     if(pendingDisconnects[username]){
       clearInterval(pendingDisconnects[username]);
       delete pendingDisconnects[username];
@@ -98,8 +97,6 @@ io.on('connection', socket=>{
         });
 
         socket.emit("chess_update",{fen:game.fen});
-
-        /* 🔥 RESET TIMER UI */
         socket.emit("disconnect_timer",{time:0});
       }
     }
@@ -133,9 +130,7 @@ io.on('connection', socket=>{
 
           timeLeft--;
 
-          io.to(opponent.id).emit("disconnect_timer",{
-            time: timeLeft
-          });
+          io.to(opponent.id).emit("disconnect_timer",{time: timeLeft});
 
           if(timeLeft <= 0){
 
@@ -155,6 +150,30 @@ io.on('connection', socket=>{
         pendingDisconnects[username] = interval;
       }
     }
+
+    update();
+  });
+
+  /* 🔥 ABANDON */
+  socket.on("resign", ()=>{
+
+    const username = socket.username;
+    const gameId = playerGames[username];
+    const game = chessGames[gameId];
+
+    if(!game) return;
+
+    const opponent = game.players.find(p=>p.username !== username);
+
+    if(opponent){
+      io.to(opponent.id).emit("player_left",{
+        winner: opponent.username
+      });
+    }
+
+    delete chessGames[gameId];
+    delete playerGames[username];
+    if(opponent) delete playerGames[opponent.username];
 
     update();
   });
