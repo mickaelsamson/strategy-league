@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="style.css">
+<script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+
+<div>
+<input id="name" placeholder="Name">
+<button onclick="login()">Login</button>
+</div>
+
+<div id="timer"></div>
+<div id="leaderboard"></div>
+
+<script>
+let socket = io();
+
+function login(){
+fetch('/api/login',{
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({username:name.value})
+})
+.then(r=>r.json())
+.then(()=>{
+startGame();
+});
+}
+
+function startGame(){
+socket.emit("create", name.value);
+}
+
+socket.on("timer",t=>{
+timer.innerText="⏳ "+t;
+});
+
+socket.on("attack",()=>alert("Attack!"));
+
+function loadLB(){
+fetch('/api/stats')
+.then(r=>r.json())
+.then(d=>{
+leaderboard.innerHTML=d.map((u,i)=>i+1+". "+u.username+" "+u.xp).join("<br>");
+});
+}
+setInterval(loadLB,3000);
+</script>
+
+</body>
+</html>
