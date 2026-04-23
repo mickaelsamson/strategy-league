@@ -78,6 +78,20 @@ body{
   background:linear-gradient(90deg, #22c55e, #eab308, #ef4444);
   transition:width 1s linear;
 }
+
+/* PLAYERS */
+.player{
+  padding:8px;
+  border-bottom:1px solid #1f2937;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.player img{
+  width:30px;
+  height:30px;
+  border-radius:50%;
+}
 </style>
 </head>
 
@@ -124,13 +138,14 @@ const user = JSON.parse(localStorage.getItem("user"));
 
 socket.emit("register_online", user.username);
 
-/* GAME */
+/* ================= GAME ================= */
+
 let game = new Chess();
 let selected = null;
 let playerColor = null;
 let totalTime = 60;
 
-/* 🔥 FIXED PIECE MAP */
+/* PIECES MAP */
 const pieceMap = {
   wP:"wP.svg", wR:"wR.svg", wN:"wN.svg",
   wB:"wB.svg", wQ:"wQ.svg", wK:"wK.svg",
@@ -138,7 +153,27 @@ const pieceMap = {
   bB:"bB.svg", bQ:"bQ.svg", bK:"bK.svg"
 };
 
-/* SOCKET */
+/* ================= PLAYERS ================= */
+
+socket.on("online_users", users=>{
+
+  const container = document.getElementById("players");
+
+  container.innerHTML = Object.entries(users).map(([name,data])=>`
+    <div class="player">
+      <img src="${data.avatar}">
+      <div>
+        <div>${name} (${data.elo})</div>
+        <div style="font-size:12px;color:${data.status==="playing"?"red":"lightgreen"};">
+          ${data.status}
+        </div>
+      </div>
+    </div>
+  `).join("");
+
+});
+
+/* ================= SOCKET ================= */
 
 socket.on("chess_start", data=>{
   playerColor = data.color;
@@ -165,7 +200,7 @@ socket.on("chess_end", ()=>{
   document.getElementById("lobbyControls").style.display="block";
 });
 
-/* DRAW */
+/* ================= DRAW ================= */
 
 function draw(){
 
@@ -198,7 +233,6 @@ function draw(){
       if(piece){
         const img = document.createElement("img");
 
-        /* 🔥 FIX ICI */
         const key = piece.color + piece.type.toUpperCase();
 
         img.src = "pieces/" + pieceMap[key];
@@ -214,7 +248,7 @@ function draw(){
   }
 }
 
-/* MOVE */
+/* ================= MOVE ================= */
 
 function clickCell(sq){
 
@@ -244,7 +278,7 @@ function clickCell(sq){
   }
 }
 
-/* LOBBY */
+/* ================= LOBBY ================= */
 
 function createLobby(){
   socket.emit("create_lobby",{
