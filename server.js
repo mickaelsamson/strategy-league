@@ -45,6 +45,42 @@ app.post('/api/register', async (req,res)=>{
     res.send({success:true});
 
   }catch(err){
+    console.log("REGISTER ERROR:", err);
+    res.status(500).send({error:"Server error"});
+  }
+});
+
+/* 🔥 AJOUT LOGIN */
+app.post('/api/login', async (req,res)=>{
+  try{
+    let {email, password} = req.body;
+
+    console.log("LOGIN ATTEMPT:", email);
+
+    if(!email || !password){
+      return res.status(400).send({error:"Missing fields"});
+    }
+
+    email = email.toLowerCase().trim();
+
+    const user = await User.findOne({email});
+    if(!user){
+      return res.status(400).send({error:"User not found"});
+    }
+
+    const valid = await bcrypt.compare(password, user.password);
+    if(!valid){
+      return res.status(400).send({error:"Wrong password"});
+    }
+
+    res.send({
+      username: user.username,
+      firstName: user.firstName,
+      elo: user.elo || 1000
+    });
+
+  }catch(err){
+    console.log("LOGIN ERROR:", err);
     res.status(500).send({error:"Server error"});
   }
 });
@@ -230,6 +266,7 @@ async function startServer(){
     });
 
   }catch(err){
+    console.log("MONGO ERROR:", err.message);
     process.exit(1);
   }
 }
