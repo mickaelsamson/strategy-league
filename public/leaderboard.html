@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Leaderboard</title>
+
+<style>
+body{
+  background:#020617;
+  color:white;
+  font-family:Arial;
+  text-align:center;
+}
+
+h1{margin:20px;}
+
+.player{
+  margin:10px;
+  padding:10px;
+  background:#111827;
+  border-radius:8px;
+  width:250px;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+button{
+  margin:20px;
+  padding:10px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🏆 Leaderboard</h1>
+
+<div id="list"></div>
+
+<button onclick="back()">Back</button>
+
+<script>
+function load(){
+  fetch('/api/stats')
+  .then(r=>r.json())
+  .then(data=>{
+    list.innerHTML = data.map((u,i)=>`
+      <div class="player">
+        ${i+1}. ${u.username} — ${u.xp}
+      </div>
+    `).join("");
+  });
+}
+
+function back(){
+  window.location.href="/";
+}
+
+load();
+</script>
+
+</body>
+</html>
