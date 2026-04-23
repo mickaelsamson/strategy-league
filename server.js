@@ -3,6 +3,7 @@ const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 
 const User = require('./models/User');
 
@@ -57,22 +58,53 @@ function sendState(g){
   });
 }
 
+/* ===== AUTH ===== */
+
+/* REGISTER */
+app.post('/api/register', async (req,res)=>{
+  try{
+    const {username, password} = req.body;
+
+    if(!username || !password){
+      return res.status(400).send({error:"Missing fields"});
+    }
+
+    const existing = await User.findOne({username});
+    if(existing){
+      return res.status(400).send({error:"User exists"});
+    }
+
+    const hashed = await bcrypt.hash(password, 10);
+
+    await User.create({
+      username,
+      password: hashed
+    });
+
+    res.send({success:true});
+
+  }catch(err){
+    console.log(err);
+    res.status(500).send({error:"Server error"});
+  }
+});
+
 /* LOGIN */
 app.post('/api/login', async (req,res)=>{
   try{
-    const username = req.body.username?.trim();
+    const {username, password} = req.body;
 
-    if(!username){
-      return res.status(400).send({error:"Username required"});
-    }
-
-    let user = await User.findOne({username});
-
+    const user = await User.findOne({username});
     if(!user){
-      user = await User.create({username});
+      return res.status(400).send({error:"User not found"});
     }
 
-    res.send(user);
+    const valid = await bcrypt.compare(password, user.password);
+    if(!valid){
+      return res.status(400).send({error:"Wrong password"});
+    }
+
+    res.send({username:user.username, xp:user.xp});
 
   }catch(err){
     console.log(err);
@@ -90,7 +122,7 @@ app.get('/api/stats', async (req,res)=>{
   }
 });
 
-/* SOCKET */
+/* ===== SOCKET ===== */
 io.on('connection',socket=>{
 
   socket.on('create',name=>{
@@ -142,7 +174,7 @@ io.on('connection',socket=>{
 
 });
 
-/* 🔥 START SERVER ONLY AFTER MONGO */
+/* START SERVER AFTER MONGO */
 async function startServer(){
   try{
     await mongoose.connect(process.env.MONGO_URI);
