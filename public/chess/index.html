@@ -3,54 +3,74 @@
 <head>
 <title>Chess</title>
 
-<!-- CHESS ENGINE -->
-<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.11.0/chess.min.js"></script>
-  
+<!-- ENGINE (ta version qui marche) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.11.0/chess.min.js"></script>
+
 <style>
 body{
   margin:0;
-  background:#020617;
+  background: radial-gradient(circle at top, #0f172a, #020617);
   color:white;
   font-family:Arial;
   text-align:center;
 }
 
+/* HEADER */
 .header{
   display:flex;
   justify-content:space-between;
   padding:15px 25px;
 }
 
-#board{
-  width:480px;
-  height:480px;
-  margin:40px auto;
-  display:grid;
-  grid-template-columns:repeat(8,1fr);
+#player{
+  font-weight:bold;
 }
 
+/* BOARD */
+#board{
+  width:520px;
+  height:520px;
+  margin:30px auto;
+  display:grid;
+  grid-template-columns:repeat(8,1fr);
+  border-radius:10px;
+  overflow:hidden;
+  box-shadow:0 0 30px rgba(0,0,0,0.6);
+}
+
+/* CELLS */
 .cell{
-  width:60px;
-  height:60px;
+  width:65px;
+  height:65px;
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:32px;
+  font-size:34px;
   cursor:pointer;
   user-select:none;
 }
 
-.white{ background:#f1f5f9; color:black; }
-.black{ background:#334155; }
+.white{ background:#f0d9b5; color:black; }
+.black{ background:#b58863; }
 
+/* STATES */
 .selected{
-  outline:3px solid yellow;
+  outline:4px solid yellow;
 }
 
 .move{
-  box-shadow:inset 0 0 10px yellow;
+  box-shadow:inset 0 0 15px rgba(255,255,0,0.7);
 }
 
+.capture{
+  box-shadow:inset 0 0 15px rgba(255,0,0,0.7);
+}
+
+/* STATUS */
+#status{
+  font-size:18px;
+  margin-top:10px;
+}
 </style>
 </head>
 
@@ -78,7 +98,7 @@ const user = JSON.parse(localStorage.getItem("user"));
 if(!user){
   window.location.href="/login.html";
 }else{
-  player.innerText = "👑 " + user.username;
+  document.getElementById("player").innerText = "👑 " + user.username;
 }
 
 /* LOGOUT */
@@ -93,7 +113,7 @@ const pieces = {
   P:"♙", R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔"
 };
 
-/* DRAW BOARD */
+/* DRAW */
 function draw(){
 
   const board = document.getElementById("board");
@@ -153,12 +173,18 @@ function clickCell(square, cell){
   }
 }
 
-/* HIGHLIGHT MOVES */
+/* HIGHLIGHT */
 function highlightMoves(moves){
 
   moves.forEach(m=>{
     const index = squareToIndex(m.to);
-    document.getElementById("board").children[index].classList.add("move");
+    const target = document.getElementById("board").children[index];
+
+    if(m.captured){
+      target.classList.add("capture");
+    } else {
+      target.classList.add("move");
+    }
   });
 
 }
@@ -166,7 +192,7 @@ function highlightMoves(moves){
 /* CLEAR */
 function clearHighlights(){
   document.querySelectorAll(".cell").forEach(c=>{
-    c.classList.remove("selected","move");
+    c.classList.remove("selected","move","capture");
   });
 }
 
