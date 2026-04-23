@@ -206,3 +206,74 @@ async function startServer(){
 }
 
 startServer();
+
+/* ===== CHESS MULTIPLAYER ===== */
+
+let chessGames = {};
+
+io.on('connection', socket => {
+
+  socket.on("chess_join", name => {
+
+    let gameId = "chess_room";
+
+    if(!chessGames[gameId]){
+      chessGames[gameId] = {
+        players: [],
+        fen: null,
+        turn: 'w'
+      };
+    }
+
+    let g = chessGames[gameId];
+
+    if(g.players.length >= 2){
+      socket.emit("chess_full");
+      return;
+    }
+
+    let color = g.players.length === 0 ? 'w' : 'b';
+
+    g.players.push({
+      id: socket.id,
+      name,
+      color
+    });
+
+    socket.join(gameId);
+    socket.chessGame = gameId;
+    socket.color = color;
+
+    socket.emit("chess_start", {
+      color,
+      fen: g.fen
+    });
+
+    io.to(gameId).emit("chess_players", g.players);
+  });
+
+  socket.on("chess_move", ({from, to, fen}) => {
+
+    let g = chessGames[socket.chessGame];
+    if(!g) return;
+
+    // vérifie le tour
+    if(socket.color !== g.turn) return;
+
+    g.fen = fen;
+    g.turn = g.turn === 'w' ? 'b' : 'w';
+
+    io.to(socket.chessGame).emit("chess_update", {
+      fen: g.fen,
+      turn: g.turn
+    });
+  });
+
+  socket.on("disconnect", ()=>{
+    // reset simple
+    for(let id in chessGames){
+      chessGames[id].players = chessGames[id].players.filter(p=>p.id !== socket.id);
+    }
+  });
+
+});
