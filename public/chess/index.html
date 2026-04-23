@@ -293,21 +293,23 @@ function draw(){
 
       clickLayer.appendChild(cell);
 
+      
       if(piece){
-        const img = document.createElement("img");
+      const img = document.createElement("img");
 
-        const key = piece.color + piece.type.toUpperCase();
+      const key = piece.color + piece.type.toUpperCase();
 
-        // 🔥 FIX ICI → chemin relatif au dossier /public/chess/
-        img.src = "pieces/" + pieceMap[key];
+      // ✅ FIX ABSOLU
+      img.src = "/chess/pieces/" + pieceMap[key];
 
-        img.className = "piece";
+      img.className = "piece";
 
-        img.style.left = (x*12.5) + "%";
-        img.style.top = (y*12.5) + "%";
+      img.style.left = (x*12.5) + "%";
+      img.style.top = (y*12.5) + "%";
 
-        piecesLayer.appendChild(img);
-      }
+      piecesLayer.appendChild(img);
+        
+      }          
     }
   }
 }
