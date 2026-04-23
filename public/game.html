@@ -1,50 +1,96 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Strategy Hub</title>
-  <script src="/socket.io/socket.io.js"></script>
-  <style>
-    body{
-      background:#020617;
-      color:white;
-      font-family:Arial;
-      text-align:center;
-    }
+<title>Strategy Hub</title>
+<script src="/socket.io/socket.io.js"></script>
 
-    #game{
-      margin-top:20px;
-    }
+<style>
+body{
+  margin:0;
+  background:#020617;
+  color:white;
+  font-family:Arial;
+  text-align:center;
+}
 
-    .cell{
-      width:60px;
-      height:60px;
-      display:inline-flex;
-      justify-content:center;
-      align-items:center;
-      margin:3px;
-      cursor:pointer;
-      font-weight:bold;
-      border-radius:6px;
-    }
+/* TOP BAR */
+.header{
+  padding:15px;
+  font-size:24px;
+}
 
-    input, button{
-      padding:10px;
-      margin:5px;
-    }
-  </style>
+/* LOGIN */
+.login{
+  margin:10px;
+}
+
+/* GAME AREA */
+#gameContainer{
+  position:relative;
+  width:100%;
+  max-width:1000px;
+  margin:auto;
+}
+
+/* MAP IMAGE */
+#map{
+  width:100%;
+  border-radius:10px;
+}
+
+/* TERRITORIES */
+.territory{
+  position:absolute;
+  width:60px;
+  height:60px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
+  cursor:pointer;
+  transition:0.2s;
+  box-shadow:0 0 10px rgba(0,0,0,0.5);
+}
+
+.territory:hover{
+  transform:scale(1.2);
+  box-shadow:0 0 15px gold;
+}
+
+/* COLORS */
+.blue{background:#3b82f6;}
+.red{background:#ef4444;}
+.green{background:#22c55e;}
+.purple{background:#a855f7;}
+
+/* UI */
+#timer{margin:10px;}
+#leaderboard{margin:10px;}
+</style>
 </head>
 
 <body>
 
-<h2>🎮 Strategy Hub</h2>
+<div class="header">🎮 Strategy Hub</div>
 
-<input id="usernameInput" placeholder="Enter your name">
-<button onclick="login()">Login</button>
+<div class="login">
+  <input id="usernameInput" placeholder="Name">
+  <button onclick="login()">Login</button>
+</div>
 
 <div id="timer"></div>
 <div id="leaderboard"></div>
 
-<div id="game"></div>
+<div id="gameContainer">
+
+  <!-- TA MAP -->
+  <img id="map" src="map.png">
+
+  <!-- TERRITORIES -->
+  <div id="territoriesLayer"></div>
+
+</div>
 
 <script>
 let socket = io();
@@ -52,20 +98,8 @@ let selected = null;
 
 /* LOGIN */
 function login(){
-
-  const input = document.getElementById("usernameInput");
-
-  if(!input){
-    alert("Input not found");
-    return;
-  }
-
-  const username = input.value.trim();
-
-  if(!username){
-    alert("Enter a name");
-    return;
-  }
+  const username = document.getElementById("usernameInput").value.trim();
+  if(!username) return alert("Enter name");
 
   fetch('/api/login',{
     method:'POST',
@@ -74,53 +108,56 @@ function login(){
   })
   .then(r=>r.json())
   .then(u=>{
-    console.log("Logged:", u);
-
     localStorage.setItem("user", u.username);
-
     socket.emit("create", u.username);
-  })
-  .catch(err=>{
-    console.log("LOGIN ERROR:", err);
   });
 }
+
+/* POSITIONS (map simple, upgradeable) */
+const positions = [
+  [10,60],[25,40],[40,55],[55,45],[70,60],
+  [15,75],[30,70],[50,70],[70,75],
+  [25,85],[50,85],[70,90]
+];
 
 /* GAME STATE */
 socket.on("state", g=>{
   draw(g);
 });
 
-/* DRAW GAME */
+/* DRAW MAP TERRITORIES */
 function draw(g){
 
-  const game = document.getElementById("game");
-  game.innerHTML = "";
+  const layer = document.getElementById("territoriesLayer");
+  layer.innerHTML="";
 
-  const colors = ["#3b82f6","#ef4444","#22c55e","#a855f7"];
+  const colors = ["blue","red","green","purple"];
 
   g.territories.forEach((t,i)=>{
     let d = document.createElement("div");
 
-    d.className = "cell";
-    d.style.background = colors[t.owner % colors.length];
+    d.className = "territory " + colors[t.owner % colors.length];
     d.innerText = t.troops;
 
+    d.style.left = positions[i][0] + "%";
+    d.style.top = positions[i][1] + "%";
+
     d.onclick = ()=>{
-      if(selected === null){
-        selected = i;
+      if(selected===null){
+        selected=i;
       } else {
         socket.emit("move",{from:selected,to:i});
-        selected = null;
+        selected=null;
       }
     };
 
-    game.appendChild(d);
+    layer.appendChild(d);
   });
 }
 
 /* TIMER */
 socket.on("timer",t=>{
-  document.getElementById("timer").innerText = "⏳ " + t;
+  document.getElementById("timer").innerText="⏳ "+t;
 });
 
 /* LEADERBOARD */
@@ -129,17 +166,20 @@ function loadLB(){
   .then(r=>r.json())
   .then(data=>{
     document.getElementById("leaderboard").innerHTML =
-      data.map((u,i)=>`${i+1}. ${u.username || "Unknown"} — ${u.xp || 0}`)
-      .join("<br>");
+      data.map((u,i)=>`${i+1}. ${u.username} — ${u.xp}`).join("<br>");
   });
 }
-
 setInterval(loadLB,3000);
 
-/* ATTACK FX */
+/* FX */
 socket.on("attack",()=>{
-  alert("💥 Attack!");
+  flash();
 });
+
+function flash(){
+  document.body.style.background="#220000";
+  setTimeout(()=>document.body.style.background="#020617",200);
+}
 </script>
 
 </body>
