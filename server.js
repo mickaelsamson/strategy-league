@@ -178,25 +178,29 @@ io.on("connection", socket => {
 
       const gameId = Math.random().toString(36).substr(2,9);
 
+      // 🔥 FIX 1 : structure propre joueurs + couleurs
+      const p1 = lobby.players[0];
+      const p2 = lobby.players[1];
+
       chessGames[gameId] = {
         id:gameId,
         players:[
-          { ...lobby.players[0], color:"w" },
-          { ...lobby.players[1], color:"b" }
+          { id:p1.id, username:p1.username, color:"w" },
+          { id:p2.id, username:p2.username, color:"b" }
         ],
         turn:"w",
         fen:null,
         ended:false
       };
 
-      // 🔥 FIX ICI (SEUL CHANGEMENT)
+      // 🔥 FIX 2 : mapping fiable socket.id
       chessGames[gameId].players.forEach(p=>{
-        playerGames[p.username] = gameId;
+        playerGames[p.id] = gameId;
 
         const s = io.sockets.sockets.get(p.id);
         if(s){
           s.emit("chess_start",{
-            color: p.color, // ✅ FIX
+            color: p.color,
             players:{
               white: chessGames[gameId].players.find(pl=>pl.color==="w").username,
               black: chessGames[gameId].players.find(pl=>pl.color==="b").username
@@ -214,7 +218,8 @@ io.on("connection", socket => {
   /* ===== MOVE ===== */
   socket.on("chess_move", ({fen})=>{
 
-    const gameId = playerGames[socket.username];
+    // 🔥 FIX 3 : récupération fiable
+    const gameId = playerGames[socket.id];
     if(!gameId) return;
 
     const game = chessGames[gameId];
