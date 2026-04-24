@@ -400,8 +400,20 @@ app.get("/api/leaderboard/:type/:username", async (req,res)=>{
 
   try{
 
-    const sortField =
-      type === "strategy" ? "strategyPoints" : "elo";
+    let sortField;
+
+    if(type === "global"){
+      sortField = "xp";
+    }
+    else if(type === "chess"){
+      sortField = "elo";
+    }
+    else if(type === "strategy"){
+      sortField = "strategyPoints";
+    }
+    else{
+      sortField = "xp";
+    }
 
     const users = await User.find().sort({ [sortField]: -1 });
 
@@ -414,11 +426,11 @@ app.get("/api/leaderboard/:type/:username", async (req,res)=>{
     res.json({
       top: top10.map(u=>({
         username: u.username,
-        value: u[sortField] ?? 1000
+        value: u[sortField] ?? 0
       })),
       me: me ? {
         username: me.username,
-        value: me[sortField] ?? 1000,
+        value: me[sortField] ?? 0,
         rank
       } : null
     });
