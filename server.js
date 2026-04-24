@@ -92,7 +92,6 @@ let pendingDisconnects = {};
 
 async function update(){
 
-  // 🔥 FIX players online with elo
   const users = {};
 
   for(const id in onlineUsers){
@@ -190,13 +189,14 @@ io.on("connection", socket => {
         ended:false
       };
 
-      lobby.players.forEach(p=>{
+      // 🔥 FIX ICI (SEUL CHANGEMENT)
+      chessGames[gameId].players.forEach(p=>{
         playerGames[p.username] = gameId;
 
         const s = io.sockets.sockets.get(p.id);
         if(s){
           s.emit("chess_start",{
-            color:p.color,
+            color: p.color, // ✅ FIX
             players:{
               white: chessGames[gameId].players.find(pl=>pl.color==="w").username,
               black: chessGames[gameId].players.find(pl=>pl.color==="b").username
@@ -211,7 +211,7 @@ io.on("connection", socket => {
     update();
   });
 
-  /* ===== 🔥 MOVE FIX ===== */
+  /* ===== MOVE ===== */
   socket.on("chess_move", ({fen})=>{
 
     const gameId = playerGames[socket.username];
