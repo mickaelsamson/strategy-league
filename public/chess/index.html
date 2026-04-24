@@ -1,117 +1,196 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Chess Lobby</title>
-
-<script src="/socket.io/socket.io.js"></script>
+<title>Strategy Hub</title>
 
 <style>
-body{margin:0;background:#020617;color:white;font-family:Arial;display:flex;}
-#main{flex:1;text-align:center;}
-#sidebar{width:260px;background:#111827;padding:10px;}
+body{
+  margin:0;
+  background:#020617;
+  color:white;
+  font-family:Arial;
+  display:flex;
+  justify-content:center;
+}
 
-.player{padding:8px;border-bottom:1px solid #1f2937;}
-.lobby{background:#1f2937;margin:10px;padding:10px;border-radius:10px;}
+.container{
+  width:100%;
+  max-width:800px;
+  padding:20px;
+  text-align:center;
+}
 
+/* TITLE */
+h1{
+  margin-bottom:20px;
+}
+
+/* CARDS */
+.card{
+  background:#111827;
+  padding:20px;
+  border-radius:15px;
+  margin-bottom:20px;
+  box-shadow:0 0 10px rgba(0,0,0,0.4);
+}
+
+/* BUTTONS */
 button{
-  padding:8px 12px;
-  margin:5px;
+  padding:12px 20px;
+  margin:10px;
   border:none;
-  border-radius:8px;
+  border-radius:10px;
+  cursor:pointer;
+  font-size:16px;
   background:#3b82f6;
   color:white;
-  cursor:pointer;
+  transition:0.2s;
 }
-button:hover{background:#2563eb;}
+
+button:hover{
+  background:#2563eb;
+}
+
+.secondary{
+  background:#1f2937;
+}
+
+.secondary:hover{
+  background:#374151;
+}
+
+/* PROFILE */
+.profile{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.profile-left{
+  text-align:left;
+}
+
+.badge{
+  padding:6px 12px;
+  border-radius:20px;
+  background:#374151;
+}
+
+/* LEADERBOARD */
+.leaderboard{
+  text-align:left;
+}
+
+.row{
+  display:flex;
+  justify-content:space-between;
+  padding:8px 0;
+  border-bottom:1px solid #1f2937;
+}
+
+.top1{color:gold;}
+.top2{color:silver;}
+.top3{color:#cd7f32;}
+
+/* ADMIN */
+#adminBtn{
+  display:none;
+  background:#f59e0b;
+}
 </style>
 </head>
 
 <body>
 
-<div id="main">
+<div class="container">
 
-<h2>♟️ Chess Lobby</h2>
+<h1>🎮 Strategy Hub</h1>
 
-<div id="lobbyControls">
-  <input id="name" placeholder="Lobby name">
-  <select id="mode">
-    <option value="30">Blitz</option>
-    <option value="60">Rapid</option>
-    <option value="120">Snail</option>
-  </select>
-  <button onclick="createLobby()">Create</button>
-  <button onclick="goMain()">Back to Main Menu</button>
+<!-- ACTIONS -->
+<div class="card">
+  <button onclick="goGames()">▶ Play</button>
+  <button class="secondary" onclick="goLeaderboard()">🏆 Leaderboard</button>
+  <br>
+  <button id="adminBtn" onclick="goAdmin()">👑 Admin</button>
 </div>
 
-<h3>Lobbies</h3>
-<div id="lobbies"></div>
-
+<!-- PROFILE -->
+<div class="card profile">
+  <div class="profile-left">
+    <div><strong id="username"></strong></div>
+    <div>ELO: <span id="elo">1000</span></div>
+    <div>XP: <span id="xp">0</span></div>
+  </div>
+  <div id="badge" class="badge">Bronze</div>
 </div>
 
-<div id="sidebar">
-  <h3>Players Online</h3>
-  <div id="players"></div>
+<!-- TOP 3 -->
+<div class="card leaderboard">
+  <h3>👑 Top Players</h3>
+  <div id="top3"></div>
+</div>
+
 </div>
 
 <script>
 
-const socket = io();
 const user = JSON.parse(localStorage.getItem("user"));
 
-if(user){
-  socket.emit("register_online", user.username);
+if(!user){
+  window.location.href = "/login.html";
 }
 
-/* PLAYERS */
-socket.on("online_users", users=>{
-  document.getElementById("players").innerHTML =
-    Object.entries(users).map(([name,data])=>`
-      <div class="player">${name} (${data.elo})</div>
-    `).join("");
-});
-
-/* LOBBIES */
-socket.on("lobbies_update", lobbies=>{
-  const list = Object.values(lobbies);
-
-  document.getElementById("lobbies").innerHTML =
-    list.map(l=>{
-      const me = l.players.find(p=>p.username===user.username);
-
-      return `
-        <div class="lobby">
-          ${l.name} (${l.time}s)<br>
-          Players: ${l.players.map(p=>p.username + (p.ready?" ✅":" ❌")).join(",")}<br>
-
-          ${
-            !me
-            ? `<button onclick="join('${l.id}')">Join</button>`
-            : `<button onclick="toggleReady('${l.id}')">Ready</button>`
-          }
-        </div>
-      `;
-    }).join("");
-});
-
-function createLobby(){
-  socket.emit("create_lobby",{
-    name:document.getElementById("name").value,
-    time:parseInt(document.getElementById("mode").value)
-  });
+/* ADMIN */
+if(user.isAdmin){
+  document.getElementById("adminBtn").style.display = "inline-block";
 }
 
-function join(id){ socket.emit("join_lobby", id); }
-function toggleReady(id){ socket.emit("toggle_ready", id); }
+/* PROFILE */
+document.getElementById("username").innerText = user.username;
+document.getElementById("elo").innerText = user.elo || 1000;
+document.getElementById("xp").innerText = user.xp || 0;
 
-/* 🔥 REDIRECTION GAME */
-socket.on("chess_start", ()=>{
-  window.location.href = "/chess/chess-game.html";
-});
+/* BADGE SYSTEM */
+function getBadge(elo){
+  if(elo >= 1400) return "🥇 Gold";
+  if(elo >= 1200) return "🥈 Silver";
+  return "🥉 Bronze";
+}
 
-function goMain(){
-  window.location.href = "/";
+document.getElementById("badge").innerText = getBadge(user.elo || 1000);
+
+/* LEADERBOARD */
+async function loadLeaderboard(){
+
+  const res = await fetch("/api/leaderboard/global/"+user.username);
+  const data = await res.json();
+
+  const top3 = data.top.slice(0,3);
+
+  document.getElementById("top3").innerHTML = top3.map((u,i)=>`
+    <div class="row top${i+1}">
+      <span>${i===0?'🥇':i===1?'🥈':'🥉'} ${u.username}</span>
+      <span>${u.value}</span>
+    </div>
+  `).join("");
+}
+
+loadLeaderboard();
+
+/* NAV */
+function goGames(){
+  window.location.href = "/games.html";
+}
+
+function goLeaderboard(){
+  window.location.href = "/leaderboard.html";
+}
+
+function goAdmin(){
+  window.location.href = "/admin.html";
 }
 
 </script>
+
 </body>
 </html>
