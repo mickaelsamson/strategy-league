@@ -7,13 +7,33 @@
 </head>
 <body>
 
-<h1>⚫ Othello</h1>
+<div id="main">
+  <h1>⚫ Othello</h1>
+  
+    <div id="youName">You</div>
+    <div id="youColor"></div>
+  </div>
 
-<div id="turn"></div>
-<div id="score"></div>
-<div id="board"></div>
-<div id="status"></div>
+  <div id="turn"></div>
+  <div id="score"></div>
+  <div id="board"></div>
+  <div id="status"></div>
 
+  <div class="player-card opponent">
+    <div id="opponentName">Opponent</div>
+    <div id="opponentColor"></div>
+  </div>
+
+  <div>
+    <button id="resignBtn" onclick="resign()">Abandon</button>
+  </div>
+</div>
+
+<div id="sidebar">
+  <h3>Players Online</h3>
+  <div id="players"></div>
+</div>
+  
 <!-- END SCREEN -->
 <div id="endScreen" class="end-screen">
   <h1 id="winnerText"></h1>
