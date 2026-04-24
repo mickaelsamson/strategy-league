@@ -26,7 +26,6 @@ app.get("/api/games/status", (req,res)=>{
   res.json({ enabled: isGameAllowed() });
 });
 
-
 /* ================= DATA ================= */
 
 let onlineUsers = {};
@@ -278,7 +277,6 @@ io.on('connection', socket=>{
     io.to(g.id).emit("chess_update",{fen});
   });
 
-  /* 🔥 FIX FINAL REMATCH */
   socket.on("resign", async ()=>{
 
     const gameId = playerGames[socket.username];
@@ -293,9 +291,7 @@ io.on('connection', socket=>{
       winner: opponent.username
     });
 
-    /* ✅ ON GARDE LA GAME POUR REMATCH */
     game.ended = true;
-
   });
 
   socket.on("disconnect", ()=>{
@@ -341,10 +337,11 @@ io.on('connection', socket=>{
   });
 
   socket.on("rematch", ()=>{
-  if(!isGameAllowed()){
-  socket.emit("error_message","Games disabled by admin");
-  return;
+    if(!isGameAllowed()){
+      socket.emit("error_message","Games disabled by admin");
+      return;
     }
+
     const username = socket.username;
     const gameId = playerGames[username];
     const game = chessGames[gameId];
@@ -391,8 +388,45 @@ io.on('connection', socket=>{
         io.to(opponent.id).emit("rematch_requested",{from:username});
       }
     }
-
   });
+
+});
+
+/* ================= LEADERBOARD ================= */
+
+app.get("/api/leaderboard/:type/:username", async (req,res)=>{
+
+  const { type, username } = req.params;
+
+  try{
+
+    const sortField =
+      type === "strategy" ? "strategyPoints" : "elo";
+
+    const users = await User.find().sort({ [sortField]: -1 });
+
+    const top10 = users.slice(0,10);
+
+    const rank = users.findIndex(u=>u.username===username) + 1;
+
+    const me = users.find(u=>u.username===username);
+
+    res.json({
+      top: top10.map(u=>({
+        username: u.username,
+        value: u[sortField] ?? 1000
+      })),
+      me: me ? {
+        username: me.username,
+        value: me[sortField] ?? 1000,
+        rank
+      } : null
+    });
+
+  }catch(err){
+    console.error(err);
+    res.status(500).json({top:[],me:null});
+  }
 
 });
 
