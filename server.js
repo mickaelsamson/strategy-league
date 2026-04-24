@@ -128,10 +128,56 @@ function computeEloDelta(winnerElo, loserElo, kFactor = 32){
   const expectedWinner = 1 / (1 + Math.pow(10, (loserElo - winnerElo) / 400));
   return Math.max(8, Math.round(kFactor * (1 - expectedWinner)));
 }
+function pushHistoryEntry(user, entry){
+  if(!Array.isArray(user.matchHistory)){
+    user.matchHistory = [];
+  }
 
+  user.matchHistory.unshift(entry);
+  user.matchHistory = user.matchHistory.slice(0, 20);
+}
 async function applyRankedResult(game, winnerUsername, reason = "game_end"){
   if(!game || game.rated) return;
-  if(!winnerUsername) return;
+  if(!Array.isArray(game.players) || game.players.length < 2) return;
+
+  if(!winnerUsername){
+    const [userA, userB] = await Promise.all([
+      User.findOne({ username: game.players[0].username }),
+      User.findOne({ username: game.players[1].username })
+    ]);
+
+    if(!userA || !userB) return;
+
+    userA.draws = (userA.draws || 0) + 1;
+    userB.draws = (userB.draws || 0) + 1;
+
+    pushHistoryEntry(userA, {
+      result: "draw",
+      opponent: userB.username,
+      xpChange: 5,
+      reason
+    });
+    pushHistoryEntry(userB, {
+      result: "draw",
+      opponent: userA.username,
+      xpChange: 5,
+      reason
+    });
+
+    userA.xp += 5;
+    userB.xp += 5;
+
+    await Promise.all([userA.save(), userB.save()]);
+
+    game.rated = true;
+    game.result = {
+      winner: null,
+      loser: null,
+      reason,
+      eloDelta: 0
+    };
+    return;
+  }
 
   const loser = game.players.find(p => p.username !== winnerUsername);
   if(!loser) return;
@@ -150,6 +196,21 @@ async function applyRankedResult(game, winnerUsername, reason = "game_end"){
 
   winnerUser.xp += 25;
   loserUser.xp += 5;
+  winnerUser.wins = (winnerUser.wins || 0) + 1;
+  loserUser.losses = (loserUser.losses || 0) + 1;
+
+  pushHistoryEntry(winnerUser, {
+    result: "win",
+    opponent: loserUser.username,
+    xpChange: 25,
+    reason
+  });
+  pushHistoryEntry(loserUser, {
+    result: "loss",
+    opponent: winnerUser.username,
+    xpChange: 5,
+    reason
+  });
 
   await Promise.all([winnerUser.save(), loserUser.save()]);
 
@@ -200,6 +261,40 @@ app.get("/api/leaderboard/:type/:username", async (req,res)=>{
   }catch(err){
     console.error("Leaderboard error:", err);
     res.status(500).json({ error: "Leaderboard unavailable" });
+  }
+});
+app.get("/api/profile/:username", async (req,res)=>{
+  try{
+    const { username } = req.params;
+    const user = await User.findOne({ username }).lean();
+
+    if(!user){
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const wins = user.wins || 0;
+    const losses = user.losses || 0;
+    const draws = user.draws || 0;
+    const total = wins + losses + draws;
+    const winrate = total ? Math.round((wins / total) * 100) : 0;
+
+    res.json({
+      username: user.username,
+      elo: user.elo || 1000,
+      xp: user.xp || 0,
+      level: Math.floor((user.xp || 0) / 100) + 1,
+      stats: {
+        wins,
+        losses,
+        draws,
+        total,
+        winrate
+      },
+      matchHistory: (user.matchHistory || []).slice(0, 10)
+    });
+  }catch(err){
+    console.error("Profile error:", err);
+    res.status(500).json({ error: "Profile unavailable" });
   }
 });
 
@@ -427,11 +522,6 @@ function emitGameStart(game){
       message,
       winner: winnerName
     });
-
-    if(!winnerName){
-      finishGame();
-      return;
-    }
 
     applyRankedResult(game, winnerName, endReason)
       .catch(err=>console.error("ELO update error:", err))
