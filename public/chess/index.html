@@ -13,6 +13,7 @@ body{
   font-family:Arial;
   display:flex;
   justify-content:center;
+  padding-top:80px; /* 🔥 navbar fix */
 }
 
 .container{
@@ -82,7 +83,7 @@ input, select{
   inset:0;
   background:#020617;
   color:white;
-  z-index:999;
+  z-index:9999; /* 🔥 au-dessus navbar */
   justify-content:center;
   align-items:center;
   flex-direction:column;
@@ -91,6 +92,50 @@ input, select{
 </head>
 
 <body>
+
+<!-- 🔥 NAVBAR -->
+<div id="navbar-container"></div>
+
+<script>
+fetch("/components/navbar.html")
+  .then(res => res.text())
+  .then(html => {
+
+    const container = document.getElementById("navbar-container");
+    container.innerHTML = html;
+
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    // ADMIN BUTTON NAVBAR
+    if(user && user.isAdmin){
+      const adminBtn = document.getElementById("adminNav");
+      if(adminBtn){
+        adminBtn.style.display = "inline-block";
+      }
+    }
+
+    // NAVIGATION
+    document.querySelectorAll("[data-link]").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+
+        const link = btn.dataset.link;
+
+        if(link === "home") window.location.href = "/";
+        if(link === "games") window.location.href = "/games.html";
+        if(link === "leaderboard") window.location.href = "/leaderboard.html";
+        if(link === "profile") window.location.href = "/profile.html";
+        if(link === "admin") window.location.href = "/admin.html";
+
+        if(link === "logout"){
+          localStorage.removeItem("user");
+          window.location.href = "/login.html";
+        }
+
+      });
+    });
+
+  });
+</script>
 
 <!-- 🔒 BLOCK SCREEN -->
 <div id="blockedScreen">
