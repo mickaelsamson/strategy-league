@@ -221,6 +221,44 @@ let myName = "";
 let opponentName = "";
 let gameOver = false;
 
+function applyStartData(data){
+  gameOver = false;
+  selected = null;
+  possibleMoves = [];
+
+  playerColor = data.color;
+
+  myName = user.username;
+  opponentName =
+    user.username === data.players.white
+      ? data.players.black
+      : data.players.white;
+
+  document.getElementById("youName").innerText = myName;
+  document.getElementById("opponentName").innerText = opponentName;
+
+  document.getElementById("youColor").innerText =
+    playerColor === 'w' ? "White" : "Black";
+
+  document.getElementById("opponentColor").innerText =
+    playerColor === 'w' ? "Black" : "White";
+
+  if(data.fen){
+    game.load(data.fen);
+  }else{
+    game.reset();
+  }
+
+  myTime = 60;
+  opponentTime = 60;
+  startTimer();
+  updateTimerUI();
+  updateUI();
+  draw();
+}
+
+  
+  
 /* TIMER */
 let myTime = 60;
 let opponentTime = 60;
@@ -267,37 +305,9 @@ socket.on("online_users", users=>{
 });
 
 socket.on("chess_start", data=>{
-
-  gameOver = false;
-  selected = null;
-  possibleMoves = [];
-
-  playerColor = data.color;
-
-  // 🔥 FIX NAMES (SEULE MODIF)
-  myName = user.username;
-  opponentName =
-    user.username === data.players.white
-      ? data.players.black
-      : data.players.white;
-
-  document.getElementById("youName").innerText = myName;
-  document.getElementById("opponentName").innerText = opponentName;
-
-  document.getElementById("youColor").innerText =
-    playerColor === 'w' ? "White" : "Black";
-
-  document.getElementById("opponentColor").innerText =
-    playerColor === 'w' ? "Black" : "White";
-
-  myTime = 60;
-  opponentTime = 60;
-  startTimer();
-  updateTimerUI();
-
-  game.reset();
-  updateUI();
-  draw();
+  localStorage.setItem("chessSession", JSON.stringify(data));
+  applyStartData(data);
+  
 });
 
 socket.on("chess_update", data=>{
@@ -389,6 +399,16 @@ function goMain(){
 
 draw();
 
+const savedSession = localStorage.getItem("chessSession");
+if(savedSession){
+  try{
+    applyStartData(JSON.parse(savedSession));
+  }catch(err){
+    console.error("Invalid chessSession data", err);
+  }
+}
+
+  
 </script>
 </body>
 </html>
