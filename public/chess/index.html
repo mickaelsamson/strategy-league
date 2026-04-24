@@ -246,7 +246,8 @@ async function checkGamesAccess(){
     socket.emit("toggle_ready", id);
   }
 
-  socket.on("chess_start", ()=>{
+  socket.on("chess_start", (data)=>{
+  localStorage.setItem("chessSession", JSON.stringify(data));
     window.location.href = "/chess/chess-game.html";
   });
 
