@@ -275,22 +275,25 @@ io.on('connection', socket=>{
     io.to(g.id).emit("chess_update",{fen});
   });
 
+  /* 🔥 FIX ABANDON UNIQUEMENT */
   socket.on("resign", async ()=>{
+
     const gameId = playerGames[socket.username];
     const game = chessGames[gameId];
     if(!game) return;
 
-    const opponent = game.players.find(p=>p.username!==socket.username);
+    const opponent = game.players.find(p=>p.username !== socket.username);
 
     await applyElo(game, opponent.username);
 
-    game.players.forEach(p=>{
-      io.to(p.id).emit("player_left",{winner:opponent.username});
+    io.to(game.id).emit("player_left",{
+      winner: opponent.username
     });
 
     delete chessGames[game.id];
     delete playerGames[game.players[0].username];
     delete playerGames[game.players[1].username];
+
   });
 
   socket.on("disconnect", ()=>{
@@ -335,8 +338,6 @@ io.on('connection', socket=>{
     update();
   });
 
-  /* ===== REMATCH FIXED ===== */
-
   socket.on("rematch", ()=>{
 
     const username = socket.username;
@@ -351,18 +352,14 @@ io.on('connection', socket=>{
 
     rematchRequests[gameId].add(username);
 
-    console.log("REMATCH:", gameId, [...rematchRequests[gameId]]);
-
     if(rematchRequests[gameId].size === 2){
 
       rematchRequests[gameId].clear();
 
       game.players = game.players.map(p=>{
         const newColor = p.color === 'w' ? 'b' : 'w';
-
         const s = io.sockets.sockets.get(p.id);
         if(s) s.color = newColor;
-
         return { id:p.id, username:p.username, color:newColor };
       });
 
@@ -392,38 +389,6 @@ io.on('connection', socket=>{
 
   });
 
-});
-
-/* ================= LEADERBOARD ================= */
-
-app.get("/api/leaderboard/:type/:username", async (req,res)=>{
-  try{
-
-    const { type, username } = req.params;
-
-    const users = await User.find().sort({ elo:-1 });
-
-    const top = users.slice(0,10);
-
-    const rank = users.findIndex(u=>u.username===username)+1;
-    const me = users.find(u=>u.username===username);
-
-    res.json({
-      top: top.map(u=>({
-        username:u.username,
-        value:u.elo || 1000
-      })),
-      me: me ? {
-        username:me.username,
-        value:me.elo || 1000,
-        rank
-      } : null
-    });
-
-  }catch(err){
-    console.error(err);
-    res.status(500).json({top:[],me:null});
-  }
 });
 
 /* ================= START ================= */
