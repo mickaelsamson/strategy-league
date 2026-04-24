@@ -1,115 +1,119 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Chess</title>
+<title>Chess Lobby</title>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.11.0/chess.min.js"></script>
 
 <style>
-body{margin:0;background:#020617;color:white;font-family:Arial;display:flex;}
-#main{flex:1;text-align:center;}
-#sidebar{width:260px;background:#111827;padding:10px;}
-
-#boardWrapper{
-  position:relative;
-  width:90vw;
-  max-width:520px;
-  aspect-ratio:1/1;
-  margin:20px auto;
-}
-
-#boardWrapper img{width:100%;height:100%;object-fit:cover;}
-
-#piecesLayer,#clickLayer{
-  position:absolute;
-  top:0;left:0;width:100%;height:100%;
-}
-
-.square{position:absolute;width:12.5%;height:12.5%;cursor:pointer;}
-.selected{outline:3px solid #3b82f6;}
-.move{background:rgba(34,197,94,0.4);border-radius:50%;}
-.check{background:rgba(239,68,68,0.6);}
-.attacker{background:rgba(239,68,68,0.3);}
-
-.piece{
-  position:absolute;
-  width:12.5%;
-  height:12.5%;
+body{
+  margin:0;
+  background:#020617;
+  color:white;
+  font-family:Arial;
   display:flex;
-  align-items:center;
   justify-content:center;
 }
-.piece img{width:80%;height:80%;}
 
-.player{padding:8px;border-bottom:1px solid #1f2937;}
-.lobby{background:#1f2937;margin:10px;padding:10px;border-radius:10px;}
+.container{
+  width:100%;
+  max-width:800px;
+  padding:20px;
+  text-align:center;
+}
 
-#turn{margin:10px;font-size:18px;}
-#status{color:#facc15;font-size:18px;}
-#disconnectTimer{color:#f87171;margin:5px;}
+/* TITLE */
+h1{
+  margin-bottom:20px;
+}
 
+/* CARD */
+.card{
+  background:#111827;
+  padding:20px;
+  border-radius:15px;
+  margin-bottom:20px;
+}
+
+/* BUTTONS */
 button{
-  padding:8px 12px;
+  padding:10px 15px;
   margin:5px;
   border:none;
-  border-radius:8px;
+  border-radius:10px;
+  cursor:pointer;
   background:#3b82f6;
   color:white;
-  cursor:pointer;
 }
-button:hover{background:#2563eb;}
 
-#endGameBtn{display:none;background:#22c55e;}
-#resignBtn{display:none;}
-#rematchBtn{display:none;background:#f59e0b;}
+button:hover{
+  background:#2563eb;
+}
+
+.secondary{
+  background:#1f2937;
+}
+
+/* INPUT */
+input, select{
+  padding:10px;
+  margin:5px;
+  border-radius:8px;
+  border:none;
+}
+
+/* LOBBIES */
+.lobby{
+  background:#1f2937;
+  padding:10px;
+  border-radius:10px;
+  margin-top:10px;
+  text-align:left;
+}
+
+.players{
+  margin-top:5px;
+  font-size:14px;
+  color:#9ca3af;
+}
+
+.ready{
+  color:#22c55e;
+}
+
+.notready{
+  color:#ef4444;
+}
 </style>
 </head>
 
 <body>
 
-<div id="main">
+<div class="container">
 
-<h2>♟️ Chess</h2>
+<h1>♟️ Chess Lobby</h1>
 
-<div id="turn">Turn: -</div>
-<div id="status"></div>
-<div id="disconnectTimer"></div>
-
-<div id="lobbyControls">
+<!-- ACTIONS -->
+<div class="card">
   <input id="name" placeholder="Lobby name">
   <select id="mode">
     <option value="30">Blitz</option>
     <option value="60">Rapid</option>
     <option value="120">Snail</option>
   </select>
-  <button onclick="createLobby()">Create</button>
-  <button onclick="goMain()">Back to Main Menu</button>
+
+  <br>
+
+  <button onclick="createLobby()">Create Lobby</button>
+  <button class="secondary" onclick="goBack()">⬅ Back</button>
 </div>
 
-<h3 id="lobbiesTitle">Lobbies</h3>
-<div id="lobbies"></div>
-
-<div id="boardWrapper">
-  <img src="/chess/board.png">
-  <div id="piecesLayer"></div>
-  <div id="clickLayer"></div>
+<!-- LOBBIES -->
+<div class="card">
+  <h3>Available Lobbies</h3>
+  <div id="lobbies"></div>
 </div>
 
-<div>
-  <button id="resignBtn" onclick="resign()">Abandon</button>
-</div>
-
-<div>
-  <button id="rematchBtn" onclick="rematch()">Rematch</button>
-  <button id="endGameBtn" onclick="goMain()">Back to Main Menu</button>
-</div>
-
-</div>
-
-<div id="sidebar">
-  <h3>Players Online</h3>
-  <div id="players"></div>
 </div>
 
 <script>
@@ -117,41 +121,33 @@ button:hover{background:#2563eb;}
 const socket = io();
 const user = JSON.parse(localStorage.getItem("user"));
 
-if(user){
-  socket.emit("register_online", user.username);
+if(!user){
+  window.location.href = "/login.html";
 }
 
-let game = new Chess();
-let selected = null;
-let possibleMoves = [];
-let playerColor = null;
+socket.emit("register_online", user.username);
 
-let myName = "";
-let opponentName = "";
-let gameOver = false;
-
-/* ================= PLAYERS ================= */
-
-socket.on("online_users", users=>{
-  document.getElementById("players").innerHTML =
-    Object.entries(users).map(([name,data])=>`
-      <div class="player">${name} (${data.elo})</div>
-    `).join("");
-});
-
-/* ================= LOBBIES ================= */
+/* ===== LOBBIES ===== */
 
 socket.on("lobbies_update", lobbies=>{
   const list = Object.values(lobbies);
 
   document.getElementById("lobbies").innerHTML =
     list.map(l=>{
+
       const me = l.players.find(p=>p.username===user.username);
 
       return `
         <div class="lobby">
-          ${l.name} (${l.time}s)<br>
-          Players: ${l.players.map(p=>p.username + (p.ready?" ✅":" ❌")).join(",")}<br>
+          <strong>${l.name}</strong> (${l.time}s)
+
+          <div class="players">
+            ${l.players.map(p=>`
+              <span class="${p.ready?'ready':'notready'}">
+                ${p.username} ${p.ready?'✔':'✖'}
+              </span>
+            `).join(", ")}
+          </div>
 
           ${
             !me
@@ -163,6 +159,8 @@ socket.on("lobbies_update", lobbies=>{
     }).join("");
 });
 
+/* ===== ACTIONS ===== */
+
 function createLobby(){
   socket.emit("create_lobby",{
     name:document.getElementById("name").value,
@@ -170,212 +168,27 @@ function createLobby(){
   });
 }
 
-function join(id){ socket.emit("join_lobby", id); }
-function toggleReady(id){ socket.emit("toggle_ready", id); }
+function join(id){
+  socket.emit("join_lobby", id);
+}
 
-/* ================= GAME START ================= */
+function toggleReady(id){
+  socket.emit("toggle_ready", id);
+}
 
-socket.on("chess_start", data=>{
+/* ===== NAV ===== */
 
-  /* 🔥 SEULE MODIF : cacher le lobby */
-  document.getElementById("lobbyControls").style.display = "none";
-  document.getElementById("lobbies").style.display = "none";
-  document.getElementById("lobbiesTitle").style.display = "none";
+function goBack(){
+  window.location.href = "/games.html";
+}
 
-  gameOver = false;
-  selected = null;
-  possibleMoves = [];
+/* ===== START GAME ===== */
 
-  document.getElementById("resignBtn").style.display = "inline-block";
-  document.getElementById("endGameBtn").style.display = "none";
-  document.getElementById("rematchBtn").style.display = "none";
-
-  playerColor = data.color;
-
-  myName = data.color === 'w' ? data.players.white : data.players.black;
-  opponentName = data.color === 'w' ? data.players.black : data.players.white;
-
-  document.getElementById("status").innerText = "";
-  document.getElementById("disconnectTimer").innerText = "";
-
-  game.reset();
-  updateUI();
-  draw();
+socket.on("chess_start", ()=>{
+  window.location.href = "/chess/chess-game.html";
 });
-
-/* ===== RESTE STRICTEMENT IDENTIQUE ===== */
-
-socket.on("chess_update", data=>{
-  if(data.fen) game.load(data.fen);
-  updateUI();
-  draw();
-});
-
-socket.on("opponent_disconnected", data=>{
-  document.getElementById("status").innerText =
-    "⚠️ " + data.player + " disconnected";
-});
-
-socket.on("disconnect_timer", data=>{
-  document.getElementById("disconnectTimer").innerText =
-    data.time > 0 ? "Waiting: " + data.time + "s" : "";
-});
-
-function endGameUI(){
-  gameOver = true;
-  selected = null;
-  possibleMoves = [];
-
-  document.getElementById("resignBtn").style.display = "none";
-  document.getElementById("endGameBtn").style.display = "inline-block";
-  document.getElementById("rematchBtn").style.display = "inline-block";
-}
-
-socket.on("player_left", data=>{
-  document.getElementById("status").innerText =
-    "🏆 " + data.winner + " wins";
-  endGameUI();
-});
-
-socket.on("elo_update", data=>{
-  document.getElementById("status").innerText =
-    "ELO: " + data.elo + " (" + (data.gain>0?"+":"") + data.gain + ")";
-});
-
-function rematch(){
-  socket.emit("rematch");
-  document.getElementById("status").innerText = "Waiting for opponent...";
-}
-
-socket.on("rematch_requested", data=>{
-  document.getElementById("status").innerText =
-    data.from + " wants a rematch";
-});
-
-function updateUI(){
-  document.getElementById("turn").innerText =
-    "Turn: " + (game.turn() === playerColor ? myName : opponentName);
-
-  if(game.in_checkmate()){
-    document.getElementById("status").innerText =
-      "🏆 " + (game.turn() === playerColor ? opponentName : myName) + " wins!";
-    endGameUI();
-  }
-  else if(game.in_check()){
-    document.getElementById("status").innerText = "⚠️ CHECK!";
-  }
-  else{
-    document.getElementById("status").innerText = "";
-  }
-}
-
-function getKingSquare(color){
-  const board = game.board();
-  for(let y=0;y<8;y++){
-    for(let x=0;x<8;x++){
-      const piece = board[y][x];
-      if(piece && piece.type==='k' && piece.color===color){
-        return String.fromCharCode(97+x)+(8-y);
-      }
-    }
-  }
-}
-
-function getAttackers(square){
-  const moves = game.moves({verbose:true});
-  return moves.filter(m => m.to === square).map(m => m.from);
-}
-
-function draw(){
-
-  const p=document.getElementById("piecesLayer");
-  const c=document.getElementById("clickLayer");
-
-  p.innerHTML="";
-  c.innerHTML="";
-
-  const board=game.board();
-
-  let checkSquare=null;
-  let attackers=[];
-
-  if(game.in_check()){
-    checkSquare=getKingSquare(game.turn());
-    attackers=getAttackers(checkSquare);
-  }
-
-  for(let y=0;y<8;y++){
-    for(let x=0;x<8;x++){
-
-      const sq=String.fromCharCode(97+x)+(8-y);
-      const piece=board[y][x];
-
-      const cell=document.createElement("div");
-      cell.className="square";
-      cell.style.left=(x*12.5)+"%";
-      cell.style.top=(y*12.5)+"%";
-
-      if(selected===sq) cell.classList.add("selected");
-      if(possibleMoves.includes(sq)) cell.classList.add("move");
-      if(sq===checkSquare) cell.classList.add("check");
-      if(attackers.includes(sq)) cell.classList.add("attacker");
-
-      cell.onclick=()=>clickCell(sq);
-      c.appendChild(cell);
-
-      if(piece){
-        const wrapper=document.createElement("div");
-        wrapper.className="piece";
-        wrapper.style.left=(x*12.5)+"%";
-        wrapper.style.top=(y*12.5)+"%";
-
-        const img=document.createElement("img");
-        img.src="/chess/pieces/"+piece.color+piece.type.toUpperCase()+".svg";
-
-        wrapper.appendChild(img);
-        p.appendChild(wrapper);
-      }
-    }
-  }
-}
-
-function clickCell(sq){
-
-  if(game.turn()!==playerColor || gameOver) return;
-
-  if(!selected){
-    const moves=game.moves({square:sq,verbose:true});
-    if(moves.length===0) return;
-    selected=sq;
-    possibleMoves=moves.map(m=>m.to);
-  }else{
-    const move=game.move({from:selected,to:sq,promotion:'q'});
-    selected=null;
-    possibleMoves=[];
-
-    if(move){
-      socket.emit("chess_move",{fen:game.fen()});
-    }
-  }
-
-  updateUI();
-  draw();
-}
-
-function resign(){
-  if(confirm("Abandon game?")){
-    socket.emit("resign");
-    document.getElementById("status").innerText = "You resigned";
-    endGameUI();
-  }
-}
-
-function goMain(){
-  window.location.href = "/";
-}
-
-draw();
 
 </script>
+
 </body>
 </html>
