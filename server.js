@@ -19,6 +19,10 @@ app.post("/api/signup", async (req,res)=>{
   try{
     const { email, password, username, firstName, lastName } = req.body;
 
+    if(!email || !password || !username){
+      return res.status(400).json({error:"Missing required fields"});
+    }
+
     const existingEmail = await User.findOne({email});
     if(existingEmail) return res.status(400).json({error:"Email already used"});
 
@@ -29,8 +33,8 @@ app.post("/api/signup", async (req,res)=>{
       email,
       password,
       username,
-      firstName,
-      lastName,
+      firstName: firstName || "",
+      lastName: lastName || "",
       elo: 1000
     });
 
@@ -39,7 +43,7 @@ app.post("/api/signup", async (req,res)=>{
     res.json({success:true});
 
   }catch(err){
-    console.error(err);
+    console.error("SIGNUP ERROR:", err);
     res.status(500).json({error:"Server error"});
   }
 });
@@ -47,6 +51,10 @@ app.post("/api/signup", async (req,res)=>{
 app.post("/api/login", async (req,res)=>{
   try{
     const { email, password } = req.body;
+
+    if(!email || !password){
+      return res.status(400).json({error:"Missing fields"});
+    }
 
     const user = await User.findOne({email, password});
     if(!user) return res.status(400).json({error:"Invalid credentials"});
@@ -57,7 +65,7 @@ app.post("/api/login", async (req,res)=>{
     });
 
   }catch(err){
-    console.error(err);
+    console.error("LOGIN ERROR:", err);
     res.status(500).json({error:"Server error"});
   }
 });
@@ -172,12 +180,11 @@ io.on('connection', socket=>{
       status:"idle"
     };
 
-    /* 🔥 AUTO RECONNECT */
+    /* 🔥 RECONNECT GAME */
     const gameId = playerGames[username];
     const game = chessGames[gameId];
 
     if(game){
-
       const player = game.players.find(p=>p.username===username);
 
       socket.join(game.id);
@@ -320,56 +327,6 @@ io.on('connection', socket=>{
     }
 
     update();
-  });
-
-  socket.on("rematch", ()=>{
-    const username = socket.username;
-    const gameId = playerGames[username];
-
-    if(!rematchRequests[gameId]) rematchRequests[gameId]=[];
-
-    if(!rematchRequests[gameId].includes(username)){
-      rematchRequests[gameId].push(username);
-    }
-
-    const game = chessGames[gameId];
-    if(!game) return;
-
-    if(rematchRequests[gameId].length===2){
-
-      rematchRequests[gameId]=[];
-
-      game.players = game.players.map(p=>{
-        const newColor = p.color==='w'?'b':'w';
-        const s = io.sockets.sockets.get(p.id);
-        if(s) s.color=newColor;
-
-        return {id:p.id, username:p.username, color:newColor};
-      });
-
-      game.fen=null;
-      game.turn='w';
-      game.ended=false;
-
-      game.players.forEach(p=>{
-        const s = io.sockets.sockets.get(p.id);
-        if(s){
-          s.emit("chess_start",{
-            color:p.color,
-            players:{
-              white: game.players.find(pl=>pl.color==='w').username,
-              black: game.players.find(pl=>pl.color==='b').username
-            }
-          });
-        }
-      });
-
-    }else{
-      const opponent = game.players.find(p=>p.username!==username);
-      if(opponent){
-        io.to(opponent.id).emit("rematch_requested",{from:username});
-      }
-    }
   });
 
 });
