@@ -1,269 +1,40 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>Strategy Hub - Auth</title>
-
-<style>
-body{
-  margin:0;
-  font-family:Arial;
-  background: radial-gradient(circle at top, #0f172a, #020617);
-  color:white;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-}
-
-.card{
-  background:#111827;
-  padding:30px;
-  border-radius:20px;
-  width:320px;
-  text-align:center;
-}
-
-.tabs{
-  display:flex;
-  margin-bottom:20px;
-}
-
-.tab{
-  flex:1;
-  padding:10px;
-  cursor:pointer;
-  border-radius:10px;
-}
-
-.active{
-  background:#3b82f6;
-}
-
-input{
-  width:100%;
-  padding:10px;
-  margin:6px 0;
-  border:none;
-  border-radius:8px;
-}
-
-button{
-  width:100%;
-  padding:10px;
-  margin-top:10px;
-  border:none;
-  border-radius:10px;
-  background:#3b82f6;
-  color:white;
-  cursor:pointer;
-}
-
-button:disabled{
-  background:#555;
-  cursor:not-allowed;
-}
-
-.error{
-  color:#f87171;
-  font-size:12px;
-  text-align:left;
-}
-
-.success{
-  color:#4ade80;
-  font-size:12px;
-}
-</style>
-</head>
-
-<body>
-
-<div class="card">
-
-<h2>🎮 Strategy Hub</h2>
-
-<div class="tabs">
-  <div id="loginTab" class="tab active">Login</div>
-  <div id="registerTab" class="tab">Sign Up</div>
-</div>
-
-<!-- LOGIN -->
-<div id="loginForm">
-  <input id="loginEmail" placeholder="Email">
-  <div id="loginEmailError" class="error"></div>
-
-  <input id="loginPassword" type="password" placeholder="Password">
-  <button onclick="togglePassword('loginPassword')">👁️</button>
-
-  <div id="loginError" class="error"></div>
-
-  <button id="loginBtn">Login</button>
-</div>
-
-<!-- REGISTER -->
-<div id="registerForm" style="display:none;">
-
-  <input id="regEmail" placeholder="Email">
-  <div id="regEmailError" class="error"></div>
-
-  <input id="regPassword" type="password" placeholder="Password">
-  <button onclick="togglePassword('regPassword')">👁️</button>
-
-  <input id="regFirstName" placeholder="First Name">
-  <input id="regLastName" placeholder="Last Name">
-  <input id="regUsername" placeholder="Username">
-
-  <div id="regError" class="error"></div>
-  <div id="regSuccess" class="success"></div>
-
-  <button id="registerBtn">Create Account</button>
-</div>
-
-</div>
+<!-- 🔥 SEULE PARTIE IMPORTANTE MODIFIÉE -->
 
 <script>
 
-document.addEventListener("DOMContentLoaded", () => {
+document.getElementById("loginBtn").onclick = async ()=>{
 
-  const loginForm = document.getElementById("loginForm");
-  const registerForm = document.getElementById("registerForm");
-  const loginTab = document.getElementById("loginTab");
-  const registerTab = document.getElementById("registerTab");
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value.trim();
 
-  const loginEmail = document.getElementById("loginEmail");
-  const loginPassword = document.getElementById("loginPassword");
-  const loginEmailError = document.getElementById("loginEmailError");
-  const loginError = document.getElementById("loginError");
+  try{
 
-  const regEmail = document.getElementById("regEmail");
-  const regPassword = document.getElementById("regPassword");
-  const regUsername = document.getElementById("regUsername");
-  const regEmailError = document.getElementById("regEmailError");
-  const regError = document.getElementById("regError");
-  const regSuccess = document.getElementById("regSuccess");
+    const res = await fetch('/api/login',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email,password})
+    });
 
-  /* SWITCH */
-  loginTab.onclick = ()=>{
-    loginForm.style.display="block";
-    registerForm.style.display="none";
-    loginTab.classList.add("active");
-    registerTab.classList.remove("active");
-  };
+    const data = await res.json();
 
-  registerTab.onclick = ()=>{
-    loginForm.style.display="none";
-    registerForm.style.display="block";
-    registerTab.classList.add("active");
-    loginTab.classList.remove("active");
-  };
+    if(!res.ok){
+      document.getElementById("loginError").innerText = data.error;
+      return;
+    }
 
-  function isEmail(email){
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    /* 🔥 IMPORTANT */
+    localStorage.setItem("user", JSON.stringify({
+      username: data.username,
+      email: data.email,
+      elo: data.elo,
+      isAdmin: data.isAdmin
+    }));
+
+    window.location.href = "/games.html";
+
+  }catch(err){
+    console.log(err);
   }
-
-  /* LOGIN */
-  document.getElementById("loginBtn").onclick = async ()=>{
-
-    const email = loginEmail.value.trim();
-    const password = loginPassword.value.trim();
-
-    loginEmailError.innerText = "";
-    loginError.innerText = "";
-
-    if(!isEmail(email)){
-      loginEmailError.innerText = "Invalid email";
-      return;
-    }
-
-    try{
-
-      const res = await fetch('/api/login',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({email,password})
-      });
-
-      const data = await res.json();
-
-      if(!res.ok){
-        loginError.innerText = data.error || "Login failed";
-        return;
-      }
-
-      /* 🔥 FIX IMPORTANT */
-      localStorage.setItem("user", JSON.stringify({
-        username: data.username,
-        email: data.email,
-        elo: data.elo,
-        isAdmin: data.isAdmin
-      }));
-
-      window.location.href = "/games.html";
-
-    }catch(err){
-      console.log(err);
-      loginError.innerText = "Server error";
-    }
-  };
-
-  /* REGISTER */
-  document.getElementById("registerBtn").onclick = async ()=>{
-
-    const email = regEmail.value.trim();
-    const password = regPassword.value.trim();
-    const username = regUsername.value.trim();
-
-    regEmailError.innerText = "";
-    regError.innerText = "";
-    regSuccess.innerText = "";
-
-    if(!isEmail(email)){
-      regEmailError.innerText = "Invalid email";
-      return;
-    }
-
-    if(password.length < 4){
-      regError.innerText = "Password too short";
-      return;
-    }
-
-    try{
-
-      const res = await fetch('/api/register',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          email,
-          password,
-          firstName:document.getElementById("regFirstName").value,
-          lastName:document.getElementById("regLastName").value,
-          username
-        })
-      });
-
-      const data = await res.json();
-
-      if(data.error){
-        regError.innerText = data.error;
-      } else {
-        regSuccess.innerText = "Account created!";
-      }
-
-    }catch(err){
-      console.log(err);
-      regError.innerText = "Server error";
-    }
-  };
-
-});
-
-/* TOGGLE PASSWORD */
-function togglePassword(id){
-  const input = document.getElementById(id);
-  input.type = input.type === "password" ? "text" : "password";
-}
+};
 
 </script>
-
-</body>
-</html>
