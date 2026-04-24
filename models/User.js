@@ -4,17 +4,17 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
 
-  firstName: String,
-  lastName: String,
-  username: { type: String, required: true },
+  firstName: { type: String, default: "" },
+  lastName: { type: String, default: "" },
+
+  username: { type: String, required: true, unique: true },
 
   xp: { type: Number, default: 0 },
-
-  /* 🔥 IMPORTANT POUR CHESS */
   elo: { type: Number, default: 1000 },
+  strategyPoints: { type: Number, default: 0 },
 
-  /* option futur */
-  strategyPoints: { type: Number, default: 0 }
+  /* 👑 ADMIN */
+  isAdmin: { type: Boolean, default: false }
 });
 
 module.exports = mongoose.model('User', UserSchema);
