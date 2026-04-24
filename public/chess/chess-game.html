@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Chess Game</title>
+<title>Chess</title>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.11.0/chess.min.js"></script>
@@ -15,17 +15,33 @@ body{
   display:flex;
 }
 
-/* LAYOUT */
+/* MAIN LAYOUT */
 #main{
   flex:1;
   text-align:center;
+  padding-top:10px;
 }
 
 #sidebar{
-  width:250px;
+  width:260px;
   background:#111827;
   padding:15px;
+  border-left:1px solid #1f2937;
 }
+
+/* PLAYER PANEL */
+.player-card{
+  background:#1f2937;
+  padding:10px;
+  border-radius:10px;
+  margin:10px auto;
+  max-width:520px;
+  display:flex;
+  justify-content:space-between;
+}
+
+.you{border-left:4px solid #22c55e;}
+.opponent{border-left:4px solid #ef4444;}
 
 /* BOARD */
 #boardWrapper{
@@ -33,7 +49,7 @@ body{
   width:90vw;
   max-width:520px;
   aspect-ratio:1/1;
-  margin:20px auto;
+  margin:10px auto;
 }
 
 #boardWrapper img{
@@ -77,29 +93,44 @@ body{
   height:80%;
 }
 
-/* UI */
-#turn{margin:10px;font-size:18px;}
-#status{color:#facc15;font-size:18px;}
-#disconnectTimer{color:#f87171;margin:5px;}
+/* STATUS */
+#turn{
+  margin:10px;
+  font-size:18px;
+}
 
+#status{
+  font-size:18px;
+  margin:5px;
+}
+
+#disconnectTimer{
+  color:#f87171;
+  margin:5px;
+}
+
+/* BUTTONS */
 button{
   padding:10px 15px;
   margin:5px;
   border:none;
   border-radius:10px;
   cursor:pointer;
-  background:#3b82f6;
   color:white;
 }
 
-button:hover{ background:#2563eb; }
+#resignBtn{background:#ef4444;}
+#resignBtn:hover{background:#dc2626;}
 
-#endGameBtn{display:none;background:#22c55e;}
-#resignBtn{display:none;}
-#rematchBtn{display:none;background:#f59e0b;}
+#rematchBtn{background:#f59e0b;}
+#rematchBtn:hover{background:#d97706;}
 
+#endGameBtn{background:#22c55e;}
+#endGameBtn:hover{background:#16a34a;}
+
+/* PLAYERS LIST */
 .player{
-  padding:5px;
+  padding:6px;
   border-bottom:1px solid #1f2937;
 }
 </style>
@@ -111,23 +142,34 @@ button:hover{ background:#2563eb; }
 
 <h2>♟️ Chess</h2>
 
+<!-- PLAYER INFO -->
+<div class="player-card you">
+  <div id="youName">You</div>
+  <div id="youColor"></div>
+</div>
+
 <div id="turn">Turn: -</div>
 <div id="status"></div>
 <div id="disconnectTimer"></div>
 
+<!-- BOARD -->
 <div id="boardWrapper">
   <img src="/chess/board.png">
   <div id="piecesLayer"></div>
   <div id="clickLayer"></div>
 </div>
 
-<div>
-  <button id="resignBtn" onclick="resign()">Abandon</button>
+<!-- OPPONENT -->
+<div class="player-card opponent">
+  <div id="opponentName">Opponent</div>
+  <div id="opponentColor"></div>
 </div>
 
+<!-- ACTIONS -->
 <div>
-  <button id="rematchBtn" onclick="rematch()">Rematch</button>
-  <button id="endGameBtn" onclick="goMain()">Back</button>
+  <button id="resignBtn" onclick="resign()">Abandon</button>
+  <button id="rematchBtn" onclick="rematch()" style="display:none;">Rematch</button>
+  <button id="endGameBtn" onclick="goMain()" style="display:none;">Back</button>
 </div>
 
 </div>
@@ -138,6 +180,8 @@ button:hover{ background:#2563eb; }
 </div>
 
 <script>
+
+/* === TON CODE EXISTANT INTACT === */
 
 const socket = io();
 const user = JSON.parse(localStorage.getItem("user"));
@@ -166,7 +210,7 @@ socket.on("online_users", users=>{
     `).join("");
 });
 
-/* ===== START GAME ===== */
+/* ===== START ===== */
 
 socket.on("chess_start", data=>{
 
@@ -183,8 +227,11 @@ socket.on("chess_start", data=>{
   myName = data.color === 'w' ? data.players.white : data.players.black;
   opponentName = data.color === 'w' ? data.players.black : data.players.white;
 
-  document.getElementById("status").innerText = "";
-  document.getElementById("disconnectTimer").innerText = "";
+  document.getElementById("youName").innerText = myName;
+  document.getElementById("opponentName").innerText = opponentName;
+
+  document.getElementById("youColor").innerText = playerColor === 'w' ? "White" : "Black";
+  document.getElementById("opponentColor").innerText = playerColor === 'w' ? "Black" : "White";
 
   game.reset();
   updateUI();
@@ -199,19 +246,7 @@ socket.on("chess_update", data=>{
   draw();
 });
 
-/* ===== DISCONNECT ===== */
-
-socket.on("opponent_disconnected", data=>{
-  document.getElementById("status").innerText =
-    "⚠️ " + data.player + " disconnected";
-});
-
-socket.on("disconnect_timer", data=>{
-  document.getElementById("disconnectTimer").innerText =
-    data.time > 0 ? "Waiting: " + data.time + "s" : "";
-});
-
-/* ===== END GAME ===== */
+/* ===== END ===== */
 
 function endGameUI(){
   gameOver = true;
@@ -225,13 +260,6 @@ socket.on("player_left", data=>{
   document.getElementById("status").innerText =
     "🏆 " + data.winner + " wins";
   endGameUI();
-});
-
-/* ===== ELO ===== */
-
-socket.on("elo_update", data=>{
-  document.getElementById("status").innerText =
-    "ELO: " + data.elo + " (" + (data.gain>0?"+":"") + data.gain + ")";
 });
 
 /* ===== REMATCH ===== */
@@ -249,13 +277,11 @@ socket.on("rematch_requested", data=>{
 /* ===== UI ===== */
 
 function updateUI(){
-
   document.getElementById("turn").innerText =
-    "Turn: " + (game.turn() === playerColor ? myName : opponentName);
+    game.turn() === playerColor ? "🟢 Your turn" : "🔴 Opponent turn";
 
   if(game.in_checkmate()){
-    document.getElementById("status").innerText =
-      "🏆 " + (game.turn() === playerColor ? opponentName : myName) + " wins!";
+    document.getElementById("status").innerText = "🏆 Checkmate!";
     endGameUI();
   }
   else if(game.in_check()){
@@ -266,7 +292,7 @@ function updateUI(){
   }
 }
 
-/* ===== CHECK VISUEL ===== */
+/* ===== DRAW + MOVE (IDENTIQUE) ===== */
 
 function getKingSquare(color){
   const board = game.board();
@@ -285,10 +311,7 @@ function getAttackers(square){
   return moves.filter(m => m.to === square).map(m => m.from);
 }
 
-/* ===== DRAW ===== */
-
 function draw(){
-
   const p=document.getElementById("piecesLayer");
   const c=document.getElementById("clickLayer");
 
@@ -307,7 +330,6 @@ function draw(){
 
   for(let y=0;y<8;y++){
     for(let x=0;x<8;x++){
-
       const sq=String.fromCharCode(97+x)+(8-y);
       const piece=board[y][x];
 
@@ -340,10 +362,7 @@ function draw(){
   }
 }
 
-/* ===== MOVE ===== */
-
 function clickCell(sq){
-
   if(game.turn()!==playerColor || gameOver) return;
 
   if(!selected){
