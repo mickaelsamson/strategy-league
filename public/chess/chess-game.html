@@ -44,19 +44,13 @@ body{
 .opponent{border-left:4px solid #ef4444;}
 
 /* 🔥 TIMER STYLE */
-.timer-bar{
-  display:flex;
-  justify-content:space-between;
-  max-width:520px;
-  margin:10px auto;
-}
-
 .timer{
-  width:48%;
+  max-width:520px;
+  margin:5px auto 10px auto;
   background:#1f2937;
-  padding:10px;
-  border-radius:10px;
-  font-size:20px;
+  padding:8px;
+  border-radius:8px;
+  font-size:18px;
   font-weight:bold;
   text-align:center;
   transition:0.2s;
@@ -175,11 +169,8 @@ button{
   <div id="youColor"></div>
 </div>
 
-<!-- 🔥 TIMER UI -->
-<div class="timer-bar">
-  <div id="myTimer" class="timer active">60</div>
-  <div id="opponentTimer" class="timer">60</div>
-</div>
+<!-- 🔥 TIMER WITH ICON -->
+<div id="myTimer" class="timer active">⏱️ 60</div>
 
 <div id="turn">Turn: -</div>
 <div id="status"></div>
@@ -196,6 +187,9 @@ button{
   <div id="opponentColor"></div>
 </div>
 
+<!-- 🔥 TIMER WITH ICON -->
+<div id="opponentTimer" class="timer">⏱️ 60</div>
+
 <div>
   <button id="resignBtn" onclick="resign()">Abandon</button>
   <button id="rematchBtn" onclick="rematch()" style="display:none;">Rematch</button>
@@ -210,8 +204,6 @@ button{
 </div>
 
 <script>
-
-/* === ORIGINAL CODE === */
 
 const socket = io();
 const user = JSON.parse(localStorage.getItem("user"));
@@ -231,7 +223,7 @@ let myName = "";
 let opponentName = "";
 let gameOver = false;
 
-/* 🔥 TIMER LOGIC */
+/* 🔥 TIMER */
 let myTime = 60;
 let opponentTime = 60;
 let timerInterval = null;
@@ -255,8 +247,8 @@ function startTimer(){
 
 function updateTimerUI(){
 
-  document.getElementById("myTimer").innerText = myTime;
-  document.getElementById("opponentTimer").innerText = opponentTime;
+  document.getElementById("myTimer").innerText = "⏱️ " + myTime;
+  document.getElementById("opponentTimer").innerText = "⏱️ " + opponentTime;
 
   document.getElementById("myTimer").classList.remove("active");
   document.getElementById("opponentTimer").classList.remove("active");
@@ -276,7 +268,7 @@ function updateTimerUI(){
   }
 }
 
-/* ===== PLAYERS ===== */
+/* ===== RESTE IDENTIQUE ===== */
 
 socket.on("online_users", users=>{
   document.getElementById("players").innerHTML =
@@ -284,8 +276,6 @@ socket.on("online_users", users=>{
       <div class="player">${name} (${data.elo})</div>
     `).join("");
 });
-
-/* ===== START ===== */
 
 socket.on("chess_start", data=>{
 
@@ -308,7 +298,6 @@ socket.on("chess_start", data=>{
   document.getElementById("youColor").innerText = playerColor === 'w' ? "White" : "Black";
   document.getElementById("opponentColor").innerText = playerColor === 'w' ? "Black" : "White";
 
-  /* 🔥 TIMER RESET */
   myTime = 60;
   opponentTime = 60;
   startTimer();
@@ -319,18 +308,12 @@ socket.on("chess_start", data=>{
   draw();
 });
 
-/* ===== UPDATE ===== */
-
 socket.on("chess_update", data=>{
   if(data.fen) game.load(data.fen);
   updateUI();
   draw();
-
-  /* 🔥 TIMER SYNC UI */
   updateTimerUI();
 });
-
-/* ===== END ===== */
 
 function endGameUI(){
   gameOver = true;
@@ -346,8 +329,6 @@ socket.on("player_left", data=>{
   endGameUI();
 });
 
-/* ===== REMATCH ===== */
-
 function rematch(){
   socket.emit("rematch");
   document.getElementById("status").innerText = "Waiting for opponent...";
@@ -357,8 +338,6 @@ socket.on("rematch_requested", data=>{
   document.getElementById("status").innerText =
     data.from + " wants a rematch";
 });
-
-/* ===== UI ===== */
 
 function updateUI(){
   document.getElementById("turn").innerText =
@@ -376,7 +355,7 @@ function updateUI(){
   }
 }
 
-/* ===== DRAW + MOVE (UNCHANGED) ===== */
+/* ===== DRAW + MOVE ===== */
 
 function getKingSquare(color){
   const board = game.board();
