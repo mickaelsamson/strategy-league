@@ -6,116 +6,178 @@
 <style>
 body{
   margin:0;
-  background: radial-gradient(circle at top,#0f172a,#020617);
+  background:#020617;
   color:white;
   font-family:Arial;
-}
-
-/* HEADER */
-.header{
   display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:15px 30px;
+  justify-content:center;
 }
 
-.title{
-  font-size:24px;
-  font-weight:bold;
-}
-
-/* BUTTONS TOP RIGHT */
-.top-buttons button{
-  margin-left:10px;
-}
-
-/* MAIN */
 .container{
+  width:100%;
+  max-width:800px;
+  padding:20px;
   text-align:center;
-  margin-top:120px;
 }
 
-.main-btn{
-  padding:18px 30px;
-  margin:15px;
+/* TITLE */
+h1{
+  margin-bottom:20px;
+}
+
+/* CARDS */
+.card{
+  background:#111827;
+  padding:20px;
+  border-radius:15px;
+  margin-bottom:20px;
+  box-shadow:0 0 10px rgba(0,0,0,0.4);
+}
+
+/* BUTTONS */
+button{
+  padding:12px 20px;
+  margin:10px;
   border:none;
-  border-radius:14px;
-  font-size:18px;
+  border-radius:10px;
   cursor:pointer;
-  background:linear-gradient(135deg,#3b82f6,#2563eb);
+  font-size:16px;
+  background:#3b82f6;
   color:white;
   transition:0.2s;
 }
 
-.main-btn:hover{
-  transform:scale(1.05);
+button:hover{
+  background:#2563eb;
 }
 
-/* SMALL BUTTON */
-button{
-  padding:10px 15px;
-  border:none;
-  border-radius:10px;
-  cursor:pointer;
+.secondary{
+  background:#1f2937;
 }
 
-/* ADMIN */
-.admin-btn{
-  display:none;
-  background:linear-gradient(135deg,#facc15,#eab308);
-  color:black;
-  font-weight:bold;
+.secondary:hover{
+  background:#374151;
 }
 
-/* LOGOUT */
-.logout-btn{
-  background:#ef4444;
-  color:white;
+/* PROFILE */
+.profile{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.profile-left{
+  text-align:left;
+}
+
+.badge{
+  padding:6px 12px;
+  border-radius:20px;
+  background:#374151;
 }
 
 /* LEADERBOARD */
-.leaderboard-btn{
-  background:#22c55e;
-  color:white;
+.leaderboard{
+  text-align:left;
+}
+
+.row{
+  display:flex;
+  justify-content:space-between;
+  padding:8px 0;
+  border-bottom:1px solid #1f2937;
+}
+
+.top1{color:gold;}
+.top2{color:silver;}
+.top3{color:#cd7f32;}
+
+/* ADMIN */
+#adminBtn{
+  display:none;
+  background:#f59e0b;
 }
 </style>
 </head>
 
 <body>
 
-<div class="header">
-  <div class="title">🎮 Strategy Hub</div>
+<div class="container">
 
-  <div class="top-buttons">
-    <button class="leaderboard-btn" onclick="goLeaderboard()">🏆 Leaderboard</button>
-    <button id="adminBtn" class="admin-btn">👑 Admin</button>
-    <button class="logout-btn" onclick="logout()">Logout</button>
-  </div>
+<h1>🎮 Strategy Hub</h1>
+
+<!-- ACTIONS -->
+<div class="card">
+  <button onclick="goGames()">▶ Play</button>
+  <button class="secondary" onclick="goLeaderboard()">🏆 Leaderboard</button>
+  <br>
+  <button id="adminBtn" onclick="goAdmin()">👑 Admin</button>
 </div>
 
-<div class="container">
-  <h1>Welcome</h1>
+<!-- PROFILE -->
+<div class="card profile">
+  <div class="profile-left">
+    <div><strong id="username"></strong></div>
+    <div>ELO: <span id="elo">1000</span></div>
+    <div>XP: <span id="xp">0</span></div>
+  </div>
+  <div id="badge" class="badge">Bronze</div>
+</div>
 
-  <button class="main-btn" onclick="goGames()">Play</button>
+<!-- TOP 3 -->
+<div class="card leaderboard">
+  <h3>👑 Top Players</h3>
+  <div id="top3"></div>
+</div>
+
 </div>
 
 <script>
 
 const user = JSON.parse(localStorage.getItem("user"));
 
-/* REDIRECT SI PAS LOG */
 if(!user){
   window.location.href = "/login.html";
 }
 
-/* ADMIN BUTTON */
-if(user && user.isAdmin){
-  const btn = document.getElementById("adminBtn");
-  btn.style.display = "inline-block";
-  btn.onclick = ()=> window.location.href = "/admin.html";
+/* ADMIN */
+if(user.isAdmin){
+  document.getElementById("adminBtn").style.display = "inline-block";
 }
 
-/* NAVIGATION */
+/* PROFILE */
+document.getElementById("username").innerText = user.username;
+document.getElementById("elo").innerText = user.elo || 1000;
+document.getElementById("xp").innerText = user.xp || 0;
+
+/* BADGE SYSTEM */
+function getBadge(elo){
+  if(elo >= 1400) return "🥇 Gold";
+  if(elo >= 1200) return "🥈 Silver";
+  return "🥉 Bronze";
+}
+
+document.getElementById("badge").innerText = getBadge(user.elo || 1000);
+
+/* LEADERBOARD */
+async function loadLeaderboard(){
+
+  const res = await fetch("/api/leaderboard/global/"+user.username);
+  const data = await res.json();
+
+  const top3 = data.top.slice(0,3);
+
+  document.getElementById("top3").innerHTML = top3.map((u,i)=>`
+    <div class="row top${i+1}">
+      <span>${i===0?'🥇':i===1?'🥈':'🥉'} ${u.username}</span>
+      <span>${u.value}</span>
+    </div>
+  `).join("");
+}
+
+loadLeaderboard();
+
+/* NAV */
 function goGames(){
   window.location.href = "/games.html";
 }
@@ -124,9 +186,8 @@ function goLeaderboard(){
   window.location.href = "/leaderboard.html";
 }
 
-function logout(){
-  localStorage.removeItem("user");
-  window.location.href = "/login.html";
+function goAdmin(){
+  window.location.href = "/admin.html";
 }
 
 </script>
