@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Chess Game</title>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.11.0/chess.min.js"></script>
+
+<style>
+body{margin:0;background:#020617;color:white;font-family:Arial;text-align:center;}
+
+#boardWrapper{
+  position:relative;
+  width:90vw;
+  max-width:520px;
+  aspect-ratio:1/1;
+  margin:20px auto;
+}
+
+#boardWrapper img{width:100%;height:100%;object-fit:cover;}
+
+#piecesLayer,#clickLayer{
+  position:absolute;
+  top:0;left:0;width:100%;height:100%;
+}
+
+.square{position:absolute;width:12.5%;height:12.5%;cursor:pointer;}
+.selected{outline:3px solid #3b82f6;}
+.move{background:rgba(34,197,94,0.4);border-radius:50%;}
+.check{background:rgba(239,68,68,0.6);}
+.attacker{background:rgba(239,68,68,0.3);}
+
+.piece{
+  position:absolute;
+  width:12.5%;
+  height:12.5%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.piece img{width:80%;height:80%;}
+
+#turn{margin:10px;font-size:18px;}
+#status{color:#facc15;font-size:18px;}
+#disconnectTimer{color:#f87171;margin:5px;}
+
+button{
+  padding:8px 12px;
+  margin:5px;
+  border:none;
+  border-radius:8px;
+  background:#3b82f6;
+  color:white;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<h2>♟️ Chess Game</h2>
+
+<div id="turn"></div>
+<div id="status"></div>
+<div id="disconnectTimer"></div>
+
+<div id="boardWrapper">
+  <img src="/chess/board.png">
+  <div id="piecesLayer"></div>
+  <div id="clickLayer"></div>
+</div>
+
+<div>
+  <button id="resignBtn" onclick="resign()">Abandon</button>
+  <button onclick="goLobby()">Back to Lobby</button>
+</div>
+
+<script>
+
+const socket = io();
+const user = JSON.parse(localStorage.getItem("user"));
+
+if(user){
+  socket.emit("register_online", user.username);
+}
+
+let game = new Chess();
+let selected = null;
+let possibleMoves = [];
+let playerColor = null;
+
+let myName = "";
+let opponentName = "";
+let gameOver = false;
+
+/* GAME START */
+socket.on("chess_start", data=>{
+  playerColor = data.color;
+  myName = data.color === 'w' ? data.players.white : data.players.black;
+  opponentName = data.color === 'w' ? data.players.black : data.players.white;
+
+  game.reset();
+  draw();
+});
+
+/* UPDATE */
+socket.on("chess_update", data=>{
+  if(data.fen) game.load(data.fen);
+  draw();
+});
+
+/* ELO */
+socket.on("elo_update", data=>{
+  document.getElementById("status").innerText =
+    "ELO: " + data.elo + " (" + (data.gain>0?"+":"") + data.gain + ")";
+});
+
+/* DRAW */
+function draw(){
+
+  const p=document.getElementById("piecesLayer");
+  const c=document.getElementById("clickLayer");
+
+  p.innerHTML="";
+  c.innerHTML="";
+
+  const board=game.board();
+
+  for(let y=0;y<8;y++){
+    for(let x=0;x<8;x++){
+
+      const sq=String.fromCharCode(97+x)+(8-y);
+      const piece=board[y][x];
+
+      const cell=document.createElement("div");
+      cell.className="square";
+      cell.style.left=(x*12.5)+"%";
+      cell.style.top=(y*12.5)+"%";
+
+      if(selected===sq) cell.classList.add("selected");
+      if(possibleMoves.includes(sq)) cell.classList.add("move");
+
+      cell.onclick=()=>clickCell(sq);
+      c.appendChild(cell);
+
+      if(piece){
+        const wrapper=document.createElement("div");
+        wrapper.className="piece";
+        wrapper.style.left=(x*12.5)+"%";
+        wrapper.style.top=(y*12.5)+"%";
+
+        const img=document.createElement("img");
+        img.src="/chess/pieces/"+piece.color+piece.type.toUpperCase()+".svg";
+
+        wrapper.appendChild(img);
+        p.appendChild(wrapper);
+      }
+    }
+  }
+}
+
+/* MOVE */
+function clickCell(sq){
+
+  if(game.turn()!==playerColor || gameOver) return;
+
+  if(!selected){
+    const moves=game.moves({square:sq,verbose:true});
+    if(moves.length===0) return;
+    selected=sq;
+    possibleMoves=moves.map(m=>m.to);
+  }else{
+    const move=game.move({from:selected,to:sq,promotion:'q'});
+    selected=null;
+    possibleMoves=[];
+
+    if(move){
+      socket.emit("chess_move",{fen:game.fen()});
+    }
+  }
+
+  draw();
+}
+
+/* BUTTONS */
+function resign(){
+  socket.emit("resign");
+}
+
+function goLobby(){
+  window.location.href = "/chess/index.html";
+}
+
+draw();
+
+</script>
+</body>
+</html>
