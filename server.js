@@ -7,11 +7,6 @@ const mongoose = require('mongoose');
 const User = require('./models/User');
 
 app.use(express.json());
-app.use(express.static('public'));
-
-app.get('/', (req,res)=>{
-  res.sendFile('index.html', { root: 'public' });
-});
 
 /* ================= ADMIN ================= */
 
@@ -21,6 +16,28 @@ function isGameAllowed(){
   if(manualOverride !== null) return manualOverride;
   return true;
 }
+
+app.use((req, res, next)=>{
+  const gameRoutes = [
+    '/games.html',
+    '/chess',
+    '/strategy'
+  ];
+
+  const isGameRoute = gameRoutes.some(route => req.path === route || req.path.startsWith(`${route}/`));
+
+  if(!isGameAllowed() && isGameRoute){
+    return res.status(503).sendFile('games-disabled.html', { root: 'public' });
+  }
+
+  next();
+});
+
+app.use(express.static('public'));
+
+app.get('/', (req,res)=>{
+  res.sendFile('index.html', { root: 'public' });
+});
 
 app.get("/api/games/status", (req,res)=>{
   res.json({ enabled: isGameAllowed() });

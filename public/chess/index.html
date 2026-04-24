@@ -163,6 +163,13 @@ socket.on("chess_start", ()=>{
   window.location.href = "/chess/chess-game.html";
 });
 
+socket.on("error_message", message=>{
+  alert(message);
+  if(message.includes("disabled")){
+    window.location.href = "/games.html";
+  }
+});
+
 function goBack(){
   window.location.href = "/games.html";
 }

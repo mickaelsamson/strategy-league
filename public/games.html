@@ -27,13 +27,16 @@ button{
 
 <h1>🎮 Games Hub</h1>
 
-<button onclick="goChess()">♟️ Chess</button>
+<button id="chessBtn" onclick="goChess()">♟️ Chess</button>
 
 <button id="adminBtn" style="display:none;" onclick="goAdmin()">👑 Admin</button>
+<p id="statusMsg"></p>
 
 <script>
 
 const user = JSON.parse(localStorage.getItem("user"));
+const chessBtn = document.getElementById("chessBtn");
+const statusMsg = document.getElementById("statusMsg");
 
 if(!user){
   window.location.href = "/login.html";
@@ -51,6 +54,24 @@ function goChess(){
 function goAdmin(){
   window.location.href = "/admin.html";
 }
+
+async function refreshGameStatus(){
+  try{
+    const res = await fetch("/api/games/status");
+    const data = await res.json();
+
+    chessBtn.disabled = !data.enabled;
+    chessBtn.style.opacity = data.enabled ? "1" : "0.5";
+    chessBtn.style.cursor = data.enabled ? "pointer" : "not-allowed";
+    statusMsg.textContent = data.enabled
+      ? "Les jeux sont disponibles."
+      : "Les jeux sont temporairement bloqués par un admin.";
+  }catch(err){
+    statusMsg.textContent = "Impossible de récupérer le statut des jeux.";
+  }
+}
+
+refreshGameStatus();
 
 </script>
 
