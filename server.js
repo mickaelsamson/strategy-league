@@ -15,7 +15,7 @@ app.get('/', (req,res)=>{
 
 /* ================= ADMIN ================= */
 
-let manualOverride = null;
+let manualOverride = null; // null = normal, true = force ON, false = force OFF
 
 function isGameAllowed(){
   if(manualOverride !== null) return manualOverride;
@@ -31,6 +31,8 @@ let playerGames = {};
 let rematchRequests = {};
 let pendingDisconnects = {};
 
+/* ================= UTILS ================= */
+
 function update(){
   io.emit("online_users", onlineUsers);
   io.emit("lobbies_update", lobbies);
@@ -40,9 +42,7 @@ function update(){
 
 function calculateElo(playerElo, opponentElo, result){
   const K = 20;
-  const expected =
-    1 / (1 + Math.pow(10, (opponentElo - playerElo) / 400));
-
+  const expected = 1 / (1 + Math.pow(10, (opponentElo - playerElo) / 400));
   return Math.round(playerElo + K * (result - expected));
 }
 
@@ -67,11 +67,23 @@ async function applyElo(game, winnerName){
   const newElo1 = calculateElo(elo1, elo2, r1);
   const newElo2 = calculateElo(elo2, elo1, r2);
 
+  const gain1 = newElo1 - elo1;
+  const gain2 = newElo2 - elo2;
+
   u1.elo = newElo1;
   u2.elo = newElo2;
 
   await u1.save();
   await u2.save();
+
+  game.players.forEach(p=>{
+    const s = io.sockets.sockets.get(p.id);
+    if(s){
+      const gain = p.username === p1.username ? gain1 : gain2;
+      const elo = p.username === p1.username ? newElo1 : newElo2;
+      s.emit("elo_update",{elo,gain});
+    }
+  });
 }
 
 /* ================= AUTH ================= */
@@ -84,16 +96,10 @@ app.post("/api/register", async (req,res)=>{
       return res.status(400).json({error:"Missing fields"});
     }
 
-    const existing = await User.findOne({email});
-    if(existing) return res.status(400).json({error:"Email used"});
+    if(await User.findOne({email})) return res.status(400).json({error:"Email used"});
+    if(await User.findOne({username})) return res.status(400).json({error:"Username taken"});
 
-    const user = new User({
-      email,
-      password,
-      username,
-      elo:1000
-    });
-
+    const user = new User({ email, password, username, elo:1000 });
     await user.save();
 
     res.json({success:true});
@@ -104,7 +110,6 @@ app.post("/api/register", async (req,res)=>{
   }
 });
 
-/* 🔥 LOGIN STABLE */
 app.post("/api/login", async (req,res)=>{
   try{
     const { email, password } = req.body;
@@ -128,14 +133,13 @@ app.post("/api/login", async (req,res)=>{
   }
 });
 
-/* ================= ADMIN ROUTE ================= */
+/* ================= ADMIN ================= */
 
 app.post("/api/admin/override", async (req,res)=>{
   try{
     const { adminEmail, enabled } = req.body;
 
     const admin = await User.findOne({email:adminEmail});
-
     if(!admin || !admin.isAdmin){
       return res.status(403).json({error:"Not admin"});
     }
@@ -143,6 +147,8 @@ app.post("/api/admin/override", async (req,res)=>{
     manualOverride = enabled;
 
     console.log("ADMIN SET:", enabled);
+
+    io.emit("games_status",{enabled});
 
     res.json({success:true});
 
@@ -198,8 +204,41 @@ io.on('connection', socket=>{
       status:"idle"
     };
 
+    /* 🔥 AUTO RECONNECT */
+    const gameId = playerGames[username];
+    const game = chessGames[gameId];
+
+    if(game){
+      const player = game.players.find(p=>p.username===username);
+
+      socket.join(game.id);
+      socket.chessGame = game.id;
+      socket.color = player.color;
+
+      socket.emit("chess_start",{
+        color: player.color,
+        players:{
+          white: game.players.find(p=>p.color==='w').username,
+          black: game.players.find(p=>p.color==='b').username
+        }
+      });
+
+      if(game.fen){
+        socket.emit("chess_update",{fen:game.fen});
+      }
+
+      /* cancel disconnect timer */
+      if(pendingDisconnects[username]){
+        clearInterval(pendingDisconnects[username]);
+        delete pendingDisconnects[username];
+        io.to(game.id).emit("reconnected",{username});
+      }
+    }
+
     update();
   });
+
+  /* ===== LOBBY ===== */
 
   socket.on("create_lobby", ({name,time})=>{
     if(!isGameAllowed()){
@@ -245,7 +284,6 @@ io.on('connection', socket=>{
     if(!p) return;
 
     p.ready=!p.ready;
-
     update();
 
     if(l.players.length===2 && l.players.every(p=>p.ready)){
@@ -258,6 +296,8 @@ io.on('connection', socket=>{
         s.join(game.id);
         s.chessGame=game.id;
         s.color=data.color;
+
+        onlineUsers[pl.username].status="playing";
 
         s.emit("chess_start",{
           color:data.color,
@@ -273,6 +313,8 @@ io.on('connection', socket=>{
     }
   });
 
+  /* ===== MOVE ===== */
+
   socket.on("chess_move", ({fen})=>{
     const g=chessGames[socket.chessGame];
     if(!g || socket.color!==g.turn) return;
@@ -282,6 +324,8 @@ io.on('connection', socket=>{
 
     io.to(g.id).emit("chess_update",{fen});
   });
+
+  /* ===== RESIGN ===== */
 
   socket.on("resign", async ()=>{
     const game = chessGames[playerGames[socket.username]];
@@ -298,6 +342,128 @@ io.on('connection', socket=>{
     delete chessGames[game.id];
   });
 
+  /* ===== DISCONNECT ===== */
+
+  socket.on("disconnect", ()=>{
+    const username = socket.username;
+    delete onlineUsers[username];
+
+    const gameId = playerGames[username];
+    const game = chessGames[gameId];
+
+    if(game){
+      const opponent = game.players.find(p=>p.username!==username);
+
+      if(opponent){
+        let timeLeft = 60;
+
+        const interval = setInterval(async ()=>{
+          timeLeft--;
+
+          io.to(opponent.id).emit("disconnect_timer",{time:timeLeft});
+
+          if(timeLeft<=0){
+            clearInterval(interval);
+
+            await applyElo(game, opponent.username);
+
+            io.to(opponent.id).emit("player_left",{winner:opponent.username});
+
+            delete chessGames[gameId];
+          }
+
+        },1000);
+
+        pendingDisconnects[username]=interval;
+      }
+    }
+
+    update();
+  });
+
+  /* ===== REMATCH ===== */
+
+  socket.on("rematch", ()=>{
+    const username = socket.username;
+    const gameId = playerGames[username];
+
+    if(!rematchRequests[gameId]) rematchRequests[gameId]=[];
+
+    if(!rematchRequests[gameId].includes(username)){
+      rematchRequests[gameId].push(username);
+    }
+
+    const game = chessGames[gameId];
+    if(!game) return;
+
+    if(rematchRequests[gameId].length===2){
+
+      rematchRequests[gameId]=[];
+
+      game.players = game.players.map(p=>{
+        const newColor = p.color==='w'?'b':'w';
+        const s = io.sockets.sockets.get(p.id);
+        if(s) s.color=newColor;
+
+        return {id:p.id, username:p.username, color:newColor};
+      });
+
+      game.fen=null;
+      game.turn='w';
+      game.ended=false;
+
+      game.players.forEach(p=>{
+        const s = io.sockets.sockets.get(p.id);
+        if(s){
+          s.emit("chess_start",{
+            color:p.color,
+            players:{
+              white: game.players.find(pl=>pl.color==='w').username,
+              black: game.players.find(pl=>pl.color==='b').username
+            }
+          });
+        }
+      });
+
+    }else{
+      const opponent = game.players.find(p=>p.username!==username);
+      if(opponent){
+        io.to(opponent.id).emit("rematch_requested",{from:username});
+      }
+    }
+  });
+
+});
+
+/* ================= LEADERBOARD ================= */
+
+app.get("/api/leaderboard/:type/:username", async (req,res)=>{
+  try{
+    const { type, username } = req.params;
+
+    const users = await User.find().sort({ elo:-1 });
+
+    const top = users.slice(0,10);
+
+    const rank = users.findIndex(u=>u.username===username)+1;
+    const me = users.find(u=>u.username===username);
+
+    res.json({
+      top: top.map(u=>({
+        username:u.username,
+        value:u.elo || 1000
+      })),
+      me: me ? {
+        username:me.username,
+        value:me.elo || 1000,
+        rank
+      } : null
+    });
+
+  }catch(err){
+    console.error(err);
+    res.status(500).json({top:[],me:null});
+  }
 });
 
 /* ================= START ================= */
