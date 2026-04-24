@@ -74,10 +74,30 @@ input, select{
 
 .ready{ color:#22c55e; }
 .notready{ color:#ef4444; }
+
+/* BLOCK SCREEN */
+#blockedScreen{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:#020617;
+  color:white;
+  z-index:999;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+}
 </style>
 </head>
 
 <body>
+
+<!-- 🔒 BLOCK SCREEN -->
+<div id="blockedScreen">
+  <h1>⛔ Games Disabled</h1>
+  <p>Come back later 👋</p>
+  <button onclick="goBack()">⬅ Back</button>
+</div>
 
 <div class="container">
 
@@ -104,64 +124,93 @@ input, select{
 
 <script>
 
-const socket = io();
-const user = JSON.parse(localStorage.getItem("user"));
+async function checkGamesAccess(){
+  try{
+    const res = await fetch("/api/games/status");
+    const data = await res.json();
 
-if(!user){
-  window.location.href = "/login.html";
+    if(!data.enabled){
+      document.getElementById("blockedScreen").style.display = "flex";
+      return false;
+    }
+
+    return true;
+
+  }catch(err){
+    console.error(err);
+    return true;
+  }
 }
 
-socket.emit("register_online", user.username);
+(async ()=>{
 
-socket.on("lobbies_update", lobbies=>{
+  const allowed = await checkGamesAccess();
+  if(!allowed) return;
 
-  const list = Object.values(lobbies);
+  const socket = io();
+  const user = JSON.parse(localStorage.getItem("user"));
 
-  document.getElementById("lobbies").innerHTML =
-    list.map(l=>{
+  if(!user){
+    window.location.href = "/login.html";
+  }
 
-      const me = l.players.find(p=>p.username===user.username);
+  socket.emit("register_online", user.username);
 
-      return `
-        <div class="lobby">
-          <strong>${l.name}</strong> (${l.time}s)
+  socket.on("lobbies_update", lobbies=>{
 
-          <div class="players">
-            ${l.players.map(p=>`
-              <span class="${p.ready?'ready':'notready'}">
-                ${p.username} ${p.ready?'✔':'✖'}
-              </span>
-            `).join(", ")}
+    const list = Object.values(lobbies);
+
+    document.getElementById("lobbies").innerHTML =
+      list.map(l=>{
+
+        const me = l.players.find(p=>p.username===user.username);
+
+        return `
+          <div class="lobby">
+            <strong>${l.name}</strong> (${l.time}s)
+
+            <div class="players">
+              ${l.players.map(p=>`
+                <span class="${p.ready?'ready':'notready'}">
+                  ${p.username} ${p.ready?'✔':'✖'}
+                </span>
+              `).join(", ")}
+            </div>
+
+            ${
+              !me
+              ? `<button onclick="joinLobby('${l.id}')">Join</button>`
+              : `<button onclick="toggleReady('${l.id}')">Ready</button>`
+            }
           </div>
+        `;
+      }).join("");
+  });
 
-          ${
-            !me
-            ? `<button onclick="joinLobby('${l.id}')">Join</button>`
-            : `<button onclick="toggleReady('${l.id}')">Ready</button>`
-          }
-        </div>
-      `;
-    }).join("");
-});
+  function createLobby(){
+    const name = document.getElementById("name").value || "Chess Room";
+    const time = parseInt(document.getElementById("mode").value);
 
-function createLobby(){
-  const name = document.getElementById("name").value || "Chess Room";
-  const time = parseInt(document.getElementById("mode").value);
+    socket.emit("create_lobby",{ name, time });
+  }
 
-  socket.emit("create_lobby",{ name, time });
-}
+  function joinLobby(id){
+    socket.emit("join_lobby", id);
+  }
 
-function joinLobby(id){
-  socket.emit("join_lobby", id);
-}
+  function toggleReady(id){
+    socket.emit("toggle_ready", id);
+  }
 
-function toggleReady(id){
-  socket.emit("toggle_ready", id);
-}
+  socket.on("chess_start", ()=>{
+    window.location.href = "/chess/chess-game.html";
+  });
 
-socket.on("chess_start", ()=>{
-  window.location.href = "/chess/chess-game.html";
-});
+  window.createLobby = createLobby;
+  window.joinLobby = joinLobby;
+  window.toggleReady = toggleReady;
+
+})();
 
 function goBack(){
   window.location.href = "/games.html";
