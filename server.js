@@ -220,7 +220,8 @@ function emitOthelloState(game){
     s.emit("othello_state", {
       board: game.board,
       turn: game.turn,
-      color: player.color
+      color: player.color,
+      players: game.players.map(p=>({ username: p.username, color: p.color }))
     });
   });
 }
@@ -921,6 +922,36 @@ function emitGameStart(game){
 
     emitOthelloState(game);
   });
+
+  socket.on("othello_resign", ()=>{
+    const gameId = findOthelloGameIdForSocket(socket);
+    if(!gameId) return;
+
+    const game = othelloGames[gameId];
+    if(!game || game.ended) return;
+
+    const quitter = game.players.find(p=>p.username === socket.username);
+    const winner = game.players.find(p=>p.username !== socket.username);
+    if(!quitter || !winner) return;
+
+    game.ended = true;
+
+    applyOthelloResult(game, winner.color)
+      .catch(err=>console.error("Othello points update error:", err))
+      .finally(()=>{
+        game.players.forEach(p=>{
+          const s = io.sockets.sockets.get(p.id);
+          if(s){
+            s.emit("othello_end", {
+              winner: winner.username,
+              reason: "resign",
+              message: `${quitter.username} abandoned the game.`
+            });
+          }
+        });
+      });
+  });
+
 
   /* ===== DISCONNECT ===== */
   socket.on("disconnect", ()=>{
