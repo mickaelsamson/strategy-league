@@ -12,10 +12,7 @@ body{
   text-align:center;
 }
 
-/* ===== TABS ===== */
-.tabs{
-  margin:20px;
-}
+.tabs{margin:20px;}
 
 button{
   padding:10px 14px;
@@ -28,11 +25,8 @@ button{
   transition:0.2s;
 }
 
-button:hover{
-  background:#3b82f6;
-}
+button:hover{background:#3b82f6;}
 
-/* ===== TABLE ===== */
 .table{
   width:420px;
   margin:auto;
@@ -46,30 +40,31 @@ button:hover{
   border-bottom:1px solid #333;
 }
 
-/* TOP 3 */
 .top{
-  color:gold;
   font-weight:bold;
 }
 
-/* CURRENT PLAYER */
 .me{
   background:#1e293b;
   border:1px solid #3b82f6;
   border-radius:6px;
 }
 
-/* RANK INFO */
 .rank{
   margin-top:20px;
   font-size:18px;
   color:#38bdf8;
 }
 
-/* LOADING */
 .loading{
   margin-top:20px;
   color:#94a3b8;
+}
+
+/* BADGES */
+.badge{
+  font-size:20px;
+  margin-right:6px;
 }
 </style>
 </head>
@@ -91,6 +86,13 @@ button:hover{
 
 const user = JSON.parse(localStorage.getItem("user"));
 
+function getBadge(i){
+  if(i===0) return "🥇";
+  if(i===1) return "🥈";
+  if(i===2) return "🥉";
+  return "#" + (i+1);
+}
+
 async function load(type){
 
   const table = document.getElementById("table");
@@ -104,21 +106,21 @@ async function load(type){
     const res = await fetch(`/api/leaderboard/${type}/${user.username}`);
     const data = await res.json();
 
-    /* ===== EMPTY ===== */
     if(!data.top || data.top.length === 0){
       table.innerHTML = "<div class='loading'>No players yet</div>";
       return;
     }
 
-    /* ===== TOP 10 ===== */
     table.innerHTML = data.top.map((u,i)=>`
       <div class="row ${i<3?'top':''} ${u.username===user.username?'me':''}">
-        <span>#${i+1} ${u.username}</span>
+        <span>
+          <span class="badge">${getBadge(i)}</span>
+          ${u.username}
+        </span>
         <span>${u.value}</span>
       </div>
     `).join("");
 
-    /* ===== IF NOT IN TOP ===== */
     if(data.me && data.me.rank > 10){
       meDiv.innerHTML = `
         <div class="rank">
@@ -132,10 +134,8 @@ async function load(type){
   }
 }
 
-/* LOAD DEFAULT */
 load("global");
 
 </script>
-
 </body>
 </html>
