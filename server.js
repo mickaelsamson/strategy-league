@@ -66,13 +66,11 @@ async function applyElo(game, winnerName){
   await u1.save();
   await u2.save();
 
-  /* SEND TO CLIENT */
   game.players.forEach(p=>{
     const s = io.sockets.sockets.get(p.id);
     if(s){
       const gain = p.username === p1.username ? gain1 : gain2;
       const elo = p.username === p1.username ? newElo1 : newElo2;
-
       s.emit("elo_update",{elo,gain});
     }
   });
@@ -113,7 +111,6 @@ function createGame(lobby){
 
 io.on('connection', socket=>{
 
-  /* REGISTER */
   socket.on("register_online", async username=>{
     socket.username = username;
 
@@ -128,7 +125,7 @@ io.on('connection', socket=>{
     update();
   });
 
-  /* ================= LOBBY ================= */
+  /* ===== LOBBY ===== */
 
   socket.on("create_lobby", ({name,time})=>{
     const id=Math.random().toString(36).substr(2,5);
@@ -189,7 +186,7 @@ io.on('connection', socket=>{
     }
   });
 
-  /* ================= MOVE ================= */
+  /* ===== MOVE ===== */
 
   socket.on("chess_move", ({fen})=>{
     const g=chessGames[socket.chessGame];
@@ -201,7 +198,7 @@ io.on('connection', socket=>{
     io.to(g.id).emit("chess_update",{fen});
   });
 
-  /* ================= RESIGN ================= */
+  /* ===== RESIGN ===== */
 
   socket.on("resign", async ()=>{
     const game = chessGames[playerGames[socket.username]];
@@ -218,7 +215,7 @@ io.on('connection', socket=>{
     delete chessGames[game.id];
   });
 
-  /* ================= DISCONNECT ================= */
+  /* ===== DISCONNECT ===== */
 
   socket.on("disconnect", ()=>{
     const username = socket.username;
@@ -260,7 +257,7 @@ io.on('connection', socket=>{
     update();
   });
 
-  /* ================= REMATCH ================= */
+  /* ===== REMATCH ===== */
 
   socket.on("rematch", ()=>{
 
@@ -280,7 +277,6 @@ io.on('connection', socket=>{
 
       rematchRequests[gameId]=[];
 
-      /* SWAP COLORS */
       game.players = game.players.map(p=>{
         const newColor = p.color==='w'?'b':'w';
         const s = io.sockets.sockets.get(p.id);
@@ -316,42 +312,46 @@ io.on('connection', socket=>{
 
 });
 
-/* ================= LEADERBOARD ================= */
+/* ================= LEADERBOARD (RANK + ME) ================= */
 
-app.get("/api/leaderboard/:type", async (req,res)=>{
+app.get("/api/leaderboard/:type/:username", async (req,res)=>{
 
-  const type = req.params.type;
+  const { type, username } = req.params;
 
   try{
 
     let users;
 
-    if(type === "chess"){
-      users = await User.find().sort({ elo: -1 }).limit(10);
-      return res.json(users.map(u=>({
+    const sortField =
+      type === "strategy" ? "strategyPoints" : "elo";
+
+    users = await User.find().sort({ [sortField]: -1 });
+
+    const top10 = users.slice(0,10);
+
+    const rank = users.findIndex(u=>u.username===username) + 1;
+
+    const me = users.find(u=>u.username===username);
+
+    res.json({
+      top: top10.map(u=>({
         username: u.username,
-        chessElo: u.elo || 1000
-      })));
-    }
-
-    if(type === "strategy"){
-      users = await User.find().sort({ strategyPoints: -1 }).limit(10);
-      return res.json(users.map(u=>({
-        username: u.username,
-        strategyPoints: u.strategyPoints || 0
-      })));
-    }
-
-    users = await User.find().sort({ elo: -1 }).limit(10);
-
-    res.json(users.map(u=>({
-      username: u.username,
-      xp: u.elo || 1000
-    })));
+        value: type==="strategy"
+          ? (u.strategyPoints || 0)
+          : (u.elo || 1000)
+      })),
+      me: me ? {
+        username: me.username,
+        value: type==="strategy"
+          ? (me.strategyPoints || 0)
+          : (me.elo || 1000),
+        rank
+      } : null
+    });
 
   }catch(err){
     console.error(err);
-    res.status(500).json([]);
+    res.status(500).json({top:[],me:null});
   }
 
 });
