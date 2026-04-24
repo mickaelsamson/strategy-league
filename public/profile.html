@@ -146,50 +146,72 @@ if(!user){
   window.location.href = "/login.html";
 }
 
-/* BASIC DATA */
-document.getElementById("username").innerText = user.username;
-document.getElementById("elo").innerText = user.elo || 1000;
+function renderProfile(profile){
+  document.getElementById("username").innerText = profile.username || user.username;
+  document.getElementById("elo").innerText = profile.elo ?? 1000;
 
-/* MOCK STATS (à connecter backend plus tard) */
-const stats = {
-  wins: 12,
-  losses: 8,
-  xp: user.xp || 0
-};
+  const wins = profile?.stats?.wins || 0;
+  const losses = profile?.stats?.losses || 0;
+  const winrate = profile?.stats?.winrate || 0;
+  const xp = profile?.xp || 0;
 
-document.getElementById("wins").innerText = stats.wins;
-document.getElementById("losses").innerText = stats.losses;
+  document.getElementById("wins").innerText = wins;
+  document.getElementById("losses").innerText = losses;
+  document.getElementById("winrate").innerText = `${winrate}%`;
 
-const total = stats.wins + stats.losses;
-const winrate = total ? Math.round((stats.wins / total) * 100) : 0;
-document.getElementById("winrate").innerText = winrate + "%";
+  const level = Math.floor(xp / 100) + 1;
+  const nextXp = level * 100;
+  const prevXp = (level - 1) * 100;
+  const progress = Math.max(0, Math.min(100, ((xp - prevXp) / (nextXp - prevXp)) * 100));
 
-/* LEVEL SYSTEM */
-const xp = stats.xp;
-const level = Math.floor(xp / 100) + 1;
-const nextXp = level * 100;
-const prevXp = (level - 1) * 100;
-const progress = ((xp - prevXp) / (nextXp - prevXp)) * 100;
+  document.getElementById("level").innerText = level;
+  document.getElementById("xp").innerText = xp;
+  document.getElementById("xpNext").innerText = nextXp;
+  document.getElementById("xpFill").style.width = `${progress}%`;
 
-document.getElementById("level").innerText = level;
-document.getElementById("xp").innerText = xp;
-document.getElementById("xpNext").innerText = nextXp;
-document.getElementById("xpFill").style.width = progress + "%";
+  const matches = Array.isArray(profile.matchHistory) ? profile.matchHistory : [];
+  document.getElementById("matches").innerHTML = matches.length
+    ? matches.map(m=>{
+        const result = m.result || "draw";
+        const xpChange = Number.isFinite(m.xpChange) ? m.xpChange : 0;
+        const sign = xpChange >= 0 ? "+" : "";
+        return `
+          <div class="match ${result}">
+            <span>${result.toUpperCase()} vs ${m.opponent || "Unknown"}</span>
+            <span>${sign}${xpChange} XP</span>
+          </div>
+        `;
+      }).join("")
+    : "<div class=\"match\"><span>No match history yet.</span><span>—</span></div>";
+}
 
-/* MOCK MATCHES */
-const matches = [
-  {result:"win", opponent:"Alex", xp:"+5"},
-  {result:"loss", opponent:"Sam", xp:"-1"},
-  {result:"win", opponent:"Emperor", xp:"+10 🔥"},
-];
+async function loadProfile(){
+  try{
+    const response = await fetch(`/api/profile/${encodeURIComponent(user.username)}`);
+    if(!response.ok){
+      throw new Error("Profile unavailable");
+    }
 
-document.getElementById("matches").innerHTML =
-  matches.map(m=>`
-    <div class="match ${m.result}">
-      <span>${m.result.toUpperCase()} vs ${m.opponent}</span>
-      <span>${m.xp} XP</span>
-    </div>
-  `).join("");
+    const profile = await response.json();
+    localStorage.setItem("user", JSON.stringify({
+      ...user,
+      elo: profile.elo,
+      xp: profile.xp
+    }));
+    renderProfile(profile);
+  }catch(err){
+    console.error(err);
+    renderProfile({
+      username: user.username,
+      elo: user.elo || 1000,
+      xp: user.xp || 0,
+      stats: { wins: 0, losses: 0, winrate: 0 },
+      matchHistory: []
+    });
+  }
+}
+
+loadProfile();
 
 </script>
 
