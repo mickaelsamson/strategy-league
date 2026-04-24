@@ -13,7 +13,6 @@ const UserSchema = new mongoose.Schema({
   elo: { type: Number, default: 1000 },
   strategyPoints: { type: Number, default: 0 },
 
-  /* 👑 ADMIN */
   isAdmin: { type: Boolean, default: false }
 });
 
