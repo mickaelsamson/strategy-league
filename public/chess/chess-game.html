@@ -7,7 +7,154 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.11.0/chess.min.js"></script>
 
 <style>
-/* 🔥 TON CSS INTACT */
+body{
+  margin:0;
+  background:#020617;
+  color:white;
+  font-family:Arial;
+  display:flex;
+}
+
+/* MAIN LAYOUT */
+#main{
+  flex:1;
+  text-align:center;
+  padding-top:10px;
+}
+
+#sidebar{
+  width:260px;
+  background:#111827;
+  padding:15px;
+  border-left:1px solid #1f2937;
+}
+
+/* PLAYER PANEL */
+.player-card{
+  background:#1f2937;
+  padding:10px;
+  border-radius:10px;
+  margin:10px auto;
+  max-width:520px;
+  display:flex;
+  justify-content:space-between;
+}
+
+.you{border-left:4px solid #22c55e;}
+.opponent{border-left:4px solid #ef4444;}
+
+/* TIMER */
+.timer{
+  max-width:520px;
+  margin:5px auto 10px auto;
+  background:#1f2937;
+  padding:8px;
+  border-radius:8px;
+  font-size:18px;
+  font-weight:bold;
+  text-align:center;
+  transition:0.2s;
+}
+
+.timer.active{
+  background:#3b82f6;
+  box-shadow:0 0 10px #3b82f6;
+}
+
+.timer.low{
+  background:#ef4444;
+}
+
+/* BOARD */
+#boardWrapper{
+  position:relative;
+  width:90vw;
+  max-width:520px;
+  aspect-ratio:1/1;
+  margin:10px auto;
+}
+
+#boardWrapper img{
+  width:100%;
+  height:100%;
+}
+
+#piecesLayer,#clickLayer{
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+}
+
+/* SQUARES */
+.square{
+  position:absolute;
+  width:12.5%;
+  height:12.5%;
+  cursor:pointer;
+}
+
+.selected{ outline:3px solid #3b82f6; }
+.move{ background:rgba(34,197,94,0.4); border-radius:50%; }
+.check{ background:rgba(239,68,68,0.6); }
+.attacker{ background:rgba(239,68,68,0.3); }
+
+/* PIECES */
+.piece{
+  position:absolute;
+  width:12.5%;
+  height:12.5%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+.piece img{
+  width:80%;
+  height:80%;
+}
+
+/* STATUS */
+#turn{
+  margin:10px;
+  font-size:18px;
+}
+
+#status{
+  font-size:18px;
+  margin:5px;
+}
+
+#disconnectTimer{
+  color:#f87171;
+  margin:5px;
+}
+
+/* BUTTONS */
+button{
+  padding:10px 15px;
+  margin:5px;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  color:white;
+}
+
+#resignBtn{background:#ef4444;}
+#resignBtn:hover{background:#dc2626;}
+
+#rematchBtn{background:#f59e0b;}
+#rematchBtn:hover{background:#d97706;}
+
+#endGameBtn{background:#22c55e;}
+#endGameBtn:hover{background:#16a34a;}
+
+/* PLAYERS LIST */
+.player{
+  padding:6px;
+  border-bottom:1px solid #1f2937;
+}
 </style>
 </head>
 
@@ -74,8 +221,7 @@ let myName = "";
 let opponentName = "";
 let gameOver = false;
 
-/* ===== TIMER (UNCHANGED) ===== */
-
+/* TIMER */
 let myTime = 60;
 let opponentTime = 60;
 let timerInterval = null;
@@ -111,7 +257,7 @@ function updateTimerUI(){
   }
 }
 
-/* ===== SOCKET ===== */
+/* SOCKET */
 
 socket.on("online_users", users=>{
   document.getElementById("players").innerHTML =
@@ -122,16 +268,13 @@ socket.on("online_users", users=>{
 
 socket.on("chess_start", data=>{
 
-  console.log("START DATA:", data);
-  console.log("USER:", user.username);
-
   gameOver = false;
   selected = null;
   possibleMoves = [];
 
   playerColor = data.color;
 
-  // 🔥 FIX ICI (SEUL CHANGEMENT)
+  // 🔥 FIX NAMES (SEULE MODIF)
   myName = user.username;
   opponentName =
     user.username === data.players.white
@@ -164,14 +307,12 @@ socket.on("chess_update", data=>{
   updateTimerUI();
 });
 
-/* ===== UI ===== */
-
 function updateUI(){
   document.getElementById("turn").innerText =
     game.turn() === playerColor ? "🟢 Your turn" : "🔴 Opponent turn";
 }
 
-/* ===== DRAW + MOVE (UNCHANGED) ===== */
+/* DRAW + MOVE */
 
 function draw(){
   const p=document.getElementById("piecesLayer");
@@ -239,7 +380,6 @@ function clickCell(sq){
 function resign(){
   if(confirm("Abandon game?")){
     socket.emit("resign");
-    endGameUI();
   }
 }
 
