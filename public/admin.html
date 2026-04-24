@@ -4,24 +4,12 @@
 <title>Admin Panel</title>
 
 <style>
-<body>
-
-<div id="navbar-container"></div>
-
-<script>
-fetch("/components/navbar.html")
-  .then(res => res.text())
-  .then(data => {
-    document.getElementById("navbar-container").innerHTML = data;
-  });
-</script>
-
-<h1>👑 Admin Panel</h1>
-  {
+body {
   background: #020617;
   color: white;
   text-align: center;
-  margin-top: 100px;
+  padding-top: 80px; /* 🔥 espace pour navbar */
+  margin: 0;
   font-family: Arial, sans-serif;
 }
 
@@ -97,6 +85,17 @@ input:checked + .slider:before {
 </head>
 
 <body>
+
+<!-- 🔥 NAVBAR -->
+<div id="navbar-container"></div>
+
+<script>
+fetch("/components/navbar.html")
+  .then(res => res.text())
+  .then(data => {
+    document.getElementById("navbar-container").innerHTML = data;
+  });
+</script>
 
 <h1>👑 Admin Panel</h1>
 <p>Bloquer / autoriser l'accès aux jeux avec un switch.</p>
