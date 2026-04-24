@@ -87,6 +87,8 @@ let chessGames = {};
 let playerGames = {};
 let rematchRequests = {};
 let pendingDisconnects = {};
+const CHESS_TIME_CONTROLS = [120, 300, 600, 1800];
+const DISCONNECT_FORFEIT_MS = 60 * 1000;
 
 function findGameIdForSocket(socket){
   let gameId = playerGames[socket.id];
@@ -105,6 +107,11 @@ function findGameIdForSocket(socket){
   return gameId || null;
 }
 
+function clearPendingDisconnectForUsername(username){
+  if(!username || !pendingDisconnects[username]) return;
+  clearTimeout(pendingDisconnects[username]);
+  delete pendingDisconnects[username];
+}
 
 /* ================= UTILS ================= */
 
@@ -311,6 +318,7 @@ function emitGameStart(game){
       s.emit("chess_start",{
         color: player.color,
         fen: game.fen,
+        timeControl: game.timeControl,
         players:{
           white: game.players.find(pl=>pl.color==="w").username,
           black: game.players.find(pl=>pl.color==="b").username
@@ -336,6 +344,7 @@ function emitGameStart(game){
   
   socket.on("register_online", username=>{
     socket.username = username;
+    clearPendingDisconnectForUsername(username);
     onlineUsers[socket.id] = username;
     
     for(const gameId in chessGames){
@@ -357,6 +366,7 @@ function emitGameStart(game){
       socket.emit("chess_start",{
         color: player.color,
         fen: game.fen,
+        timeControl: game.timeControl,
         players:{
           white: game.players.find(pl=>pl.color==="w").username,
           black: game.players.find(pl=>pl.color==="b").username
@@ -370,6 +380,9 @@ function emitGameStart(game){
   /* ===== CREATE LOBBY ===== */
   socket.on("create_lobby", ({name,time})=>{
 
+    const parsedTime = Number(time);
+    if(!CHESS_TIME_CONTROLS.includes(parsedTime)) return;
+    
     const existing = Object.values(lobbies).find(l =>
       l.players.some(p=>p.username === socket.username)
     );
@@ -380,7 +393,7 @@ function emitGameStart(game){
     lobbies[id] = {
       id,
       name,
-      time,
+      time: parsedTime,
       players:[
         {
           id:socket.id,
@@ -441,7 +454,8 @@ function emitGameStart(game){
         turn:"w",
         fen:null,
         ended:false,
-        rated:false
+        rated:false,
+        timeControl: lobby.time
       };
 
       emitGameStart(chessGames[gameId]);
@@ -527,6 +541,28 @@ function emitGameStart(game){
       .catch(err=>console.error("ELO update error:", err))
       .finally(finishGame);
   });
+  socket.on("chess_timeout", ()=>{
+    const gameId = findGameIdForSocket(socket);
+    if(!gameId) return;
+
+    const game = chessGames[gameId];
+    if(!game || game.ended) return;
+
+    const loser = game.players.find(p=>p.username === socket.username);
+    if(!loser) return;
+
+    const winner = game.players.find(p=>p.username !== loser.username);
+
+    applyRankedResult(game, winner?.username || null, "timeout")
+      .catch(err=>console.error("ELO update error:", err))
+      .finally(()=>{
+        emitGameOver(gameId, {
+          reason: "timeout",
+          message: loser ? `${loser.username} ran out of time.` : "Time is over.",
+          winner: winner?.username || null
+        });
+      });
+  });
 
   /* ===== REMATCH ===== */
   socket.on("rematch", ()=>{
@@ -570,7 +606,35 @@ function emitGameStart(game){
   
   /* ===== DISCONNECT ===== */
   socket.on("disconnect", ()=>{
+ if(socket.username){
+      const gameId = findGameIdForSocket(socket);
+      const game = gameId ? chessGames[gameId] : null;
 
+      if(game && !game.ended){
+        clearPendingDisconnectForUsername(socket.username);
+        pendingDisconnects[socket.username] = setTimeout(()=>{
+          delete pendingDisconnects[socket.username];
+          const activeGame = chessGames[gameId];
+          if(!activeGame || activeGame.ended) return;
+
+          const disconnected = activeGame.players.find(p=>p.username === socket.username);
+          if(!disconnected) return;
+
+          const winner = activeGame.players.find(p=>p.username !== socket.username);
+
+          applyRankedResult(activeGame, winner?.username || null, "disconnect")
+            .catch(err=>console.error("ELO update error:", err))
+            .finally(()=>{
+              emitGameOver(gameId, {
+                reason: "disconnect",
+                message: `${socket.username} disconnected for more than 1 minute.`,
+                winner: winner?.username || null
+              });
+            });
+
+        }, DISCONNECT_FORFEIT_MS);
+      }
+    }
     delete onlineUsers[socket.id];
 
     for(const id in lobbies){
