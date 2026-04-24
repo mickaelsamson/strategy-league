@@ -73,7 +73,7 @@ fetch("/components/navbar.html")
 <h1>🎮 Games Hub</h1>
 
 <button onclick="goChess()">♟️ Chess</button>
-
+<button onclick="goOthello()">⚫ Othello</button>
 <button id="adminBtn" style="display:none;" onclick="goAdmin()">👑 Admin</button>
 
 <script>
@@ -91,6 +91,13 @@ if(user && user.isAdmin){
 
 function goChess(){
   window.location.href = "/chess/index.html";
+}
+function goWarStrategy(){
+  window.location.href = "/strategy/index.html";
+}  
+  
+function goOthello(){
+  window.location.href = "/othello/index.html";
 }
 
 function goAdmin(){
