@@ -2,92 +2,110 @@
 <html>
 <head>
 <title>Admin Panel</title>
+
 <style>
-  body {
-    background: #020617;
-    color: white;
-    text-align: center;
-    margin-top: 100px;
-    font-family: Arial, sans-serif;
-  }
+body {
+  background: #020617;
+  color: white;
+  text-align: center;
+  margin-top: 100px;
+  font-family: Arial, sans-serif;
+}
 
-  .switch-wrap {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 24px;
-  }
+.switch-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+}
 
-  .switch {
-    position: relative;
-    width: 64px;
-    height: 36px;
-    display: inline-block;
-  }
+.switch {
+  position: relative;
+  width: 64px;
+  height: 36px;
+  display: inline-block;
+}
 
-  .switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
 
-  .slider {
-    position: absolute;
-    cursor: pointer;
-    inset: 0;
-    background-color: #64748b;
-    transition: .2s;
-    border-radius: 999px;
-  }
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #64748b;
+  transition: .2s;
+  border-radius: 999px;
+}
 
-  .slider:before {
-    content: "";
-    position: absolute;
-    height: 28px;
-    width: 28px;
-    left: 4px;
-    top: 4px;
-    background-color: white;
-    transition: .2s;
-    border-radius: 50%;
-  }
+.slider:before {
+  content: "";
+  position: absolute;
+  height: 28px;
+  width: 28px;
+  left: 4px;
+  top: 4px;
+  background-color: white;
+  transition: .2s;
+  border-radius: 50%;
+}
 
-  input:checked + .slider {
-    background-color: #10b981;
-  }
+input:checked + .slider {
+  background-color: #10b981;
+}
 
-  input:checked + .slider:before {
-    transform: translateX(28px);
-  }
+input:checked + .slider:before {
+  transform: translateX(28px);
+}
 
-  #status {
-    margin-top: 18px;
-    opacity: 0.9;
-  }
+#status {
+  margin-top: 18px;
+  opacity: 0.9;
+}
+
+/* BACK BUTTON */
+.back-btn{
+  margin-top:30px;
+  background:#1f2937;
+  padding:10px 15px;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  color:white;
+}
+
+.back-btn:hover{
+  background:#374151;
+}
 </style>
 </head>
 
-<body style="background:#020617;color:white;text-align:center;margin-top:100px;">
 <body>
 
 <h1>👑 Admin Panel</h1>
 <p>Bloquer / autoriser l'accès aux jeux avec un switch.</p>
 
-<button onclick="setGames(true)">Enable Games</button>
-<button onclick="setGames(false)">Disable Games</button>
+<!-- SWITCH -->
 <div class="switch-wrap">
   <span>Jeux</span>
-  <label class="switch" for="gamesSwitch">
+  <label class="switch">
     <input id="gamesSwitch" type="checkbox" />
     <span class="slider"></span>
   </label>
   <strong id="switchLabel">OFF</strong>
 </div>
 
-<script>
+<!-- STATUS -->
 <p id="status">Chargement du statut...</p>
 
+<!-- BACK -->
+<button class="back-btn" onclick="goMain()">⬅ Back to Main Menu</button>
+
 <script>
+
 const user = JSON.parse(localStorage.getItem("user"));
 const gamesSwitch = document.getElementById("gamesSwitch");
 const switchLabel = document.getElementById("switchLabel");
@@ -113,18 +131,9 @@ async function fetchGamesStatus(){
 }
 
 async function setGames(enabled){
-  const res = await fetch("/api/admin/override",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({
-      adminEmail:user.email,
-      enabled
-    })
-  });
 
-  console.log(await res.json());
   if (!user?.email) {
-    statusEl.textContent = "Utilisateur admin introuvable (localStorage).";
+    statusEl.textContent = "Utilisateur admin introuvable.";
     gamesSwitch.checked = !enabled;
     return;
   }
@@ -148,8 +157,9 @@ async function setGames(enabled){
     }
 
     render(enabled);
+
   } catch (err) {
-    statusEl.textContent = "Erreur serveur pendant la mise à jour.";
+    statusEl.textContent = "Erreur serveur.";
     gamesSwitch.checked = !enabled;
     console.error(err);
   }
@@ -159,7 +169,12 @@ gamesSwitch.addEventListener("change", (e) => {
   setGames(e.target.checked);
 });
 
+function goMain(){
+  window.location.href = "/";
+}
+
 fetchGamesStatus();
+
 </script>
 
 </body>
