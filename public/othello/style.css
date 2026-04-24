@@ -3,7 +3,23 @@ body{
   background:#020617;
   color:white;
   font-family:Arial;
+    display:flex;
+}
+#main{
+  flex:1;
   text-align:center;
+}
+
+#sidebar{
+  width:260px;
+  background:#111827;
+  padding:15px;
+  border-left:1px solid #1f2937;
+}
+
+.player{
+  padding:6px;
+  border-bottom:1px solid #1f2937;
 }
 
 .container{
@@ -19,6 +35,19 @@ body{
   margin-bottom:20px;
 }
 
+.player-card{
+  background:#1f2937;
+  padding:10px;
+  border-radius:10px;
+  margin:10px auto;
+  max-width:520px;
+  display:flex;
+  justify-content:space-between;
+}
+
+.you{border-left:4px solid #22c55e;}
+.opponent{border-left:4px solid #ef4444;}
+
 button{
   padding:10px 15px;
   margin:5px;
@@ -31,6 +60,9 @@ button{
 }
 
 button:hover{ transform:scale(1.05); }
+
+#resignBtn{background:#ef4444;}
+#resignBtn:hover{background:#dc2626;}
 
 #board{
   display:grid;
