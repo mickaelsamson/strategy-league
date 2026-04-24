@@ -8,7 +8,7 @@ body {
   background: #020617;
   color: white;
   text-align: center;
-  padding-top: 80px; /* 🔥 espace pour navbar */
+  padding-top: 80px; /* espace navbar */
   margin: 0;
   font-family: Arial, sans-serif;
 }
@@ -67,7 +67,6 @@ input:checked + .slider:before {
   opacity: 0.9;
 }
 
-/* BACK BUTTON */
 .back-btn{
   margin-top:30px;
   background:#1f2937;
@@ -92,15 +91,24 @@ input:checked + .slider:before {
 <script>
 fetch("/components/navbar.html")
   .then(res => res.text())
-  .then(data => {
-    document.getElementById("navbar-container").innerHTML = data;
+  .then(html => {
+
+    const container = document.getElementById("navbar-container");
+    container.innerHTML = html;
+
+    // 🔥 force execution des scripts navbar
+    container.querySelectorAll("script").forEach(oldScript => {
+      const newScript = document.createElement("script");
+      newScript.textContent = oldScript.textContent;
+      document.body.appendChild(newScript);
+    });
+
   });
 </script>
 
 <h1>👑 Admin Panel</h1>
 <p>Bloquer / autoriser l'accès aux jeux avec un switch.</p>
 
-<!-- SWITCH -->
 <div class="switch-wrap">
   <span>Jeux</span>
   <label class="switch">
@@ -110,10 +118,8 @@ fetch("/components/navbar.html")
   <strong id="switchLabel">OFF</strong>
 </div>
 
-<!-- STATUS -->
 <p id="status">Chargement du statut...</p>
 
-<!-- BACK -->
 <button class="back-btn" onclick="goMain()">⬅ Back to Main Menu</button>
 
 <script>
