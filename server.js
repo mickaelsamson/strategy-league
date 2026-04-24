@@ -349,59 +349,70 @@ io.on('connection', socket=>{
 
   /* ===== REMATCH ===== */
 
-  socket.on("rematch", ()=>{
+ socket.on("rematch", ()=>{
 
-    const username = socket.username;
-    const gameId = playerGames[username];
+  const username = socket.username;
+  const gameId = playerGames[username];
+  const game = chessGames[gameId];
 
-    if(!rematchRequests[gameId]) rematchRequests[gameId]=[];
+  if(!game) return;
 
-    if(!rematchRequests[gameId].includes(username)){
-      rematchRequests[gameId].push(username);
-    }
+  if(!rematchRequests[gameId]){
+    rematchRequests[gameId] = new Set();
+  }
 
-    const game = chessGames[gameId];
-    if(!game) return;
+  rematchRequests[gameId].add(username);
 
-    if(rematchRequests[gameId].length===2){
+  console.log("REMATCH:", gameId, [...rematchRequests[gameId]]);
 
-      rematchRequests[gameId]=[];
+  if(rematchRequests[gameId].size === 2){
 
-      game.players = game.players.map(p=>{
-        const newColor = p.color==='w'?'b':'w';
-        const s = io.sockets.sockets.get(p.id);
-        if(s) s.color=newColor;
+    rematchRequests[gameId].clear();
 
-        return {id:p.id, username:p.username, color:newColor};
-      });
+    /* 🔥 SWAP COLORS */
+    game.players = game.players.map(p=>{
+      const newColor = p.color === 'w' ? 'b' : 'w';
 
-      game.fen=null;
-      game.turn='w';
-      game.ended=false;
-
-      game.players.forEach(p=>{
-        const s = io.sockets.sockets.get(p.id);
-        if(s){
-          s.emit("chess_start",{
-            color:p.color,
-            players:{
-              white: game.players.find(pl=>pl.color==='w').username,
-              black: game.players.find(pl=>pl.color==='b').username
-            }
-          });
-        }
-      });
-
-    }else{
-      const opponent = game.players.find(p=>p.username!==username);
-      if(opponent){
-        io.to(opponent.id).emit("rematch_requested",{from:username});
+      const s = io.sockets.sockets.get(p.id);
+      if(s){
+        s.color = newColor;
       }
+
+      return {
+        id: p.id,
+        username: p.username,
+        color: newColor
+      };
+    });
+
+    /* 🔥 RESET GAME */
+    game.fen = null;
+    game.turn = 'w';
+    game.ended = false;
+
+    /* 🔥 RESTART */
+    game.players.forEach(p=>{
+      const s = io.sockets.sockets.get(p.id);
+      if(s){
+        s.emit("chess_start",{
+          color: p.color,
+          players:{
+            white: game.players.find(pl=>pl.color==='w').username,
+            black: game.players.find(pl=>pl.color==='b').username
+          }
+        });
+      }
+    });
+
+  }else{
+    const opponent = game.players.find(p=>p.username !== username);
+
+    if(opponent){
+      io.to(opponent.id).emit("rematch_requested",{from:username});
     }
-  });
+  }
 
 });
-
 /* ================= LEADERBOARD ================= */
 
 app.get("/api/leaderboard/:type/:username", async (req,res)=>{
