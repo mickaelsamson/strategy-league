@@ -135,6 +135,107 @@ body{
   margin:5px;
 }
 
+/* XP REWARD POPUP */
+#xpRewardOverlay{
+  position:fixed;
+  inset:0;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:rgba(2,6,23,0.28);
+  pointer-events:none;
+  opacity:0;
+  transform:scale(0.95);
+  transition:opacity 320ms ease, transform 320ms ease;
+  z-index:1000;
+}
+
+#xpRewardOverlay.show{
+  opacity:1;
+  transform:scale(1);
+}
+
+.xp-reward-card{
+  position:relative;
+  min-width:280px;
+  max-width:90vw;
+  padding:22px 30px;
+  border-radius:16px;
+  border:1px solid rgba(56,189,248,0.35);
+  background:linear-gradient(160deg, rgba(30,41,59,0.96), rgba(15,23,42,0.98));
+  box-shadow:0 20px 70px rgba(2,132,199,0.28), inset 0 0 30px rgba(56,189,248,0.1);
+  text-align:center;
+  overflow:hidden;
+  animation:xpCardEnter 420ms cubic-bezier(0.22,1,0.36,1);
+}
+
+.xp-reward-title{
+  margin:0;
+  color:#cbd5e1;
+  font-size:14px;
+  letter-spacing:0.16em;
+  text-transform:uppercase;
+}
+
+.xp-reward-value{
+  margin:10px 0 4px 0;
+  font-size:48px;
+  font-weight:800;
+  color:#38bdf8;
+  text-shadow:0 0 24px rgba(56,189,248,0.5);
+}
+
+.xp-reward-subtitle{
+  margin:0;
+  color:#93c5fd;
+  font-size:13px;
+}
+
+#xpParticles{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+
+.xp-particle{
+  position:absolute;
+  bottom:28px;
+  left:50%;
+  width:var(--size,8px);
+  height:var(--size,8px);
+  border-radius:999px;
+  background:radial-gradient(circle at 30% 30%, #dbeafe, #38bdf8 70%);
+  opacity:0;
+  transform:translate3d(0,0,0) scale(0.4);
+  animation:xpParticle 900ms ease-out forwards;
+  animation-delay:var(--delay, 0ms);
+}
+
+@keyframes xpCardEnter{
+  from{
+    opacity:0;
+    transform:translateY(14px) scale(0.93);
+  }
+  to{
+    opacity:1;
+    transform:translateY(0) scale(1);
+  }
+}
+
+@keyframes xpParticle{
+  0%{
+    opacity:0;
+    transform:translate3d(0, 0, 0) scale(0.4);
+  }
+  18%{
+    opacity:1;
+  }
+  100%{
+    opacity:0;
+    transform:translate3d(var(--x, 0px), -120px, 0) scale(1);
+  }
+}
+
 /* BUTTONS */
 button{
   padding:10px 15px;
@@ -160,26 +261,7 @@ button{
   border-bottom:1px solid #1f2937;
 }
 </style>
-</head>
-
-<body>
-
-<div id="main">
-
-<h2>♟️ Chess</h2>
-
-<div class="player-card you">
-  <div id="youName">You</div>
-  <div id="youColor"></div>
-</div>
-
-<div id="myTimer" class="timer active">⏱️ 60</div>
-
-<div id="turn">Turn: -</div>
-<div id="status"></div>
-<div id="disconnectTimer"></div>
-
-<div id="boardWrapper">
+@@ -183,106 +284,117 @@ button{
   <img src="/chess/board.png">
   <div id="piecesLayer"></div>
   <div id="clickLayer"></div>
@@ -205,6 +287,15 @@ button{
   <div id="players"></div>
 </div>
 
+<div id="xpRewardOverlay">
+  <div class="xp-reward-card">
+    <div id="xpParticles"></div>
+    <p class="xp-reward-title">Reward</p>
+    <p class="xp-reward-value">+<span id="xpCounter">0</span> XP</p>
+    <p class="xp-reward-subtitle">Progress saved</p>
+  </div>
+</div>
+
 <script>
 
 const socket = io();
@@ -225,6 +316,7 @@ let myName = "";
 let opponentName = "";
 let gameOver = false;
 let gameEndSent = false;
+let xpPopupTimeout = null;
 function applyStartData(data){
   gameOver = false;
   gameEndSent = false;
@@ -261,6 +353,7 @@ function applyStartData(data){
   document.getElementById("status").innerText = "";
   document.getElementById("rematchBtn").style.display = "none";
   document.getElementById("endGameBtn").style.display = "none";
+  hideXpRewardPopup();
   updateUI();
   draw();
 }
@@ -286,33 +379,7 @@ function startTimer(){
     updateTimerUI();
 
   },1000);
-}
-
-function updateTimerUI(){
-  document.getElementById("myTimer").innerText = "⏱️ " + myTime;
-  document.getElementById("opponentTimer").innerText = "⏱️ " + opponentTime;
-
-  document.getElementById("myTimer").classList.remove("active");
-  document.getElementById("opponentTimer").classList.remove("active");
-
-  if(game.turn() === playerColor){
-    document.getElementById("myTimer").classList.add("active");
-  }else{
-    document.getElementById("opponentTimer").classList.add("active");
-  }
-}
-
-/* SOCKET */
-
-socket.on("online_users", users=>{
-  document.getElementById("players").innerHTML =
-    Object.entries(users).map(([name,data])=>`
-      <div class="player">${name} (${data.elo})</div>
-    `).join("");
-});
-
-socket.on("chess_start", data=>{
-  localStorage.setItem("chessSession", JSON.stringify(data));
+@@ -316,50 +428,55 @@ socket.on("chess_start", data=>{
   applyStartData(data);
   
 });
@@ -338,6 +405,11 @@ socket.on("chess_game_over", data=>{
   document.getElementById("turn").innerText = "Game over";
   document.getElementById("rematchBtn").style.display = "inline-block";
   document.getElementById("endGameBtn").style.display = "inline-block";
+
+  const xpGain = getXpGainFromResult(data);
+  if(xpGain > 0){
+    showXpRewardPopup(xpGain);
+  }
 });
 
 socket.on("chess_rematch_status", data=>{
@@ -363,94 +435,7 @@ function draw(){
   p.innerHTML="";
   c.innerHTML="";
 
-  const board=game.board();
-  let checkedKingSquare = null;
-
-  if(game.in_check()){
-    const checkedColor = game.turn();
-    for(let y=0;y<8;y++){
-      for(let x=0;x<8;x++){
-        const piece = board[y][x];
-        if(piece && piece.type === "k" && piece.color === checkedColor){
-          checkedKingSquare = String.fromCharCode(97+x)+(8-y);
-        }
-      }
-    }
-  }
-
-  for(let y=0;y<8;y++){
-    for(let x=0;x<8;x++){
-      const sq=String.fromCharCode(97+x)+(8-y);
-      const piece=board[y][x];
-
-      const cell=document.createElement("div");
-      cell.className="square";
-      cell.style.left=(x*12.5)+"%";
-      cell.style.top=(y*12.5)+"%";
-
-      if(selected===sq) cell.classList.add("selected");
-      if(possibleMoves.includes(sq)) cell.classList.add("move");
-
-      cell.onclick=()=>clickCell(sq);
-      c.appendChild(cell);
-
-      if(piece){
-        const wrapper=document.createElement("div");
-        wrapper.className="piece";
-        wrapper.style.left=(x*12.5)+"%";
-        wrapper.style.top=(y*12.5)+"%";
-        if(sq === checkedKingSquare) wrapper.classList.add("king-in-check");
-        
-        const img=document.createElement("img");
-        img.src="/chess/pieces/"+piece.color+piece.type.toUpperCase()+".svg";
-
-        wrapper.appendChild(img);
-        p.appendChild(wrapper);
-      }
-    }
-  }
-}
-
-function clickCell(sq){
-  if(game.turn()!==playerColor || gameOver) return;
-
-  if(!selected){
-    const moves=game.moves({square:sq,verbose:true});
-    if(moves.length===0) return;
-    selected=sq;
-    possibleMoves=moves.map(m=>m.to);
-  }else{
-    const move=game.move({from:selected,to:sq,promotion:'q'});
-    selected=null;
-    possibleMoves=[];
-
-    if(move){
-      socket.emit("chess_move",{fen:game.fen()});
-      sendGameEndIfNeeded();
-    }
-  }
-
-  updateUI();
-  draw();
-}
-
-  function sendGameEndIfNeeded(){
-  if(gameEndSent || gameOver) return;
-
-  if(game.in_checkmate()){
-    gameEndSent = true;
-    socket.emit("chess_game_end", {
-      winner: myName,
-      reason: "checkmate"
-    });
-    return;
-  }
-
-  if(game.in_stalemate()){
-    gameEndSent = true;
-    socket.emit("chess_game_end", { reason: "stalemate" });
-    return;
-  }
+@@ -454,40 +571,104 @@ function clickCell(sq){
 
   if(game.in_draw() || game.in_threefold_repetition() || game.insufficient_material()){
     gameEndSent = true;
@@ -474,6 +459,70 @@ function rematch(){
 
 function goMain(){
   window.location.href = "/";
+}
+
+function getXpGainFromResult(data){
+  if(!data?.winner){
+    return 0;
+  }
+  return data.winner === myName ? 25 : 5;
+}
+
+function showXpRewardPopup(xpGain){
+  const overlay = document.getElementById("xpRewardOverlay");
+  const counter = document.getElementById("xpCounter");
+  const particles = document.getElementById("xpParticles");
+  const duration = 1200;
+  const startedAt = performance.now();
+
+  if(xpPopupTimeout){
+    clearTimeout(xpPopupTimeout);
+    xpPopupTimeout = null;
+  }
+
+  counter.innerText = "0";
+  particles.innerHTML = "";
+  overlay.classList.add("show");
+
+  const tick = (now)=>{
+    const progress = Math.min((now - startedAt) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    counter.innerText = String(Math.round(xpGain * eased));
+    if(progress < 1){
+      requestAnimationFrame(tick);
+    }
+  };
+
+  requestAnimationFrame(tick);
+  emitXpParticles(18);
+
+  xpPopupTimeout = setTimeout(()=>{
+    overlay.classList.remove("show");
+    xpPopupTimeout = null;
+  }, 3200);
+}
+
+function hideXpRewardPopup(){
+  const overlay = document.getElementById("xpRewardOverlay");
+  const particles = document.getElementById("xpParticles");
+  if(xpPopupTimeout){
+    clearTimeout(xpPopupTimeout);
+    xpPopupTimeout = null;
+  }
+  overlay.classList.remove("show");
+  particles.innerHTML = "";
+}
+
+function emitXpParticles(count){
+  const particles = document.getElementById("xpParticles");
+  for(let i = 0; i < count; i++){
+    const particle = document.createElement("div");
+    particle.className = "xp-particle";
+    particle.style.setProperty("--x", `${Math.round((Math.random() - 0.5) * 220)}px`);
+    particle.style.setProperty("--size", `${Math.round(5 + Math.random() * 8)}px`);
+    particle.style.setProperty("--delay", `${Math.round(Math.random() * 260)}ms`);
+    particles.appendChild(particle);
+  }
 }
 
 draw();
