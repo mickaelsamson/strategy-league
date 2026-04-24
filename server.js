@@ -163,6 +163,9 @@ io.on('connection', socket=>{
     if(game){
 
       const player = game.players.find(p=>p.username===username);
+      if(player){
+        player.id = socket.id;
+      }
 
       socket.join(game.id);
       socket.chessGame = game.id;
@@ -380,7 +383,8 @@ io.on('connection', socket=>{
     }else{
       const opponent = game.players.find(p=>p.username!==username);
       if(opponent){
-        io.to(opponent.id).emit("rematch_requested",{from:username});
+        const opponentSocketId = onlineUsers[opponent.username]?.id || opponent.id;
+        io.to(opponentSocketId).emit("rematch_requested",{from:username});
       }
     }
 
