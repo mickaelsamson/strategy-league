@@ -24,15 +24,10 @@ let schedule = {
 let manualOverride = null;
 
 function isGameAllowed(){
-
-  if(manualOverride !== null){
-    return manualOverride;
-  }
-
+  if(manualOverride !== null) return manualOverride;
   if(!schedule.enabled) return true;
 
   const hour = new Date().getHours();
-
   return hour >= schedule.startHour && hour < schedule.endHour;
 }
 
@@ -46,23 +41,13 @@ app.post("/api/register", async (req,res)=>{
       return res.status(400).json({error:"Missing fields"});
     }
 
-    const existingEmail = await User.findOne({email});
-    if(existingEmail) return res.status(400).json({error:"Email used"});
+    if(await User.findOne({email})) return res.status(400).json({error:"Email used"});
+    if(await User.findOne({username})) return res.status(400).json({error:"Username taken"});
 
-    const existingUsername = await User.findOne({username});
-    if(existingUsername) return res.status(400).json({error:"Username taken"});
-
-    const user = new User({
-      email,
-      password,
-      username,
-      elo:1000
-    });
-
+    const user = new User({ email, password, username, elo:1000 });
     await user.save();
 
     res.json({success:true});
-
   }catch(err){
     console.error(err);
     res.status(500).json({error:"Server error"});
@@ -73,18 +58,14 @@ app.post("/api/login", async (req,res)=>{
   try{
     const { email, password } = req.body;
 
-    if(!email || !password){
-      return res.status(400).json({error:"Missing fields"});
-    }
-
     const user = await User.findOne({email, password});
-    if(!user){
-      return res.status(400).json({error:"Invalid credentials"});
-    }
+    if(!user) return res.status(400).json({error:"Invalid credentials"});
 
     res.json({
       username:user.username,
-      elo:user.elo || 1000
+      email:user.email,
+      elo:user.elo || 1000,
+      isAdmin:user.isAdmin || false
     });
 
   }catch(err){
@@ -94,6 +75,26 @@ app.post("/api/login", async (req,res)=>{
 });
 
 /* ================= ADMIN ROUTES ================= */
+
+app.post("/api/admin/override", async (req,res)=>{
+  try{
+    const { adminEmail, enabled } = req.body;
+
+    const admin = await User.findOne({email:adminEmail});
+    if(!admin || !admin.isAdmin){
+      return res.status(403).json({error:"Not admin"});
+    }
+
+    manualOverride = enabled;
+    io.emit("games_status",{enabled});
+
+    res.json({success:true});
+
+  }catch(err){
+    console.error(err);
+    res.status(500).json({error:"Server error"});
+  }
+});
 
 app.post("/api/admin/set-schedule", async (req,res)=>{
   try{
@@ -108,46 +109,6 @@ app.post("/api/admin/set-schedule", async (req,res)=>{
     schedule.endHour = endHour;
 
     res.json({success:true, schedule});
-
-  }catch(err){
-    console.error(err);
-    res.status(500).json({error:"Server error"});
-  }
-});
-
-app.post("/api/admin/override", async (req,res)=>{
-  try{
-    const { adminEmail, enabled } = req.body;
-
-    const admin = await User.findOne({email:adminEmail});
-    if(!admin || !admin.isAdmin){
-      return res.status(403).json({error:"Not admin"});
-    }
-
-    manualOverride = enabled;
-
-    io.emit("games_status",{enabled});
-
-    res.json({success:true});
-
-  }catch(err){
-    console.error(err);
-    res.status(500).json({error:"Server error"});
-  }
-});
-
-app.post("/api/admin/auto", async (req,res)=>{
-  try{
-    const { adminEmail } = req.body;
-
-    const admin = await User.findOne({email:adminEmail});
-    if(!admin || !admin.isAdmin){
-      return res.status(403).json({error:"Not admin"});
-    }
-
-    manualOverride = null;
-
-    res.json({success:true});
 
   }catch(err){
     console.error(err);
