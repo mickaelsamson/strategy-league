@@ -4,7 +4,20 @@
 <title>Admin Panel</title>
 
 <style>
-body {
+<body>
+
+<div id="navbar-container"></div>
+
+<script>
+fetch("/components/navbar.html")
+  .then(res => res.text())
+  .then(data => {
+    document.getElementById("navbar-container").innerHTML = data;
+  });
+</script>
+
+<h1>👑 Admin Panel</h1>
+  {
   background: #020617;
   color: white;
   text-align: center;
