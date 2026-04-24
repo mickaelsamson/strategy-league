@@ -1,66 +1,57 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Choose Game</title>
+<title>Games</title>
 
 <style>
 body{
-  margin:0;
-  font-family:Arial;
-  background: radial-gradient(circle at top, #0f172a, #020617);
+  background:#020617;
   color:white;
-}
-
-.container{
-  display:flex;
-  justify-content:center;
-  gap:40px;
+  font-family:Arial;
+  text-align:center;
   margin-top:100px;
 }
 
-.card{
-  width:220px;
-  height:150px;
-  background:#111827;
-  border-radius:15px;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
+button{
+  padding:15px;
+  margin:10px;
+  border:none;
+  border-radius:10px;
   cursor:pointer;
-  transition:0.3s;
-}
-
-.card:hover{
-  transform:scale(1.1);
+  font-size:16px;
 }
 </style>
 </head>
 
 <body>
 
-<h2 style="text-align:center;">Choose Game</h2>
+<h1>🎮 Games Hub</h1>
 
-<div class="container">
+<button onclick="goChess()">♟️ Chess</button>
 
-  <div class="card" onclick="goStrategy()">
-    ⚔️ Strategy
-  </div>
-
-  <div class="card" onclick="goChess()">
-    ♟️ Chess
-  </div>
-
-</div>
+<button id="adminBtn" style="display:none;" onclick="goAdmin()">👑 Admin</button>
 
 <script>
-function goStrategy(){
-  window.location.href="/strategy/";
+
+const user = JSON.parse(localStorage.getItem("user"));
+
+if(!user){
+  window.location.href = "/login.html";
+}
+
+/* ADMIN BUTTON */
+if(user && user.isAdmin){
+  document.getElementById("adminBtn").style.display = "inline-block";
 }
 
 function goChess(){
-  window.location.href="/chess/";
+  window.location.href = "/chess/index.html";
 }
+
+function goAdmin(){
+  window.location.href = "/admin.html";
+}
+
 </script>
 
 </body>
