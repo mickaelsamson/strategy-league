@@ -22,6 +22,11 @@ function isGameAllowed(){
   return true;
 }
 
+app.get("/api/games/status", (req,res)=>{
+  res.json({ enabled: isGameAllowed() });
+});
+
+
 /* ================= DATA ================= */
 
 let onlineUsers = {};
