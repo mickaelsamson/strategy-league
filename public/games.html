@@ -9,7 +9,8 @@ body{
   color:white;
   font-family:Arial;
   text-align:center;
-  margin-top:100px;
+  padding-top:80px; /* 🔥 navbar fix */
+  margin:0;
 }
 
 button{
@@ -24,6 +25,50 @@ button{
 </head>
 
 <body>
+
+<!-- 🔥 NAVBAR -->
+<div id="navbar-container"></div>
+
+<script>
+fetch("/components/navbar.html")
+  .then(res => res.text())
+  .then(html => {
+
+    const container = document.getElementById("navbar-container");
+    container.innerHTML = html;
+
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    // ADMIN BUTTON NAVBAR
+    if(user && user.isAdmin){
+      const adminBtn = document.getElementById("adminNav");
+      if(adminBtn){
+        adminBtn.style.display = "inline-block";
+      }
+    }
+
+    // NAVIGATION
+    document.querySelectorAll("[data-link]").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+
+        const link = btn.dataset.link;
+
+        if(link === "home") window.location.href = "/";
+        if(link === "games") window.location.href = "/games.html";
+        if(link === "leaderboard") window.location.href = "/leaderboard.html";
+        if(link === "profile") window.location.href = "/profile.html";
+        if(link === "admin") window.location.href = "/admin.html";
+
+        if(link === "logout"){
+          localStorage.removeItem("user");
+          window.location.href = "/login.html";
+        }
+
+      });
+    });
+
+  });
+</script>
 
 <h1>🎮 Games Hub</h1>
 
