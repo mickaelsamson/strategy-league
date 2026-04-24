@@ -88,6 +88,24 @@ let playerGames = {};
 let rematchRequests = {};
 let pendingDisconnects = {};
 
+function findGameIdForSocket(socket){
+  let gameId = playerGames[socket.id];
+  if(gameId) return gameId;
+
+  if(!socket.username) return null;
+
+  gameId = Object.keys(chessGames).find(id =>
+    chessGames[id]?.players?.some(p=>p.username === socket.username)
+  );
+
+  if(gameId){
+    playerGames[socket.id] = gameId;
+  }
+
+  return gameId || null;
+}
+
+
 /* ================= UTILS ================= */
 
 async function update(){
@@ -111,6 +129,38 @@ async function update(){
 
 io.on("connection", socket => {
 
+function emitGameStart(game){
+    game.players.forEach(player=>{
+      playerGames[player.id] = game.id;
+      const s = io.sockets.sockets.get(player.id);
+      if(!s) return;
+
+      s.emit("chess_start",{
+        color: player.color,
+        fen: game.fen,
+        players:{
+          white: game.players.find(pl=>pl.color==="w").username,
+          black: game.players.find(pl=>pl.color==="b").username
+        }
+      });
+    });
+  }
+
+  function emitGameOver(gameId, payload){
+    const game = chessGames[gameId];
+    if(!game || game.ended) return;
+
+    game.ended = true;
+    rematchRequests[gameId] = {};
+
+    game.players.forEach(player=>{
+      const s = io.sockets.sockets.get(player.id);
+      if(s){
+        s.emit("chess_game_over", payload);
+      }
+    });
+  }
+  
   socket.on("register_online", username=>{
     socket.username = username;
     onlineUsers[socket.id] = username;
@@ -220,21 +270,7 @@ io.on("connection", socket => {
         ended:false
       };
 
-      // 🔥 FIX 2 : mapping fiable socket.id
-      chessGames[gameId].players.forEach(p=>{
-        playerGames[p.id] = gameId;
-
-        const s = io.sockets.sockets.get(p.id);
-        if(s){
-          s.emit("chess_start",{
-            color: p.color,
-            players:{
-              white: chessGames[gameId].players.find(pl=>pl.color==="w").username,
-              black: chessGames[gameId].players.find(pl=>pl.color==="b").username
-            }
-          });
-        }
-      });
+      emitGameStart(chessGames[gameId]);
 
       delete lobbies[id];
     }
@@ -244,22 +280,13 @@ io.on("connection", socket => {
 
   /* ===== MOVE ===== */
   socket.on("chess_move", ({fen})=>{
-
-   let gameId = playerGames[socket.id];
-    if(!gameId && socket.username){
-      gameId = Object.keys(chessGames).find(id =>
-        chessGames[id]?.players?.some(p=>p.username === socket.username)
-      );
-      if(gameId){
-        playerGames[socket.id] = gameId;
-      }
-    }
+    
+    const gameId = findGameIdForSocket(socket);
 
     if(!gameId) return;
 
     const game = chessGames[gameId];
-    if(!game) return;
-
+    if(!game || game.ended) return;  
     game.fen = fen;
 
     game.players.forEach(p=>{
@@ -271,6 +298,64 @@ io.on("connection", socket => {
 
   });
 
+  /* ===== RESIGN ===== */
+  socket.on("resign", ()=>{
+    const gameId = findGameIdForSocket(socket);
+    if(!gameId) return;
+
+    const game = chessGames[gameId];
+    if(!game || game.ended) return;
+
+    const quitter = game.players.find(p=>p.id === socket.id || p.username === socket.username);
+    const winner = game.players.find(p=>p.username !== quitter?.username);
+
+    emitGameOver(gameId, {
+      reason: "resign",
+      message: quitter ? `${quitter.username} abandoned the game.` : "A player abandoned the game.",
+      winner: winner?.username || null
+    });
+  });
+
+  /* ===== REMATCH ===== */
+  socket.on("rematch", ()=>{
+    const gameId = findGameIdForSocket(socket);
+    if(!gameId) return;
+
+    const game = chessGames[gameId];
+    if(!game || !game.ended) return;
+
+    if(!rematchRequests[gameId]){
+      rematchRequests[gameId] = {};
+    }
+
+    rematchRequests[gameId][socket.username] = true;
+
+    const requestedBy = Object.keys(rematchRequests[gameId]);
+
+    game.players.forEach(player=>{
+      const s = io.sockets.sockets.get(player.id);
+      if(s){
+        s.emit("chess_rematch_status", {
+          requestedBy
+        });
+      }
+    });
+
+    const allReady = game.players.every(player => rematchRequests[gameId][player.username]);
+    if(!allReady) return;
+
+    game.players.forEach(player=>{
+      player.color = player.color === "w" ? "b" : "w";
+    });
+
+    game.fen = null;
+    game.turn = "w";
+    game.ended = false;
+    rematchRequests[gameId] = {};
+
+    emitGameStart(game);
+  });
+  
   /* ===== DISCONNECT ===== */
   socket.on("disconnect", ()=>{
 
