@@ -173,8 +173,8 @@ button{
   <div id="youColor"></div>
 </div>
 
-<div id="myTimer" class="timer active">⏱️ 60</div>
-
+<div id="myTimer" class="timer active">⏱️ 02:00</div>
+  
 <div id="turn">Turn: -</div>
 <div id="status"></div>
 <div id="disconnectTimer"></div>
@@ -190,8 +190,8 @@ button{
   <div id="opponentColor"></div>
 </div>
 
-<div id="opponentTimer" class="timer">⏱️ 60</div>
-
+<div id="opponentTimer" class="timer">⏱️ 02:00</div>
+  
 <div>
   <button id="resignBtn" onclick="resign()">Abandon</button>
   <button id="rematchBtn" onclick="rematch()" style="display:none;">Rematch</button>
@@ -225,6 +225,7 @@ let myName = "";
 let opponentName = "";
 let gameOver = false;
 let gameEndSent = false;
+  let selectedTimeControl = 120;
 function applyStartData(data){
   gameOver = false;
   gameEndSent = false;
@@ -248,14 +249,16 @@ function applyStartData(data){
   document.getElementById("opponentColor").innerText =
     playerColor === 'w' ? "Black" : "White";
 
+  selectedTimeControl = Number(data.timeControl) || 120;
+  
   if(data.fen){
     game.load(data.fen);
   }else{
     game.reset();
   }
 
-  myTime = 60;
-  opponentTime = 60;
+  myTime = selectedTimeControl;
+  opponentTime = selectedTimeControl;
   startTimer();
   updateTimerUI();
   document.getElementById("status").innerText = "";
@@ -278,19 +281,25 @@ function startTimer(){
     if(gameOver) return;
 
     if(game.turn() === playerColor){
-      myTime--;
+      myTime = Math.max(0, myTime - 1);
     }else{
-      opponentTime--;
+       opponentTime = Math.max(0, opponentTime - 1);
     }
 
     updateTimerUI();
-
+    checkTimeout();
+    
   },1000);
+}
+function formatSeconds(total){
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 function updateTimerUI(){
-  document.getElementById("myTimer").innerText = "⏱️ " + myTime;
-  document.getElementById("opponentTimer").innerText = "⏱️ " + opponentTime;
+  document.getElementById("myTimer").innerText = "⏱️ " + formatSeconds(myTime);
+  document.getElementById("opponentTimer").innerText = "⏱️ " + formatSeconds(opponentTime);
 
   document.getElementById("myTimer").classList.remove("active");
   document.getElementById("opponentTimer").classList.remove("active");
@@ -302,6 +311,19 @@ function updateTimerUI(){
   }
 }
 
+  document.getElementById("myTimer").classList.toggle("low", myTime <= 10);
+  document.getElementById("opponentTimer").classList.toggle("low", opponentTime <= 10);
+}
+
+function checkTimeout(){
+  if(gameEndSent || gameOver) return;
+
+  if(myTime <= 0){
+    gameEndSent = true;
+    socket.emit("chess_timeout");
+  }
+}
+  
 /* SOCKET */
 
 socket.on("online_users", users=>{
