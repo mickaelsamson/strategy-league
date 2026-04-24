@@ -13,6 +13,55 @@ app.get('/', (req,res)=>{
   res.sendFile('index.html', { root: 'public' });
 });
 
+/* ================= AUTH ================= */
+
+app.post("/api/signup", async (req,res)=>{
+  try{
+    const { email, password, username, firstName, lastName } = req.body;
+
+    const existingEmail = await User.findOne({email});
+    if(existingEmail) return res.status(400).json({error:"Email already used"});
+
+    const existingUsername = await User.findOne({username});
+    if(existingUsername) return res.status(400).json({error:"Username taken"});
+
+    const user = new User({
+      email,
+      password,
+      username,
+      firstName,
+      lastName,
+      elo: 1000
+    });
+
+    await user.save();
+
+    res.json({success:true});
+
+  }catch(err){
+    console.error(err);
+    res.status(500).json({error:"Server error"});
+  }
+});
+
+app.post("/api/login", async (req,res)=>{
+  try{
+    const { email, password } = req.body;
+
+    const user = await User.findOne({email, password});
+    if(!user) return res.status(400).json({error:"Invalid credentials"});
+
+    res.json({
+      username:user.username,
+      elo:user.elo || 1000
+    });
+
+  }catch(err){
+    console.error(err);
+    res.status(500).json({error:"Server error"});
+  }
+});
+
 /* ================= DATA ================= */
 
 let onlineUsers = {};
@@ -21,8 +70,6 @@ let chessGames = {};
 let playerGames = {};
 let rematchRequests = {};
 let pendingDisconnects = {};
-
-/* ================= UTILS ================= */
 
 function update(){
   io.emit("online_users", onlineUsers);
@@ -51,14 +98,17 @@ async function applyElo(game, winnerName){
 
   if(!u1 || !u2) return;
 
+  const elo1 = u1.elo || 1000;
+  const elo2 = u2.elo || 1000;
+
   const r1 = p1.username === winnerName ? 1 : 0;
   const r2 = p2.username === winnerName ? 1 : 0;
 
-  const newElo1 = calculateElo(u1.elo, u2.elo, r1);
-  const newElo2 = calculateElo(u2.elo, u1.elo, r2);
+  const newElo1 = calculateElo(elo1, elo2, r1);
+  const newElo2 = calculateElo(elo2, elo1, r2);
 
-  const gain1 = newElo1 - u1.elo;
-  const gain2 = newElo2 - u2.elo;
+  const gain1 = newElo1 - elo1;
+  const gain2 = newElo2 - elo2;
 
   u1.elo = newElo1;
   u2.elo = newElo2;
@@ -122,7 +172,7 @@ io.on('connection', socket=>{
       status:"idle"
     };
 
-    /* 🔥 AUTO RECONNECT GAME */
+    /* 🔥 AUTO RECONNECT */
     const gameId = playerGames[username];
     const game = chessGames[gameId];
 
@@ -149,8 +199,6 @@ io.on('connection', socket=>{
 
     update();
   });
-
-  /* ===== LOBBY ===== */
 
   socket.on("create_lobby", ({name,time})=>{
     const id=Math.random().toString(36).substr(2,5);
@@ -211,8 +259,6 @@ io.on('connection', socket=>{
     }
   });
 
-  /* ===== MOVE ===== */
-
   socket.on("chess_move", ({fen})=>{
     const g=chessGames[socket.chessGame];
     if(!g || socket.color!==g.turn) return;
@@ -222,8 +268,6 @@ io.on('connection', socket=>{
 
     io.to(g.id).emit("chess_update",{fen});
   });
-
-  /* ===== RESIGN ===== */
 
   socket.on("resign", async ()=>{
     const game = chessGames[playerGames[socket.username]];
@@ -240,8 +284,6 @@ io.on('connection', socket=>{
     delete chessGames[game.id];
   });
 
-  /* ===== DISCONNECT ===== */
-
   socket.on("disconnect", ()=>{
     const username = socket.username;
     delete onlineUsers[username];
@@ -250,7 +292,6 @@ io.on('connection', socket=>{
     const game = chessGames[gameId];
 
     if(game){
-
       const opponent = game.players.find(p=>p.username!==username);
 
       if(opponent){
@@ -258,7 +299,6 @@ io.on('connection', socket=>{
         let timeLeft = 60;
 
         const interval = setInterval(async ()=>{
-
           timeLeft--;
 
           io.to(opponent.id).emit("disconnect_timer",{time:timeLeft});
@@ -282,10 +322,7 @@ io.on('connection', socket=>{
     update();
   });
 
-  /* ===== REMATCH ===== */
-
   socket.on("rematch", ()=>{
-
     const username = socket.username;
     const gameId = playerGames[username];
 
@@ -334,46 +371,6 @@ io.on('connection', socket=>{
       }
     }
   });
-
-});
-
-/* ================= LEADERBOARD ================= */
-
-app.get("/api/leaderboard/:type/:username", async (req,res)=>{
-
-  const { type, username } = req.params;
-
-  try{
-
-    const sortField =
-      type === "strategy" ? "strategyPoints" : "elo";
-
-    const users = await User.find().sort({ [sortField]: -1 });
-
-    const top10 = users.slice(0,10);
-    const rank = users.findIndex(u=>u.username===username) + 1;
-    const me = users.find(u=>u.username===username);
-
-    res.json({
-      top: top10.map(u=>({
-        username: u.username,
-        value: type==="strategy"
-          ? (u.strategyPoints || 0)
-          : (u.elo || 1000)
-      })),
-      me: me ? {
-        username: me.username,
-        value: type==="strategy"
-          ? (me.strategyPoints || 0)
-          : (me.elo || 1000),
-        rank
-      } : null
-    });
-
-  }catch(err){
-    console.error(err);
-    res.status(500).json({top:[],me:null});
-  }
 
 });
 
