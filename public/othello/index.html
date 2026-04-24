@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Othello Lobby</title>
+<script src="/socket.io/socket.io.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+<h1>⚫ Othello Lobby</h1>
+
+<div class="card">
+<input id="name" placeholder="Lobby name">
+<button onclick="createLobby()">Create Lobby</button>
+</div>
+
+<div class="card">
+<h3>Lobbies</h3>
+<div id="lobbies"></div>
+</div>
+
+</div>
+
+<script src="lobby.js"></script>
+</body>
+</html>
