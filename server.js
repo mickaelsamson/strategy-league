@@ -222,8 +222,68 @@ app.post("/api/admin/override", async (req,res)=>{
 });
 
 /* ================= GAME ================= */
+/* (TOUT TON CODE GAME RESTE STRICTEMENT IDENTIQUE) */
 
-/* 🔥 (reste de ton code STRICTEMENT inchangé) */
+/* ================= LEADERBOARD ================= */
+
+app.get("/api/leaderboard/:type/:username", async (req,res)=>{
+
+  const { type, username } = req.params;
+
+  try{
+
+    let sortField;
+
+    if(type === "global"){
+      sortField = "xp";
+    }
+    else if(type === "chess"){
+      sortField = "elo";
+    }
+    else if(type === "strategy"){
+      sortField = "strategyPoints";
+    }
+    else{
+      sortField = "xp";
+    }
+
+    const users = await User.find();
+
+    // 🔥 FIX
+    users.forEach(u=>{
+      if(u.xp === undefined) u.xp = 0;
+      if(u.elo === undefined) u.elo = 1000;
+      if(u.strategyPoints === undefined) u.strategyPoints = 0;
+    });
+
+    users.sort((a,b)=>(b[sortField]||0)-(a[sortField]||0));
+
+    const top10 = users.slice(0,10);
+
+    const rank = users.findIndex(u=>u.username===username) + 1;
+
+    const me = users.find(u=>u.username===username);
+
+    res.json({
+      top: top10.map(u=>({
+        username: u.username,
+        value: u[sortField] ?? 0
+      })),
+      me: me ? {
+        username: me.username,
+        value: me[sortField] ?? 0,
+        rank
+      } : null
+    });
+
+  }catch(err){
+    console.error(err);
+    res.status(500).json({top:[],me:null});
+  }
+
+});
+
+/* ================= START ================= */
 
 async function startServer(){
   await mongoose.connect(process.env.MONGO_URI);
