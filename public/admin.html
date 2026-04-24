@@ -40,12 +40,10 @@ button{
 <h1>👑 Admin Panel</h1>
 
 <div class="container">
-
   <div id="status" class="status">Loading...</div>
 
   <button class="on" onclick="setGames(true)">Enable Games</button>
   <button class="off" onclick="setGames(false)">Disable Games</button>
-
 </div>
 
 <script>
@@ -56,7 +54,11 @@ if(!user || !user.email){
   document.body.innerHTML = "<h2>Access denied</h2>";
 }
 
-/* 🔥 CHECK STATUS */
+function updateStatus(enabled){
+  document.getElementById("status").innerText =
+    enabled ? "🟢 Games Enabled" : "🔴 Games Disabled";
+}
+
 async function setGames(enabled){
 
   const res = await fetch("/api/admin/override",{
@@ -77,12 +79,6 @@ async function setGames(enabled){
   }
 }
 
-function updateStatus(enabled){
-  document.getElementById("status").innerText =
-    enabled ? "🟢 Games Enabled" : "🔴 Games Disabled";
-}
-
-/* default */
 updateStatus(true);
 
 </script>
