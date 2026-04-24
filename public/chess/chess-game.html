@@ -164,6 +164,16 @@ let selected=null;
 let possibleMoves=[];
 let playerColor=null;
 
+/* 🔥 TURN FUNCTION */
+function updateTurn(){
+  const turnText =
+    game.turn() === playerColor
+      ? "🟢 Your turn"
+      : "🔴 Opponent turn";
+
+  document.getElementById("turn").innerText = turnText;
+}
+
 /* PLAYERS ONLINE */
 socket.on("online_users", users=>{
   document.getElementById("players").innerHTML =
@@ -178,14 +188,22 @@ socket.on("chess_start", data=>{
   document.getElementById("opponentName").innerText =
     playerColor==="w"?data.players.black:data.players.white;
 
+  document.getElementById("youColor").innerText =
+    playerColor==="w" ? "White" : "Black";
+
+  document.getElementById("opponentColor").innerText =
+    playerColor==="w" ? "Black" : "White";
+
   game.reset();
   draw();
+  updateTurn(); // 🔥 FIX
 });
 
 /* UPDATE */
 socket.on("chess_update", data=>{
   if(data.fen) game.load(data.fen);
   draw();
+  updateTurn(); // 🔥 FIX
 });
 
 /* DRAW */
@@ -212,7 +230,9 @@ function draw(){
   });
 }
 
+/* INIT */
 draw();
+updateTurn(); // 🔥 FIX
 
 </script>
 
