@@ -9,7 +9,6 @@ body{
   background: radial-gradient(circle at top,#0f172a,#020617);
   color:white;
   font-family:Arial;
-  text-align:center;
 }
 
 /* HEADER */
@@ -25,17 +24,15 @@ body{
   font-weight:bold;
 }
 
-/* ADMIN BUTTON */
-.admin-btn{
-  display:none;
-  background:linear-gradient(135deg,#facc15,#eab308);
-  color:black;
-  font-weight:bold;
+/* BUTTONS TOP RIGHT */
+.top-buttons button{
+  margin-left:10px;
 }
 
 /* MAIN */
 .container{
-  margin-top:100px;
+  text-align:center;
+  margin-top:120px;
 }
 
 .main-btn{
@@ -61,6 +58,26 @@ button{
   border-radius:10px;
   cursor:pointer;
 }
+
+/* ADMIN */
+.admin-btn{
+  display:none;
+  background:linear-gradient(135deg,#facc15,#eab308);
+  color:black;
+  font-weight:bold;
+}
+
+/* LOGOUT */
+.logout-btn{
+  background:#ef4444;
+  color:white;
+}
+
+/* LEADERBOARD */
+.leaderboard-btn{
+  background:#22c55e;
+  color:white;
+}
 </style>
 </head>
 
@@ -68,7 +85,12 @@ button{
 
 <div class="header">
   <div class="title">🎮 Strategy Hub</div>
-  <button id="adminBtn" class="admin-btn">👑 Admin</button>
+
+  <div class="top-buttons">
+    <button class="leaderboard-btn" onclick="goLeaderboard()">🏆 Leaderboard</button>
+    <button id="adminBtn" class="admin-btn">👑 Admin</button>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
 </div>
 
 <div class="container">
@@ -86,16 +108,25 @@ if(!user){
   window.location.href = "/login.html";
 }
 
-/* ADMIN ONLY */
+/* ADMIN BUTTON */
 if(user && user.isAdmin){
   const btn = document.getElementById("adminBtn");
   btn.style.display = "inline-block";
   btn.onclick = ()=> window.location.href = "/admin.html";
 }
 
-/* NAV */
+/* NAVIGATION */
 function goGames(){
   window.location.href = "/games.html";
+}
+
+function goLeaderboard(){
+  window.location.href = "/leaderboard.html";
+}
+
+function logout(){
+  localStorage.removeItem("user");
+  window.location.href = "/login.html";
 }
 
 </script>
