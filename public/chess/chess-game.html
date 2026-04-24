@@ -114,6 +114,10 @@ body{
   width:80%;
   height:80%;
 }
+.piece.king-in-check{
+  background:rgba(239,68,68,0.45);
+  border-radius:50%;
+}
 
 /* STATUS */
 #turn{
@@ -257,7 +261,42 @@ function applyStartData(data){
   draw();
 }
 
-  
+ function applyStartData(data){
+  gameOver = false;
+  selected = null;
+  possibleMoves = [];
+
+  playerColor = data.color;
+
+  myName = user.username;
+  opponentName =
+    user.username === data.players.white
+      ? data.players.black
+      : data.players.white;
+
+  document.getElementById("youName").innerText = myName;
+  document.getElementById("opponentName").innerText = opponentName;
+
+  document.getElementById("youColor").innerText =
+    playerColor === 'w' ? "White" : "Black";
+
+  document.getElementById("opponentColor").innerText =
+    playerColor === 'w' ? "Black" : "White";
+
+  if(data.fen){
+    game.load(data.fen);
+  }else{
+    game.reset();
+  }
+
+  myTime = 60;
+  opponentTime = 60;
+  startTimer();
+  updateTimerUI();
+  updateUI();
+  draw();
+}
+ 
   
 /* TIMER */
 let myTime = 60;
@@ -332,6 +371,19 @@ function draw(){
   c.innerHTML="";
 
   const board=game.board();
+  let checkedKingSquare = null;
+
+  if(game.in_check()){
+    const checkedColor = game.turn();
+    for(let y=0;y<8;y++){
+      for(let x=0;x<8;x++){
+        const piece = board[y][x];
+        if(piece && piece.type === "k" && piece.color === checkedColor){
+          checkedKingSquare = String.fromCharCode(97+x)+(8-y);
+        }
+      }
+    }
+  }
 
   for(let y=0;y<8;y++){
     for(let x=0;x<8;x++){
@@ -354,7 +406,8 @@ function draw(){
         wrapper.className="piece";
         wrapper.style.left=(x*12.5)+"%";
         wrapper.style.top=(y*12.5)+"%";
-
+        if(sq === checkedKingSquare) wrapper.classList.add("king-in-check");
+        
         const img=document.createElement("img");
         img.src="/chess/pieces/"+piece.color+piece.type.toUpperCase()+".svg";
 
