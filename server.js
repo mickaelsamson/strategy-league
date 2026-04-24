@@ -84,7 +84,10 @@ app.get("/api/games/status", (req,res)=>{
 let onlineUsers = {};
 let lobbies = {};
 let chessGames = {};
+let othelloLobbies = {};
+let othelloGames = {};
 let playerGames = {};
+let othelloPlayerGames = {};
 let rematchRequests = {};
 let pendingDisconnects = {};
 const CHESS_TIME_CONTROLS = [120, 300, 600, 1800];
@@ -113,6 +116,152 @@ function clearPendingDisconnectForUsername(username){
   delete pendingDisconnects[username];
 }
 
+
+function findOthelloGameIdForSocket(socket){
+  let gameId = othelloPlayerGames[socket.id];
+  if(gameId) return gameId;
+
+  if(!socket.username) return null;
+
+  gameId = Object.keys(othelloGames).find(id =>
+    othelloGames[id]?.players?.some(p=>p.username === socket.username)
+  );
+
+  if(gameId){
+    othelloPlayerGames[socket.id] = gameId;
+  }
+
+  return gameId || null;
+}
+
+function createInitialOthelloBoard(){
+  const board = Array.from({ length: 8 }, ()=>Array(8).fill(null));
+  board[3][3] = "white";
+  board[3][4] = "black";
+  board[4][3] = "black";
+  board[4][4] = "white";
+  return board;
+}
+
+function getOpponentColor(color){
+  return color === "black" ? "white" : "black";
+}
+
+function isInsideBoard(x, y){
+  return x >= 0 && x < 8 && y >= 0 && y < 8;
+}
+
+function collectFlips(board, x, y, color){
+  if(!isInsideBoard(x, y) || board[y][x]) return [];
+
+  const enemy = getOpponentColor(color);
+  const dirs = [
+    [-1, -1], [0, -1], [1, -1],
+    [-1, 0],           [1, 0],
+    [-1, 1],  [0, 1],  [1, 1]
+  ];
+
+  const flips = [];
+
+  dirs.forEach(([dx, dy])=>{
+    let cx = x + dx;
+    let cy = y + dy;
+    const line = [];
+
+    while(isInsideBoard(cx, cy) && board[cy][cx] === enemy){
+      line.push([cx, cy]);
+      cx += dx;
+      cy += dy;
+    }
+
+    if(line.length > 0 && isInsideBoard(cx, cy) && board[cy][cx] === color){
+      flips.push(...line);
+    }
+  });
+
+  return flips;
+}
+
+function hasAnyValidOthelloMove(board, color){
+  for(let y = 0; y < 8; y++){
+    for(let x = 0; x < 8; x++){
+      if(collectFlips(board, x, y, color).length > 0){
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+function countOthelloDisks(board){
+  let black = 0;
+  let white = 0;
+
+  board.forEach(row=>{
+    row.forEach(cell=>{
+      if(cell === "black") black += 1;
+      if(cell === "white") white += 1;
+    });
+  });
+
+  return { black, white };
+}
+
+function emitOthelloState(game){
+  if(!game) return;
+
+  game.players.forEach(player=>{
+    othelloPlayerGames[player.id] = game.id;
+
+    const s = io.sockets.sockets.get(player.id);
+    if(!s) return;
+
+    s.emit("othello_state", {
+      board: game.board,
+      turn: game.turn,
+      color: player.color
+    });
+  });
+}
+
+async function applyOthelloResult(game, winnerColor){
+  if(!game || game.rated) return;
+
+  const blackPlayer = game.players.find(p=>p.color === "black");
+  const whitePlayer = game.players.find(p=>p.color === "white");
+  if(!blackPlayer || !whitePlayer) return;
+
+  const [blackUser, whiteUser] = await Promise.all([
+    User.findOne({ username: blackPlayer.username }),
+    User.findOne({ username: whitePlayer.username })
+  ]);
+
+  if(!blackUser || !whiteUser) return;
+
+  if(!winnerColor){
+    blackUser.othelloPoints = (blackUser.othelloPoints || 0) + 4;
+    whiteUser.othelloPoints = (whiteUser.othelloPoints || 0) + 4;
+    blackUser.xp += 2;
+    whiteUser.xp += 2;
+  }else if(winnerColor === "black"){
+    blackUser.othelloPoints = (blackUser.othelloPoints || 0) + 12;
+    whiteUser.othelloPoints = (whiteUser.othelloPoints || 0) + 3;
+    blackUser.xp += 10;
+    whiteUser.xp += 2;
+  }else{
+    whiteUser.othelloPoints = (whiteUser.othelloPoints || 0) + 12;
+    blackUser.othelloPoints = (blackUser.othelloPoints || 0) + 3;
+    whiteUser.xp += 10;
+    blackUser.xp += 2;
+  }
+
+  await Promise.all([blackUser.save(), whiteUser.save()]);
+
+  game.rated = true;
+}
+
+
 /* ================= UTILS ================= */
 
 async function update(){
@@ -130,6 +279,7 @@ async function update(){
 
   io.emit("online_users", users);
   io.emit("lobbies_update", lobbies);
+  io.emit("othello_lobbies_update", othelloLobbies);
 }
 function computeEloDelta(winnerElo, loserElo, kFactor = 32){
   const expectedWinner = 1 / (1 + Math.pow(10, (loserElo - winnerElo) / 400));
@@ -243,6 +393,13 @@ async function getLeaderboard(type){
       .lean();
   }
 
+    if(type === "othello"){
+    return User.find({}, { username: 1, othelloPoints: 1, _id: 0 })
+      .sort({ othelloPoints: -1, username: 1 })
+      .lean();
+  }
+
+  
   return User.find({}, { username: 1, xp: 1, _id: 0 })
     .sort({ xp: -1, username: 1 })
     .lean();
@@ -253,8 +410,8 @@ app.get("/api/leaderboard/:type/:username", async (req,res)=>{
     const { type, username } = req.params;
     const users = await getLeaderboard(type);
 
-    const valueKey = type === "chess" ? "elo" : (type === "strategy" ? "strategyPoints" : "xp");
-
+    const valueKey = type === "chess" ? "elo" : (type === "strategy" ? "strategyPoints" : (type === "othello" ? "othelloPoints" : "xp"));
+    
     const list = users.map((u, index) => ({
       username: u.username,
       value: u[valueKey] || 0,
@@ -374,6 +531,25 @@ function emitGameStart(game){
       });
     }
 
+    for(const gameId in othelloGames){
+      const game = othelloGames[gameId];
+      if(!game || game.ended) continue;
+
+      const player = game.players.find(p=>p.username === username);
+      if(!player) continue;
+
+      const previousSocketId = player.id;
+      player.id = socket.id;
+
+      if(previousSocketId && previousSocketId !== socket.id){
+        delete othelloPlayerGames[previousSocketId];
+      }
+
+      othelloPlayerGames[socket.id] = gameId;
+      emitOthelloState(game);
+    }
+
+    
     update();
   });
 
@@ -603,7 +779,149 @@ function emitGameStart(game){
 
     emitGameStart(game);
   });
-  
+    /* ===== OTHELLO LOBBY ===== */
+  socket.on("create_othello_lobby", ({ name })=>{
+    const existing = Object.values(othelloLobbies).find(l =>
+      l.players.some(p=>p.username === socket.username)
+    );
+    if(existing) return;
+
+    const id = Math.random().toString(36).substr(2,9);
+
+    othelloLobbies[id] = {
+      id,
+      name: name || "Othello Room",
+      players: [
+        {
+          id: socket.id,
+          username: socket.username,
+          ready: false
+        }
+      ]
+    };
+
+    io.emit("othello_lobbies_update", othelloLobbies);
+  });
+
+  socket.on("join_othello_lobby", id=>{
+    const lobby = othelloLobbies[id];
+    if(!lobby || lobby.players.length >= 2) return;
+
+    const existing = Object.values(othelloLobbies).find(l =>
+      l.players.some(p=>p.username === socket.username)
+    );
+    if(existing) return;
+
+    lobby.players.push({
+      id: socket.id,
+      username: socket.username,
+      ready: false
+    });
+
+    io.emit("othello_lobbies_update", othelloLobbies);
+  });
+
+  socket.on("toggle_othello_ready", id=>{
+    const lobby = othelloLobbies[id];
+    if(!lobby) return;
+
+    const player = lobby.players.find(p=>p.id === socket.id);
+    if(!player) return;
+
+    player.ready = !player.ready;
+
+    if(lobby.players.length === 2 && lobby.players.every(p=>p.ready)){
+      const gameId = Math.random().toString(36).substr(2,9);
+      const p1 = lobby.players[0];
+      const p2 = lobby.players[1];
+
+      othelloGames[gameId] = {
+        id: gameId,
+        players: [
+          { id: p1.id, username: p1.username, color: "black" },
+          { id: p2.id, username: p2.username, color: "white" }
+        ],
+        board: createInitialOthelloBoard(),
+        turn: "black",
+        ended: false,
+        rated: false
+      };
+
+      delete othelloLobbies[id];
+
+      othelloGames[gameId].players.forEach(p=>{
+        const s = io.sockets.sockets.get(p.id);
+        if(s){
+          s.emit("othello_start");
+        }
+      });
+
+      emitOthelloState(othelloGames[gameId]);
+    }
+
+    io.emit("othello_lobbies_update", othelloLobbies);
+  });
+
+  socket.on("othello_move", ({ x, y } = {})=>{
+    const gameId = findOthelloGameIdForSocket(socket);
+    if(!gameId) return;
+
+    const game = othelloGames[gameId];
+    if(!game || game.ended) return;
+
+    const player = game.players.find(p=>p.username === socket.username);
+    if(!player || player.color !== game.turn) return;
+
+    if(typeof x !== "number" || typeof y !== "number") return;
+
+    const flips = collectFlips(game.board, x, y, player.color);
+    if(flips.length === 0) return;
+
+    game.board[y][x] = player.color;
+    flips.forEach(([fx, fy])=>{
+      game.board[fy][fx] = player.color;
+    });
+
+    const opponent = getOpponentColor(player.color);
+    const opponentCanPlay = hasAnyValidOthelloMove(game.board, opponent);
+    const currentCanPlay = hasAnyValidOthelloMove(game.board, player.color);
+
+    if(opponentCanPlay){
+      game.turn = opponent;
+    }else if(currentCanPlay){
+      game.turn = player.color;
+    }else{
+      game.ended = true;
+      const score = countOthelloDisks(game.board);
+      let winnerColor = null;
+      if(score.black > score.white) winnerColor = "black";
+      if(score.white > score.black) winnerColor = "white";
+
+      applyOthelloResult(game, winnerColor)
+        .catch(err=>console.error("Othello points update error:", err))
+        .finally(()=>{
+          const winnerPlayer = winnerColor ? game.players.find(p=>p.color === winnerColor) : null;
+          game.players.forEach(p=>{
+            const s = io.sockets.sockets.get(p.id);
+            if(s){
+              s.emit("othello_state", {
+                board: game.board,
+                turn: game.turn,
+                color: p.color
+              });
+              s.emit("othello_end", {
+                winner: winnerPlayer ? winnerPlayer.username : "Draw"
+              });
+            }
+          });
+        });
+
+      return;
+    }
+
+    emitOthelloState(game);
+  });
+
   /* ===== DISCONNECT ===== */
   socket.on("disconnect", ()=>{
  if(socket.username){
@@ -645,6 +963,16 @@ function emitGameStart(game){
       }
     }
 
+        for(const id in othelloLobbies){
+      othelloLobbies[id].players = othelloLobbies[id].players.filter(p=>p.id !== socket.id);
+
+      if(othelloLobbies[id].players.length === 0){
+        delete othelloLobbies[id];
+      }
+    }
+
+    io.emit("othello_lobbies_update", othelloLobbies);
+    
     update();
   });
 
