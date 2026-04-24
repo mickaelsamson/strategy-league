@@ -341,7 +341,10 @@ io.on('connection', socket=>{
   });
 
   socket.on("rematch", ()=>{
-
+  if(!isGameAllowed()){
+  socket.emit("error_message","Games disabled by admin");
+  return;
+    }
     const username = socket.username;
     const gameId = playerGames[username];
     const game = chessGames[gameId];
