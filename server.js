@@ -122,6 +122,31 @@ io.on('connection', socket=>{
       status:"idle"
     };
 
+    /* 🔥 AUTO RECONNECT GAME */
+    const gameId = playerGames[username];
+    const game = chessGames[gameId];
+
+    if(game){
+
+      const player = game.players.find(p=>p.username===username);
+
+      socket.join(game.id);
+      socket.chessGame = game.id;
+      socket.color = player.color;
+
+      socket.emit("chess_start",{
+        color: player.color,
+        players:{
+          white: game.players.find(p=>p.color==='w').username,
+          black: game.players.find(p=>p.color==='b').username
+        }
+      });
+
+      if(game.fen){
+        socket.emit("chess_update",{fen:game.fen});
+      }
+    }
+
     update();
   });
 
@@ -312,7 +337,7 @@ io.on('connection', socket=>{
 
 });
 
-/* ================= LEADERBOARD (RANK + ME) ================= */
+/* ================= LEADERBOARD ================= */
 
 app.get("/api/leaderboard/:type/:username", async (req,res)=>{
 
@@ -320,17 +345,13 @@ app.get("/api/leaderboard/:type/:username", async (req,res)=>{
 
   try{
 
-    let users;
-
     const sortField =
       type === "strategy" ? "strategyPoints" : "elo";
 
-    users = await User.find().sort({ [sortField]: -1 });
+    const users = await User.find().sort({ [sortField]: -1 });
 
     const top10 = users.slice(0,10);
-
     const rank = users.findIndex(u=>u.username===username) + 1;
-
     const me = users.find(u=>u.username===username);
 
     res.json({
