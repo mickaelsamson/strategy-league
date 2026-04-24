@@ -7,12 +7,105 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.11.0/chess.min.js"></script>
 
 <style>
-/* (TON CSS INCHANGÉ) */
+body{
+  margin:0;
+  background:#020617;
+  color:white;
+  font-family:Arial;
+  display:flex;
+  padding-top:60px;
+}
+
+#main{
+  flex:1;
+  text-align:center;
+  padding-top:10px;
+}
+
+#sidebar{
+  width:260px;
+  background:#111827;
+  padding:15px;
+  border-left:1px solid #1f2937;
+}
+
+.player-card{
+  background:#1f2937;
+  padding:10px;
+  border-radius:10px;
+  margin:10px auto;
+  max-width:520px;
+  display:flex;
+  justify-content:space-between;
+}
+
+.you{border-left:4px solid #22c55e;}
+.opponent{border-left:4px solid #ef4444;}
+
+.timer{
+  max-width:520px;
+  margin:5px auto 10px auto;
+  background:#1f2937;
+  padding:8px;
+  border-radius:8px;
+  font-size:18px;
+  font-weight:bold;
+}
+
+.timer.active{background:#3b82f6;}
+.timer.low{background:#ef4444;}
+
+#boardWrapper{
+  position:relative;
+  width:90vw;
+  max-width:520px;
+  aspect-ratio:1/1;
+  margin:10px auto;
+}
+
+#boardWrapper img{
+  width:100%;
+  height:100%;
+}
+
+#piecesLayer,#clickLayer{
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+}
+
+.square{
+  position:absolute;
+  width:12.5%;
+  height:12.5%;
+  cursor:pointer;
+}
+
+.piece{
+  position:absolute;
+  width:12.5%;
+  height:12.5%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+.piece img{
+  width:80%;
+  height:80%;
+}
+
+.player{
+  padding:6px;
+}
 </style>
 </head>
 
 <body>
 
+<!-- NAVBAR -->
 <div id="navbar-container"></div>
 
 <script>
@@ -60,74 +153,66 @@ fetch("/components/navbar.html")
 <script>
 
 const socket = io();
-const user = JSON.parse(localStorage.getItem("user") || "null");
+const user = JSON.parse(localStorage.getItem("user"));
 
-if(!user){
-  window.location.href = "/login.html";
-}
+if(!user) window.location.href="/login.html";
 
 socket.emit("register_online", user.username);
 
 let game = new Chess();
-let playerColor = null;
+let selected=null;
+let possibleMoves=[];
+let playerColor=null;
 
-/* ================= PLAYERS ONLINE ================= */
-
+/* PLAYERS ONLINE */
 socket.on("online_users", users=>{
   document.getElementById("players").innerHTML =
-    Object.values(users).map(u=>`
-      <div class="player">${u}</div>
-    `).join("");
+    Object.values(users).map(u=>`<div class="player">${u}</div>`).join("");
 });
 
-/* ================= GAME START ================= */
-
+/* START GAME */
 socket.on("chess_start", data=>{
+  playerColor=data.color;
 
-  playerColor = data.color;
-
-  document.getElementById("youName").innerText = user.username;
-  document.getElementById("youColor").innerText = playerColor === "w" ? "White" : "Black";
-
+  document.getElementById("youName").innerText=user.username;
   document.getElementById("opponentName").innerText =
-    playerColor === "w" ? data.players.black : data.players.white;
+    playerColor==="w"?data.players.black:data.players.white;
 
-  document.getElementById("opponentColor").innerText =
-    playerColor === "w" ? "Black" : "White";
-
-  renderBoard();
+  game.reset();
+  draw();
 });
 
-/* ================= RENDER ================= */
+/* UPDATE */
+socket.on("chess_update", data=>{
+  if(data.fen) game.load(data.fen);
+  draw();
+});
 
-function renderBoard(){
-
-  const board = game.board();
-  const layer = document.getElementById("piecesLayer");
-
-  layer.innerHTML = "";
+/* DRAW */
+function draw(){
+  const board=game.board();
+  const layer=document.getElementById("piecesLayer");
+  layer.innerHTML="";
 
   board.forEach((row,y)=>{
     row.forEach((piece,x)=>{
       if(piece){
+        const el=document.createElement("div");
+        el.className="piece";
+        el.style.left=(x*12.5)+"%";
+        el.style.top=(y*12.5)+"%";
 
-        const el = document.createElement("div");
-        el.className = "piece";
-        el.style.left = (x*12.5)+"%";
-        el.style.top = (y*12.5)+"%";
-
-        const img = document.createElement("img");
-        img.src = `/chess/${piece.color}${piece.type}.png`;
+        const img=document.createElement("img");
+        img.src="/chess/pieces/"+piece.color+piece.type.toUpperCase()+".svg";
 
         el.appendChild(img);
         layer.appendChild(el);
       }
     });
   });
-
 }
 
-renderBoard();
+draw();
 
 </script>
 
