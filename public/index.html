@@ -6,118 +6,51 @@
 <style>
 body{
   margin:0;
-  font-family:Arial;
-  background: radial-gradient(circle at top, #0f172a, #020617);
+  background:#020617;
   color:white;
+  font-family:Arial;
+  text-align:center;
+  margin-top:100px;
 }
 
-/* HEADER */
-.header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:20px 40px;
-}
-
-.logo{
-  font-size:28px;
-  font-weight:bold;
-  color:#facc15;
-}
-
-.player{
-  background:#111827;
-  padding:10px 20px;
-  border-radius:12px;
-}
-
-/* MENU */
-.container{
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:70vh;
-  gap:30px;
-}
-
-.card{
-  width:260px;
-  height:180px;
-  background: linear-gradient(145deg,#1f2937,#020617);
-  border-radius:20px;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
+button{
+  padding:15px;
+  margin:10px;
+  border:none;
+  border-radius:10px;
   cursor:pointer;
-  transition:0.3s;
-}
-
-.card:hover{
-  transform:scale(1.1);
-  box-shadow:0 0 25px rgba(250,204,21,0.6);
-}
-
-.icon{
-  font-size:40px;
-}
-
-.title{
-  font-size:20px;
+  font-size:16px;
 }
 </style>
-
 </head>
 
 <body>
 
-<div class="header">
-  <div class="logo">👑 Strategy Hub</div>
-  <div class="player" id="playerName"></div>
-</div>
+<h1>🎮 Strategy Hub</h1>
 
-<div class="container">
+<button onclick="goGames()">Play</button>
 
-  <div class="card" onclick="play()">
-    <div class="icon">⚔️</div>
-    <div class="title">Play</div>
-  </div>
-
-  <div class="card" onclick="leaderboard()">
-    <div class="icon">🏆</div>
-    <div class="title">Leaderboard</div>
-  </div>
-
-  <div class="card" onclick="logout()">
-    <div class="icon">🚪</div>
-    <div class="title">Logout</div>
-  </div>
-
-</div>
+<button id="adminBtn" style="display:none;" onclick="goAdmin()">👑 Admin</button>
 
 <script>
 
-/* SESSION CHECK */
 const user = JSON.parse(localStorage.getItem("user"));
 
 if(!user){
-  window.location.href="/login.html";
-} else {
-  document.getElementById("playerName").innerText = user.username;
+  window.location.href = "/login.html";
 }
 
-/* NAV */
-function play(){
-  window.location.href="/games.html";
+/* ADMIN VISIBILITY */
+if(user && user.isAdmin){
+  document.getElementById("adminBtn").style.display = "inline-block";
 }
 
-function leaderboard(){
-  window.location.href="/leaderboard.html";
+function goGames(){
+  window.location.href = "/games.html";
 }
 
-function logout(){
-  localStorage.removeItem("user");
-  window.location.href="/login.html";
+function goAdmin(){
+  window.location.href = "/admin.html";
 }
 
 </script>
