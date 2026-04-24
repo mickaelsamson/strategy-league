@@ -1,0 +1,84 @@
+<div id="navbar">
+
+  <div class="logo">🎮 Strategy Hub</div>
+
+  <div class="nav-links">
+    <button onclick="goHome()">🏠 Home</button>
+    <button onclick="goGames()">▶ Play</button>
+    <button onclick="goLeaderboard()">🏆 Leaderboard</button>
+    <button onclick="goProfile()">👤 Profile</button>
+    <button id="adminNav" onclick="goAdmin()" style="display:none;">👑 Admin</button>
+    <button onclick="logout()">🚪 Logout</button>
+  </div>
+
+</div>
+
+<style>
+#navbar{
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  height:60px;
+  background:#020617;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:0 20px;
+  border-bottom:1px solid #1f2937;
+  z-index:999;
+}
+
+.logo{
+  font-weight:bold;
+}
+
+.nav-links button{
+  margin-left:10px;
+  padding:8px 12px;
+  background:#1f2937;
+  border:none;
+  border-radius:8px;
+  color:white;
+  cursor:pointer;
+}
+
+.nav-links button:hover{
+  background:#374151;
+}
+</style>
+
+<script>
+
+const user = JSON.parse(localStorage.getItem("user"));
+
+if(user && user.isAdmin){
+  document.getElementById("adminNav").style.display = "inline-block";
+}
+
+function goHome(){
+  window.location.href = "/";
+}
+
+function goGames(){
+  window.location.href = "/games.html";
+}
+
+function goLeaderboard(){
+  window.location.href = "/leaderboard.html";
+}
+
+function goProfile(){
+  window.location.href = "/profile.html";
+}
+
+function goAdmin(){
+  window.location.href = "/admin.html";
+}
+
+function logout(){
+  localStorage.removeItem("user");
+  window.location.href = "/login.html";
+}
+
+</script>
