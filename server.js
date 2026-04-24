@@ -114,6 +114,33 @@ io.on("connection", socket => {
   socket.on("register_online", username=>{
     socket.username = username;
     onlineUsers[socket.id] = username;
+    
+    for(const gameId in chessGames){
+      const game = chessGames[gameId];
+      if(!game || game.ended) continue;
+
+      const player = game.players.find(p=>p.username === username);
+      if(!player) continue;
+
+      const previousSocketId = player.id;
+      player.id = socket.id;
+
+      if(previousSocketId && previousSocketId !== socket.id){
+        delete playerGames[previousSocketId];
+      }
+
+      playerGames[socket.id] = gameId;
+
+      socket.emit("chess_start",{
+        color: player.color,
+        fen: game.fen,
+        players:{
+          white: game.players.find(pl=>pl.color==="w").username,
+          black: game.players.find(pl=>pl.color==="b").username
+        }
+      });
+    }
+
     update();
   });
 
@@ -218,8 +245,16 @@ io.on("connection", socket => {
   /* ===== MOVE ===== */
   socket.on("chess_move", ({fen})=>{
 
-    // 🔥 FIX 3 : récupération fiable
-    const gameId = playerGames[socket.id];
+   let gameId = playerGames[socket.id];
+    if(!gameId && socket.username){
+      gameId = Object.keys(chessGames).find(id =>
+        chessGames[id]?.players?.some(p=>p.username === socket.username)
+      );
+      if(gameId){
+        playerGames[socket.id] = gameId;
+      }
+    }
+
     if(!gameId) return;
 
     const game = chessGames[gameId];
