@@ -159,7 +159,6 @@ io.on('connection', socket=>{
       status:"idle"
     };
 
-    /* 🔥 RECONNECT FIX */
     const gameId = playerGames[username];
     const game = chessGames[gameId];
 
@@ -192,10 +191,7 @@ io.on('connection', socket=>{
     update();
   });
 
-  /* ===== LOBBY ===== */
-
   socket.on("create_lobby", ({name,time})=>{
-
     if(!isGameAllowed()){
       socket.emit("error_message","Games disabled by admin");
       return;
@@ -214,7 +210,6 @@ io.on('connection', socket=>{
   });
 
   socket.on("join_lobby", id=>{
-
     if(!isGameAllowed()){
       socket.emit("error_message","Games disabled by admin");
       return;
@@ -228,7 +223,6 @@ io.on('connection', socket=>{
   });
 
   socket.on("toggle_ready", id=>{
-
     if(!isGameAllowed()){
       socket.emit("error_message","Games disabled by admin");
       return;
@@ -271,8 +265,6 @@ io.on('connection', socket=>{
     }
   });
 
-  /* ===== MOVE ===== */
-
   socket.on("chess_move", ({fen})=>{
     const g=chessGames[socket.chessGame];
     if(!g || socket.color!==g.turn) return;
@@ -282,8 +274,6 @@ io.on('connection', socket=>{
 
     io.to(g.id).emit("chess_update",{fen});
   });
-
-  /* ===== RESIGN FIX ===== */
 
   socket.on("resign", async ()=>{
     const gameId = playerGames[socket.username];
@@ -302,8 +292,6 @@ io.on('connection', socket=>{
     delete playerGames[game.players[0].username];
     delete playerGames[game.players[1].username];
   });
-
-  /* ===== DISCONNECT FIX ===== */
 
   socket.on("disconnect", ()=>{
     const username = socket.username;
@@ -347,103 +335,87 @@ io.on('connection', socket=>{
     update();
   });
 
-  /* ===== REMATCH ===== */
+  /* ===== REMATCH FIXED ===== */
 
- socket.on("rematch", ()=>{
+  socket.on("rematch", ()=>{
 
-  const username = socket.username;
-  const gameId = playerGames[username];
-  const game = chessGames[gameId];
+    const username = socket.username;
+    const gameId = playerGames[username];
+    const game = chessGames[gameId];
 
-  if(!game) return;
+    if(!game) return;
 
-  if(!rematchRequests[gameId]){
-    rematchRequests[gameId] = new Set();
-  }
-
-  rematchRequests[gameId].add(username);
-
-  console.log("REMATCH:", gameId, [...rematchRequests[gameId]]);
-
-  if(rematchRequests[gameId].size === 2){
-
-    rematchRequests[gameId].clear();
-
-    /* 🔥 SWAP COLORS */
-    game.players = game.players.map(p=>{
-      const newColor = p.color === 'w' ? 'b' : 'w';
-
-      const s = io.sockets.sockets.get(p.id);
-      if(s){
-        s.color = newColor;
-      }
-
-      return {
-        id: p.id,
-        username: p.username,
-        color: newColor
-      };
-    });
-
-    /* 🔥 RESET GAME */
-    game.fen = null;
-    game.turn = 'w';
-    game.ended = false;
-
-    /* 🔥 RESTART */
-    game.players.forEach(p=>{
-      const s = io.sockets.sockets.get(p.id);
-      if(s){
-        s.emit("chess_start",{
-          color: p.color,
-          players:{
-            white: game.players.find(pl=>pl.color==='w').username,
-            black: game.players.find(pl=>pl.color==='b').username
-          }
-        });
-      }
-    });
-
-  }else{
-    const opponent = game.players.find(p=>p.username !== username);
-
-    if(opponent){
-      io.to(opponent.id).emit("rematch_requested",{from:username});
+    if(!rematchRequests[gameId]){
+      rematchRequests[gameId] = new Set();
     }
-  }
+
+    rematchRequests[gameId].add(username);
+
+    console.log("REMATCH:", gameId, [...rematchRequests[gameId]]);
+
+    if(rematchRequests[gameId].size === 2){
+
+      rematchRequests[gameId].clear();
+
+      game.players = game.players.map(p=>{
+        const newColor = p.color === 'w' ? 'b' : 'w';
+
+        const s = io.sockets.sockets.get(p.id);
+        if(s) s.color = newColor;
+
+        return { id:p.id, username:p.username, color:newColor };
+      });
+
+      game.fen = null;
+      game.turn = 'w';
+      game.ended = false;
+
+      game.players.forEach(p=>{
+        const s = io.sockets.sockets.get(p.id);
+        if(s){
+          s.emit("chess_start",{
+            color:p.color,
+            players:{
+              white: game.players.find(pl=>pl.color==='w').username,
+              black: game.players.find(pl=>pl.color==='b').username
+            }
+          });
+        }
+      });
+
+    }else{
+      const opponent = game.players.find(p=>p.username!==username);
+      if(opponent){
+        io.to(opponent.id).emit("rematch_requested",{from:username});
+      }
+    }
+
+  });
 
 });
+
 /* ================= LEADERBOARD ================= */
 
 app.get("/api/leaderboard/:type/:username", async (req,res)=>{
-
-  const { type, username } = req.params;
-
   try{
 
-    const sortField =
-      type === "strategy" ? "strategyPoints" : "elo";
+    const { type, username } = req.params;
 
-    const users = await User.find().sort({ [sortField]: -1 });
+    const users = await User.find().sort({ elo:-1 });
 
-    const top10 = users.slice(0,10);
+    const top = users.slice(0,10);
 
-    const rank = users.findIndex(u=>u.username===username) + 1;
-
+    const rank = users.findIndex(u=>u.username===username)+1;
     const me = users.find(u=>u.username===username);
 
     res.json({
-      top: top10.map(u=>({
-        username: u.username,
-        value: type==="strategy"
-          ? (u.strategyPoints || 0)
-          : (u.elo || 1000)
+      top: top.map(u=>({
+        username:u.username,
+        value:u.elo || 1000
       })),
       me: me ? {
-        username: me.username,
-        value: type==="strategy"
-          ? (me.strategyPoints || 0)
-          : (me.elo || 1000),
+        username:me.username,
+        value:me.elo || 1000,
         rank
       } : null
     });
@@ -452,7 +424,6 @@ app.get("/api/leaderboard/:type/:username", async (req,res)=>{
     console.error(err);
     res.status(500).json({top:[],me:null});
   }
-
 });
 
 /* ================= START ================= */
