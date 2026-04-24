@@ -87,7 +87,7 @@ button:hover{background:#2563eb;}
   <button onclick="goMain()">Back to Main Menu</button>
 </div>
 
-<h3>Lobbies</h3>
+<h3 id="lobbiesTitle">Lobbies</h3>
 <div id="lobbies"></div>
 
 <div id="boardWrapper">
@@ -176,6 +176,12 @@ function toggleReady(id){ socket.emit("toggle_ready", id); }
 /* ================= GAME START ================= */
 
 socket.on("chess_start", data=>{
+
+  /* 🔥 SEULE MODIF : cacher le lobby */
+  document.getElementById("lobbyControls").style.display = "none";
+  document.getElementById("lobbies").style.display = "none";
+  document.getElementById("lobbiesTitle").style.display = "none";
+
   gameOver = false;
   selected = null;
   possibleMoves = [];
@@ -197,15 +203,13 @@ socket.on("chess_start", data=>{
   draw();
 });
 
-/* ================= UPDATE ================= */
+/* ===== RESTE STRICTEMENT IDENTIQUE ===== */
 
 socket.on("chess_update", data=>{
   if(data.fen) game.load(data.fen);
   updateUI();
   draw();
 });
-
-/* ================= DISCONNECT ================= */
 
 socket.on("opponent_disconnected", data=>{
   document.getElementById("status").innerText =
@@ -216,8 +220,6 @@ socket.on("disconnect_timer", data=>{
   document.getElementById("disconnectTimer").innerText =
     data.time > 0 ? "Waiting: " + data.time + "s" : "";
 });
-
-/* ================= END GAME ================= */
 
 function endGameUI(){
   gameOver = true;
@@ -235,14 +237,10 @@ socket.on("player_left", data=>{
   endGameUI();
 });
 
-/* ================= ELO ================= */
-
 socket.on("elo_update", data=>{
   document.getElementById("status").innerText =
     "ELO: " + data.elo + " (" + (data.gain>0?"+":"") + data.gain + ")";
 });
-
-/* ================= REMATCH ================= */
 
 function rematch(){
   socket.emit("rematch");
@@ -254,10 +252,7 @@ socket.on("rematch_requested", data=>{
     data.from + " wants a rematch";
 });
 
-/* ================= UI ================= */
-
 function updateUI(){
-
   document.getElementById("turn").innerText =
     "Turn: " + (game.turn() === playerColor ? myName : opponentName);
 
@@ -273,8 +268,6 @@ function updateUI(){
     document.getElementById("status").innerText = "";
   }
 }
-
-/* ================= CHECK VISUEL ================= */
 
 function getKingSquare(color){
   const board = game.board();
@@ -292,8 +285,6 @@ function getAttackers(square){
   const moves = game.moves({verbose:true});
   return moves.filter(m => m.to === square).map(m => m.from);
 }
-
-/* ================= DRAW ================= */
 
 function draw(){
 
@@ -348,8 +339,6 @@ function draw(){
   }
 }
 
-/* ================= MOVE ================= */
-
 function clickCell(sq){
 
   if(game.turn()!==playerColor || gameOver) return;
@@ -372,8 +361,6 @@ function clickCell(sq){
   updateUI();
   draw();
 }
-
-/* ================= BUTTONS ================= */
 
 function resign(){
   if(confirm("Abandon game?")){
