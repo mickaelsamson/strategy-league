@@ -1,5 +1,9 @@
 const socket=io();
 const user=JSON.parse(localStorage.getItem("user"));
+if(!user){
+ window.location="/login.html";
+}
+socket.emit("register_online",user.username);
 
 let board,turn,color;
 
@@ -77,4 +81,3 @@ socket.on("othello_state",data=>{
 socket.on("othello_end",data=>{
  showEnd(data.winner);
 });
-
