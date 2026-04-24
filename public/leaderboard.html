@@ -12,19 +12,29 @@ body{
   text-align:center;
 }
 
+/* ===== TABS ===== */
 .tabs{
   margin:20px;
 }
 
 button{
-  padding:10px;
+  padding:10px 14px;
   margin:5px;
   border-radius:8px;
+  border:none;
   cursor:pointer;
+  background:#1f2937;
+  color:white;
+  transition:0.2s;
 }
 
+button:hover{
+  background:#3b82f6;
+}
+
+/* ===== TABLE ===== */
 .table{
-  width:400px;
+  width:420px;
   margin:auto;
   text-align:left;
 }
@@ -32,15 +42,31 @@ button{
 .row{
   display:flex;
   justify-content:space-between;
-  padding:8px;
+  padding:10px;
   border-bottom:1px solid #333;
 }
 
+/* TOP 3 */
 .top{
   color:gold;
   font-weight:bold;
 }
 
+/* CURRENT PLAYER */
+.me{
+  background:#1e293b;
+  border:1px solid #3b82f6;
+  border-radius:6px;
+}
+
+/* RANK INFO */
+.rank{
+  margin-top:20px;
+  font-size:18px;
+  color:#38bdf8;
+}
+
+/* LOADING */
 .loading{
   margin-top:20px;
   color:#94a3b8;
@@ -59,35 +85,47 @@ button{
 </div>
 
 <div id="table" class="table"></div>
+<div id="me"></div>
 
 <script>
+
+const user = JSON.parse(localStorage.getItem("user"));
 
 async function load(type){
 
   const table = document.getElementById("table");
+  const meDiv = document.getElementById("me");
 
   table.innerHTML = "<div class='loading'>Loading...</div>";
+  meDiv.innerHTML = "";
 
   try{
 
-    const res = await fetch("/api/leaderboard/"+type);
+    const res = await fetch(`/api/leaderboard/${type}/${user.username}`);
     const data = await res.json();
 
-    if(!data || data.length === 0){
+    /* ===== EMPTY ===== */
+    if(!data.top || data.top.length === 0){
       table.innerHTML = "<div class='loading'>No players yet</div>";
       return;
     }
 
-    table.innerHTML = data.map((u,i)=>`
-      <div class="row ${i<3?'top':''}">
+    /* ===== TOP 10 ===== */
+    table.innerHTML = data.top.map((u,i)=>`
+      <div class="row ${i<3?'top':''} ${u.username===user.username?'me':''}">
         <span>#${i+1} ${u.username}</span>
-        <span>${
-          type==='chess'?u.chessElo:
-          type==='strategy'?u.strategyPoints:
-          u.xp
-        }</span>
+        <span>${u.value}</span>
       </div>
     `).join("");
+
+    /* ===== IF NOT IN TOP ===== */
+    if(data.me && data.me.rank > 10){
+      meDiv.innerHTML = `
+        <div class="rank">
+          You are ranked #${data.me.rank} (${data.me.value})
+        </div>
+      `;
+    }
 
   }catch(e){
     table.innerHTML = "<div class='loading'>Error loading leaderboard</div>";
