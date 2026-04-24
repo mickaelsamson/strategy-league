@@ -12,6 +12,21 @@ const UserSchema = new mongoose.Schema({
   xp: { type: Number, default: 0 },
   elo: { type: Number, default: 1000 },
   strategyPoints: { type: Number, default: 0 },
+  wins: { type: Number, default: 0 },
+  losses: { type: Number, default: 0 },
+  draws: { type: Number, default: 0 },
+  matchHistory: {
+    type: [
+      {
+        result: { type: String, enum: ["win", "loss", "draw"], required: true },
+        opponent: { type: String, default: "Unknown" },
+        xpChange: { type: Number, default: 0 },
+        reason: { type: String, default: "game_end" },
+        playedAt: { type: Date, default: Date.now }
+      }
+    ],
+    default: []
+  },
 
   isAdmin: { type: Boolean, default: false } // 👑 AJOUT
 });
