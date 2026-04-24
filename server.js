@@ -103,8 +103,6 @@ app.post("/api/admin/override", async (req,res)=>{
 
     io.emit("games_status",{enabled});
 
-    console.log("ADMIN SET:", enabled);
-
     res.json({success:true});
 
   }catch(err){
@@ -275,7 +273,7 @@ io.on('connection', socket=>{
     io.to(g.id).emit("chess_update",{fen});
   });
 
-  /* 🔥 FIX UNIQUE : on ne delete plus playerGames */
+  /* 🔥 FIX FINAL REMATCH */
   socket.on("resign", async ()=>{
 
     const gameId = playerGames[socket.username];
@@ -290,12 +288,9 @@ io.on('connection', socket=>{
       winner: opponent.username
     });
 
-    delete chessGames[game.id];
+    /* ✅ ON GARDE LA GAME POUR REMATCH */
+    game.ended = true;
 
-    /* ❌ supprimé volontairement :
-    delete playerGames[game.players[0].username];
-    delete playerGames[game.players[1].username];
-    */
   });
 
   socket.on("disconnect", ()=>{
