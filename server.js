@@ -275,7 +275,7 @@ io.on('connection', socket=>{
     io.to(g.id).emit("chess_update",{fen});
   });
 
-  /* 🔥 FIX ABANDON UNIQUEMENT */
+  /* 🔥 FIX UNIQUE : on ne delete plus playerGames */
   socket.on("resign", async ()=>{
 
     const gameId = playerGames[socket.username];
@@ -291,9 +291,11 @@ io.on('connection', socket=>{
     });
 
     delete chessGames[game.id];
+
+    /* ❌ supprimé volontairement :
     delete playerGames[game.players[0].username];
     delete playerGames[game.players[1].username];
-
+    */
   });
 
   socket.on("disconnect", ()=>{
