@@ -224,9 +224,10 @@ let playerColor = null;
 let myName = "";
 let opponentName = "";
 let gameOver = false;
-
+let gameEndSent = false;
 function applyStartData(data){
   gameOver = false;
+  gameEndSent = false;
   selected = null;
   possibleMoves = [];
 
@@ -425,6 +426,7 @@ function clickCell(sq){
 
     if(move){
       socket.emit("chess_move",{fen:game.fen()});
+      sendGameEndIfNeeded();
     }
   }
 
@@ -432,6 +434,32 @@ function clickCell(sq){
   draw();
 }
 
+  function sendGameEndIfNeeded(){
+  if(gameEndSent || gameOver) return;
+
+  if(game.in_checkmate()){
+    gameEndSent = true;
+    socket.emit("chess_game_end", {
+      winner: myName,
+      reason: "checkmate"
+    });
+    return;
+  }
+
+  if(game.in_stalemate()){
+    gameEndSent = true;
+    socket.emit("chess_game_end", { reason: "stalemate" });
+    return;
+  }
+
+  if(game.in_draw() || game.in_threefold_repetition() || game.insufficient_material()){
+    gameEndSent = true;
+    socket.emit("chess_game_end", { reason: "draw" });
+  }
+}
+
+  
+  
 function resign(){
   if(gameOver) return;
   if(confirm("Abandon game?")){
