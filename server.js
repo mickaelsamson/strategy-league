@@ -92,6 +92,63 @@ async function applyElo(game, winnerName){
   });
 }
 
+/* ================= XP SYSTEM (ADDED) ================= */
+
+async function applyXP(game, winnerName, reason){
+
+  const [p1,p2] = game.players;
+
+  const u1 = await User.findOne({username:p1.username});
+  const u2 = await User.findOne({username:p2.username});
+
+  if(!u1 || !u2) return;
+
+  const players = [
+    { user:u1, data:p1 },
+    { user:u2, data:p2 }
+  ];
+
+  for(const p of players){
+
+    let xp = 0;
+
+    const isWinner = p.data.username === winnerName;
+    const opponent = players.find(x=>x.data.username !== p.data.username);
+
+    // 🎮 Participation
+    xp += 1;
+
+    // 🏆 Win
+    if(isWinner){
+      xp += 5;
+
+      // 👑 Beat admin
+      if(opponent.data.username === "The Emperor"){
+        xp += 5;
+      }
+
+      // 📈 Beat higher ELO
+      if((opponent.user.elo || 1000) > (p.user.elo || 1000)){
+        xp += 2;
+      }
+    }
+
+    // ❌ Resign / disconnect penalty
+    if((reason === "resign" || reason === "disconnect") && !isWinner){
+      xp -= 1;
+    }
+
+    p.user.xp = (p.user.xp || 0) + xp;
+
+    await p.user.save();
+
+    const s = io.sockets.sockets.get(p.data.id);
+    if(s){
+      s.emit("xp_update",{xp:p.user.xp, gain:xp});
+    }
+  }
+}
+
 /* ================= ADMIN ROUTE ================= */
 
 app.post("/api/admin/override", async (req,res)=>{
@@ -286,6 +343,7 @@ io.on('connection', socket=>{
     const opponent = game.players.find(p=>p.username !== socket.username);
 
     await applyElo(game, opponent.username);
+    await applyXP(game, opponent.username, "resign");
 
     io.to(game.id).emit("player_left",{
       winner: opponent.username
@@ -321,6 +379,7 @@ io.on('connection', socket=>{
             clearInterval(interval);
 
             await applyElo(game, opponent.username);
+            await applyXP(game, opponent.username, "disconnect");
 
             io.to(opponent.id).emit("player_left",{winner:opponent.username});
 
