@@ -124,6 +124,84 @@ async function update(){
   io.emit("online_users", users);
   io.emit("lobbies_update", lobbies);
 }
+function computeEloDelta(winnerElo, loserElo, kFactor = 32){
+  const expectedWinner = 1 / (1 + Math.pow(10, (loserElo - winnerElo) / 400));
+  return Math.max(8, Math.round(kFactor * (1 - expectedWinner)));
+}
+
+async function applyRankedResult(game, winnerUsername, reason = "game_end"){
+  if(!game || game.rated) return;
+  if(!winnerUsername) return;
+
+  const loser = game.players.find(p => p.username !== winnerUsername);
+  if(!loser) return;
+
+  const [winnerUser, loserUser] = await Promise.all([
+    User.findOne({ username: winnerUsername }),
+    User.findOne({ username: loser.username })
+  ]);
+
+  if(!winnerUser || !loserUser) return;
+
+  const eloDelta = computeEloDelta(winnerUser.elo, loserUser.elo);
+
+  winnerUser.elo += eloDelta;
+  loserUser.elo = Math.max(100, loserUser.elo - eloDelta);
+
+  winnerUser.xp += 25;
+  loserUser.xp += 5;
+
+  await Promise.all([winnerUser.save(), loserUser.save()]);
+
+  game.rated = true;
+  game.result = {
+    winner: winnerUsername,
+    loser: loser.username,
+    reason,
+    eloDelta
+  };
+}
+
+async function getLeaderboard(type){
+  if(type === "strategy"){
+    return User.find({}, { username: 1, strategyPoints: 1, _id: 0 })
+      .sort({ strategyPoints: -1, username: 1 })
+      .lean();
+  }
+
+  if(type === "chess"){
+    return User.find({}, { username: 1, elo: 1, _id: 0 })
+      .sort({ elo: -1, username: 1 })
+      .lean();
+  }
+
+  return User.find({}, { username: 1, xp: 1, _id: 0 })
+    .sort({ xp: -1, username: 1 })
+    .lean();
+}
+
+app.get("/api/leaderboard/:type/:username", async (req,res)=>{
+  try{
+    const { type, username } = req.params;
+    const users = await getLeaderboard(type);
+
+    const valueKey = type === "chess" ? "elo" : (type === "strategy" ? "strategyPoints" : "xp");
+
+    const list = users.map((u, index) => ({
+      username: u.username,
+      value: u[valueKey] || 0,
+      rank: index + 1
+    }));
+
+    const me = list.find(u => u.username === username) || null;
+    const top = list.slice(0,10).map(({ username: u, value }) => ({ username: u, value }));
+
+    res.json({ top, me: me ? { rank: me.rank, value: me.value } : null });
+  }catch(err){
+    console.error("Leaderboard error:", err);
+    res.status(500).json({ error: "Leaderboard unavailable" });
+  }
+});
 
 /* ================= SOCKET ================= */
 
@@ -267,7 +345,8 @@ function emitGameStart(game){
         ],
         turn:"w",
         fen:null,
-        ended:false
+        ended:false,
+        rated:false
       };
 
       emitGameStart(chessGames[gameId]);
@@ -309,11 +388,54 @@ function emitGameStart(game){
     const quitter = game.players.find(p=>p.id === socket.id || p.username === socket.username);
     const winner = game.players.find(p=>p.username !== quitter?.username);
 
-    emitGameOver(gameId, {
-      reason: "resign",
-      message: quitter ? `${quitter.username} abandoned the game.` : "A player abandoned the game.",
-      winner: winner?.username || null
+    applyRankedResult(game, winner?.username, "resign")
+      .catch(err=>console.error("ELO update error:", err))
+      .finally(()=>{
+        emitGameOver(gameId, {
+          reason: "resign",
+          message: quitter ? `${quitter.username} abandoned the game.` : "A player abandoned the game.",
+          winner: winner?.username || null
+        });
+      });
+  });
+
+  socket.on("chess_game_end", ({ winner, reason } = {})=>{
+    const gameId = findGameIdForSocket(socket);
+    if(!gameId) return;
+
+    const game = chessGames[gameId];
+    if(!game || game.ended) return;
+
+    const inGame = game.players.some(p => p.username === socket.username);
+    if(!inGame) return;
+
+    const validWinner = winner && game.players.some(p => p.username === winner);
+    const winnerName = validWinner ? winner : null;
+    const endReason = reason || "completed";
+
+    const messageByReason = {
+      checkmate: "Checkmate.",
+      timeout: "Time is over.",
+      stalemate: "Draw by stalemate.",
+      draw: "Draw."
+    };
+
+    const message = messageByReason[endReason] || "Game finished.";
+
+    const finishGame = ()=>emitGameOver(gameId, {
+      reason: endReason,
+      message,
+      winner: winnerName
     });
+
+    if(!winnerName){
+      finishGame();
+      return;
+    }
+
+    applyRankedResult(game, winnerName, endReason)
+      .catch(err=>console.error("ELO update error:", err))
+      .finally(finishGame);
   });
 
   /* ===== REMATCH ===== */
