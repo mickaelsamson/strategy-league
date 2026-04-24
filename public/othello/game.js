@@ -6,6 +6,8 @@ if(!user){
 socket.emit("register_online",user.username);
 
 let board,turn,color;
+let myName=user.username;
+let opponentName="";
 
 function playSound(){
  const s=document.getElementById("flipSound");
@@ -31,23 +33,7 @@ function draw(){
  for(let y=0;y<8;y++){
   for(let x=0;x<8;x++){
    const cell=document.createElement("div");
-   cell.className="cell";
-   cell.onclick=()=>play(x,y);
-
-   if(board[y][x]){
-    const d=document.createElement("div");
-    d.className="disk "+board[y][x]+" flip";
-    cell.appendChild(d);
-   }
-
-   el.appendChild(cell);
-  }
- }
-
- const s=count();
- document.getElementById("score").innerText="⚫ "+s.b+" - ⚪ "+s.w;
-
- const turnEl=document.getElementById("turn");
+@@ -51,33 +53,61 @@ function draw(){
  if(turn===color){turnEl.className="your-turn";turnEl.innerText="Your turn";}
  else{turnEl.className="opponent-turn";turnEl.innerText="Opponent";}
 }
@@ -73,11 +59,39 @@ function showEnd(winner){
 
 function goBack(){window.location="/othello/index.html";}
 
+function applyPlayers(players=[]){
+ const me=players.find(p=>p.username===user.username);
+ const opponent=players.find(p=>p.username!==user.username);
+ if(me){
+  color=me.color;
+  document.getElementById("youColor").innerText=me.color==="black"?"Black ⚫":"White ⚪";
+ }
+ if(opponent){
+  opponentName=opponent.username;
+  document.getElementById("opponentName").innerText=opponentName;
+  document.getElementById("opponentColor").innerText=opponent.color==="black"?"Black ⚫":"White ⚪";
+ }
+ document.getElementById("youName").innerText=myName;
+}
+
+function resign(){
+ socket.emit("othello_resign");
+}
+
+socket.on("online_users",users=>{
+ document.getElementById("players").innerHTML=
+  Object.entries(users).map(([name,data])=>`<div class="player">${name} (${data.elo})</div>`).join("");
+});
+
 socket.on("othello_state",data=>{
  board=data.board;turn=data.turn;color=data.color;
+ if(Array.isArray(data.players)) applyPlayers(data.players);
  draw();
 });
 
 socket.on("othello_end",data=>{
- showEnd(data.winner);
+ const message=data.message||`${data.winner} wins!`;
+ const el=document.getElementById("endScreen");
+ el.style.display="flex";
+ document.getElementById("winnerText").innerText=message;
 });
