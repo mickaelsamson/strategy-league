@@ -12,6 +12,7 @@ const UserSchema = new mongoose.Schema({
   xp: { type: Number, default: 0 },
   elo: { type: Number, default: 1000 },
   strategyPoints: { type: Number, default: 0 },
+  othelloPoints: { type: Number, default: 0 },
   wins: { type: Number, default: 0 },
   losses: { type: Number, default: 0 },
   draws: { type: Number, default: 0 },
