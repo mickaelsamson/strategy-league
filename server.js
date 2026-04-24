@@ -90,8 +90,21 @@ let pendingDisconnects = {};
 
 /* ================= UTILS ================= */
 
-function update(){
-  io.emit("online_users", onlineUsers);
+async function update(){
+
+  // 🔥 FIX players online with elo
+  const users = {};
+
+  for(const id in onlineUsers){
+    const username = onlineUsers[id];
+    const user = await User.findOne({username});
+
+    users[username] = {
+      elo: user?.elo || 1000
+    };
+  }
+
+  io.emit("online_users", users);
   io.emit("lobbies_update", lobbies);
 }
 
@@ -151,7 +164,7 @@ io.on("connection", socket => {
     update();
   });
 
-  /* ===== READY (FIX COMPLET) ===== */
+  /* ===== READY ===== */
   socket.on("toggle_ready", id=>{
 
     const lobby = lobbies[id];
@@ -162,7 +175,6 @@ io.on("connection", socket => {
 
     player.ready = !player.ready;
 
-    // 🔥 START GAME
     if(lobby.players.length === 2 && lobby.players.every(p=>p.ready)){
 
       const gameId = Math.random().toString(36).substr(2,9);
@@ -197,6 +209,26 @@ io.on("connection", socket => {
     }
 
     update();
+  });
+
+  /* ===== 🔥 MOVE FIX ===== */
+  socket.on("chess_move", ({fen})=>{
+
+    const gameId = playerGames[socket.username];
+    if(!gameId) return;
+
+    const game = chessGames[gameId];
+    if(!game) return;
+
+    game.fen = fen;
+
+    game.players.forEach(p=>{
+      const s = io.sockets.sockets.get(p.id);
+      if(s){
+        s.emit("chess_update",{fen});
+      }
+    });
+
   });
 
   /* ===== DISCONNECT ===== */
