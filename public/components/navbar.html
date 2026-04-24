@@ -3,12 +3,12 @@
   <div class="logo">🎮 Strategy Hub</div>
 
   <div class="nav-links">
-    <button onclick="goHome()">🏠 Home</button>
-    <button onclick="goGames()">▶ Play</button>
-    <button onclick="goLeaderboard()">🏆 Leaderboard</button>
-    <button onclick="goProfile()">👤 Profile</button>
-    <button id="adminNav" onclick="goAdmin()" style="display:none;">👑 Admin</button>
-    <button onclick="logout()">🚪 Logout</button>
+    <button data-link="home">🏠 Home</button>
+    <button data-link="games">▶ Play</button>
+    <button data-link="leaderboard">🏆 Leaderboard</button>
+    <button data-link="profile">👤 Profile</button>
+    <button id="adminNav" data-link="admin" style="display:none;">👑 Admin</button>
+    <button data-link="logout">🚪 Logout</button>
   </div>
 
 </div>
@@ -20,13 +20,16 @@
   left:0;
   right:0;
   height:60px;
-  background:#020617;
   display:flex;
   justify-content:space-between;
   align-items:center;
   padding:0 20px;
   border-bottom:1px solid #1f2937;
   z-index:999;
+
+  /* 🔥 effet glass */
+  background: rgba(2,6,23,0.8);
+  backdrop-filter: blur(10px);
 }
 
 .logo{
@@ -41,44 +44,11 @@
   border-radius:8px;
   color:white;
   cursor:pointer;
+  transition:0.2s;
 }
 
 .nav-links button:hover{
   background:#374151;
+  transform: translateY(-2px);
 }
 </style>
-
-<script>
-
-const user = JSON.parse(localStorage.getItem("user"));
-
-if(user && user.isAdmin){
-  document.getElementById("adminNav").style.display = "inline-block";
-}
-
-function goHome(){
-  window.location.href = "/";
-}
-
-function goGames(){
-  window.location.href = "/games.html";
-}
-
-function goLeaderboard(){
-  window.location.href = "/leaderboard.html";
-}
-
-function goProfile(){
-  window.location.href = "/profile.html";
-}
-
-function goAdmin(){
-  window.location.href = "/admin.html";
-}
-
-function logout(){
-  localStorage.removeItem("user");
-  window.location.href = "/login.html";
-}
-
-</script>
