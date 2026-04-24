@@ -257,42 +257,9 @@ function applyStartData(data){
   opponentTime = 60;
   startTimer();
   updateTimerUI();
-  updateUI();
-  draw();
-}
-
- function applyStartData(data){
-  gameOver = false;
-  selected = null;
-  possibleMoves = [];
-
-  playerColor = data.color;
-
-  myName = user.username;
-  opponentName =
-    user.username === data.players.white
-      ? data.players.black
-      : data.players.white;
-
-  document.getElementById("youName").innerText = myName;
-  document.getElementById("opponentName").innerText = opponentName;
-
-  document.getElementById("youColor").innerText =
-    playerColor === 'w' ? "White" : "Black";
-
-  document.getElementById("opponentColor").innerText =
-    playerColor === 'w' ? "Black" : "White";
-
-  if(data.fen){
-    game.load(data.fen);
-  }else{
-    game.reset();
-  }
-
-  myTime = 60;
-  opponentTime = 60;
-  startTimer();
-  updateTimerUI();
+  document.getElementById("status").innerText = "";
+  document.getElementById("rematchBtn").style.display = "none";
+  document.getElementById("endGameBtn").style.display = "none";
   updateUI();
   draw();
 }
@@ -356,6 +323,31 @@ socket.on("chess_update", data=>{
   updateTimerUI();
 });
 
+socket.on("chess_game_over", data=>{
+  gameOver = true;
+  if(timerInterval) clearInterval(timerInterval);
+
+  const iWon = data.winner && data.winner === myName;
+  const message = data.message || "Game finished.";
+  const winnerMessage = data.winner
+    ? (iWon ? " You won 🎉" : ` Winner: ${data.winner}`)
+    : "";
+
+  document.getElementById("status").innerText = `🏁 ${message}${winnerMessage}`;
+  document.getElementById("turn").innerText = "Game over";
+  document.getElementById("rematchBtn").style.display = "inline-block";
+  document.getElementById("endGameBtn").style.display = "inline-block";
+});
+
+socket.on("chess_rematch_status", data=>{
+  if(!gameOver) return;
+  const requestedBy = data.requestedBy || [];
+  if(requestedBy.length < 2){
+    document.getElementById("status").innerText = "⌛ Waiting for opponent rematch...";
+  }
+});
+  
+  
 function updateUI(){
   document.getElementById("turn").innerText =
     game.turn() === playerColor ? "🟢 Your turn" : "🔴 Opponent turn";
@@ -441,9 +433,15 @@ function clickCell(sq){
 }
 
 function resign(){
+  if(gameOver) return;
   if(confirm("Abandon game?")){
     socket.emit("resign");
   }
+}
+function rematch(){
+  if(!gameOver) return;
+  socket.emit("rematch");
+  document.getElementById("status").innerText = "⌛ Rematch requested...";
 }
 
 function goMain(){
