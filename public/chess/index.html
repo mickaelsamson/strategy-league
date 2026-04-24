@@ -32,6 +32,15 @@ h1{margin-bottom:20px;}
   border-radius:15px;
   margin-bottom:20px;
 }
+  
+.rules{
+  text-align:left;
+  max-width:520px;
+  margin:10px auto 0;
+  color:#cbd5e1;
+  font-size:14px;
+  line-height:1.5;
+}
 
 button{
   padding:10px 15px;
@@ -143,13 +152,18 @@ fetch("/components/navbar.html")
 <div class="card">
   <input id="name" placeholder="Lobby name">
   <select id="mode">
-    <option value="30">Blitz</option>
-    <option value="60">Rapid</option>
-    <option value="120">Snail</option>
+    <option value="120">Bullet (2 min)</option>
+    <option value="300">Blitz (5 min)</option>
+    <option value="600">Fast (10 min)</option>
+    <option value="1800">Slow (30 min)</option>
   </select>
   <br>
   <button onclick="createLobby()">Create Lobby</button>
   <button class="secondary" onclick="goBack()">⬅ Back</button>
+  <div class="rules">
+    <strong>Time controls:</strong> Bullet 2 min, Blitz 5 min, Fast 10 min, Slow 30 min.<br>
+    <strong>Rules:</strong> timer at 0 = loss, and a disconnection longer than 1 minute = forfeit.
+  </div>
 </div>
 
 <div class="card">
@@ -200,7 +214,13 @@ async function checkGamesAccess(){
   }
 
   socket.emit("register_online", user.username);
-
+  const modeLabels = {
+    120: "Bullet (2 min)",
+    300: "Blitz (5 min)",
+    600: "Fast (10 min)",
+    1800: "Slow (30 min)"
+  };
+  
   socket.on("lobbies_update", lobbies=>{
 
     const list = Object.values(lobbies);
@@ -212,8 +232,8 @@ async function checkGamesAccess(){
 
         return `
           <div class="lobby">
-            <strong>${l.name}</strong> (${l.time}s)
-
+            <strong>${l.name}</strong> (${modeLabels[l.time] || `${l.time}s`})
+            
             <div class="players">
               ${l.players.map(p=>`
                 <span class="${p.ready?'ready':'notready'}">
