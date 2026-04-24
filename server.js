@@ -58,14 +58,20 @@ app.post("/api/login", async (req,res)=>{
   try{
     const { email, password } = req.body;
 
+    if(!email || !password){
+      return res.status(400).json({error:"Missing fields"});
+    }
+
     const user = await User.findOne({email, password});
-    if(!user) return res.status(400).json({error:"Invalid credentials"});
+    if(!user){
+      return res.status(400).json({error:"Invalid credentials"});
+    }
 
     res.json({
       username:user.username,
-      email:user.email,
+      email:user.email,           // 🔥 AJOUT
       elo:user.elo || 1000,
-      isAdmin:user.isAdmin || false
+      isAdmin:user.isAdmin || false // 🔥 AJOUT
     });
 
   }catch(err){
@@ -74,7 +80,7 @@ app.post("/api/login", async (req,res)=>{
   }
 });
 
-/* ================= ADMIN ROUTES ================= */
+/* ================= ADMIN ROUTE ================= */
 
 app.post("/api/admin/override", async (req,res)=>{
   try{
@@ -89,26 +95,6 @@ app.post("/api/admin/override", async (req,res)=>{
     io.emit("games_status",{enabled});
 
     res.json({success:true});
-
-  }catch(err){
-    console.error(err);
-    res.status(500).json({error:"Server error"});
-  }
-});
-
-app.post("/api/admin/set-schedule", async (req,res)=>{
-  try{
-    const { adminEmail, startHour, endHour } = req.body;
-
-    const admin = await User.findOne({email:adminEmail});
-    if(!admin || !admin.isAdmin){
-      return res.status(403).json({error:"Not admin"});
-    }
-
-    schedule.startHour = startHour;
-    schedule.endHour = endHour;
-
-    res.json({success:true, schedule});
 
   }catch(err){
     console.error(err);
