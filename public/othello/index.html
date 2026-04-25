@@ -5,21 +5,26 @@
 <script src="/socket.io/socket.io.js"></script>
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
-
+<body class="lobby-page">
+  
 <div class="container">
 
 <h1>⚫ Othello Lobby</h1>
+<p class="lobby-subtitle">Create lobby or join.</p>
+  
+<div class="card lobby-create">
+  <input id="name" placeholder="Nom du lobby">
+  <button onclick="createLobby()">Create lobby</button>
 
-<div class="card">
-  <input id="name" placeholder="Lobby name">
-  <button onclick="createLobby()">Create Lobby</button>
 </div>
 
 <div class="card">
-  <h3>Lobbies</h3>
+  <h3>Lobbies open</h3>
   <div id="lobbies"></div>
+
 </div>
+  
+<button class="back-btn" onclick="window.location.href='/games.html'">⬅ Retour aux jeux</button>
 
 </div>
 
