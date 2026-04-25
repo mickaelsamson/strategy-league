@@ -1,95 +1,120 @@
-// ===== OTHELLO COMPLETE =====
-
-let othelloLobbies={},othelloGames={};
-
-function initBoard(){
- const b=Array(8).fill().map(()=>Array(8).fill(null));
- b[3][3]="white";b[3][4]="black";b[4][3]="black";b[4][4]="white";
- return b;
+function computeEloDelta(winnerElo, loserElo, kFactor = 32){
+  const expectedWinner = 1 / (1 + Math.pow(10, (loserElo - winnerElo) / 400));
+  return Math.max(8, Math.round(kFactor * (1 - expectedWinner)));
 }
 
-const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
-
-function valid(b,x,y,c){
- if(b[y][x])return false;
- let opp=c==="black"?"white":"black";
- for(const[dX,dY]of dirs){
-  let nx=x+dX,ny=y+dY,found=false;
-  while(nx>=0&&ny>=0&&nx<8&&ny<8){
-   if(b[ny][nx]===opp)found=true;
-   else if(b[ny][nx]===c&&found)return true;
-   else break;
-   nx+=dX;ny+=dY;
-  }
- }
- return false;
+function pushHistoryEntry(user, entry){
+  if(!Array.isArray(user.matchHistory)) user.matchHistory = [];
+  user.matchHistory.unshift(entry);
+  user.matchHistory = user.matchHistory.slice(0, 20);
 }
 
-function apply(b,x,y,c){
- let opp=c==="black"?"white":"black";
- b[y][x]=c;
- for(const[dX,dY]of dirs){
-  let nx=x+dX,ny=y+dY,path=[];
-  while(nx>=0&&ny>=0&&nx<8&&ny<8){
-   if(b[ny][nx]===opp)path.push([nx,ny]);
-   else if(b[ny][nx]===c){path.forEach(([px,py])=>b[py][px]=c);break;}
-   else break;
-   nx+=dX;ny+=dY;
+async function applyRankedResult(User, game, winnerUsername, reason = 'game_end'){
+  if(!game || game.rated) return;
+  if(!Array.isArray(game.players) || game.players.length < 2) return;
+
+  if(!winnerUsername){
+    const [userA, userB] = await Promise.all([
+      User.findOne({ username: game.players[0].username }),
+      User.findOne({ username: game.players[1].username })
+    ]);
+
+    if(!userA || !userB) return;
+
+    userA.draws = (userA.draws || 0) + 1;
+    userB.draws = (userB.draws || 0) + 1;
+    userA.xp += 5;
+    userB.xp += 5;
+
+    pushHistoryEntry(userA, { result: 'draw', opponent: userB.username, xpChange: 5, reason });
+    pushHistoryEntry(userB, { result: 'draw', opponent: userA.username, xpChange: 5, reason });
+
+    await Promise.all([userA.save(), userB.save()]);
+
+    game.rated = true;
+    game.result = { winner: null, loser: null, reason, eloDelta: 0 };
+    return;
   }
- }
+
+  const loser = game.players.find(p => p.username !== winnerUsername);
+  if(!loser) return;
+
+  const [winnerUser, loserUser] = await Promise.all([
+    User.findOne({ username: winnerUsername }),
+    User.findOne({ username: loser.username })
+  ]);
+  if(!winnerUser || !loserUser) return;
+
+  const eloDelta = computeEloDelta(winnerUser.elo, loserUser.elo);
+
+  winnerUser.elo += eloDelta;
+  loserUser.elo = Math.max(100, loserUser.elo - eloDelta);
+  winnerUser.xp += 25;
+  loserUser.xp += 5;
+  winnerUser.wins = (winnerUser.wins || 0) + 1;
+  loserUser.losses = (loserUser.losses || 0) + 1;
+
+  pushHistoryEntry(winnerUser, { result: 'win', opponent: loserUser.username, xpChange: 25, reason });
+  pushHistoryEntry(loserUser, { result: 'loss', opponent: winnerUser.username, xpChange: 5, reason });
+
+  await Promise.all([winnerUser.save(), loserUser.save()]);
+
+  game.rated = true;
+  game.result = { winner: winnerUsername, loser: loser.username, reason, eloDelta };
 }
 
-io.on("connection",socket=>{
+async function applyOthelloResult(User, game, winnerColor){
+  if(!game || game.rated) return;
 
- socket.on("create_othello_lobby",({name})=>{
-  const id=Math.random().toString(36).substr(2,9);
-  othelloLobbies[id]={id,name,players:[{id:socket.id,username:socket.username,ready:false}]};
-  io.emit("othello_lobbies_update",othelloLobbies);
- });
+  const blackPlayer = game.players.find(p => p.color === 'black');
+  const whitePlayer = game.players.find(p => p.color === 'white');
+  if(!blackPlayer || !whitePlayer) return;
 
- socket.on("join_othello_lobby",id=>{
-  const l=othelloLobbies[id];if(!l||l.players.length>=2)return;
-  l.players.push({id:socket.id,username:socket.username,ready:false});
-  io.emit("othello_lobbies_update",othelloLobbies);
- });
+  const [blackUser, whiteUser] = await Promise.all([
+    User.findOne({ username: blackPlayer.username }),
+    User.findOne({ username: whitePlayer.username })
+  ]);
+  if(!blackUser || !whiteUser) return;
 
- socket.on("toggle_othello_ready",id=>{
-  const l=othelloLobbies[id];if(!l)return;
-  const p=l.players.find(p=>p.id===socket.id);if(!p)return;
-  p.ready=!p.ready;
-
-  if(l.players.length===2&&l.players.every(p=>p.ready)){
-   const gameId=id;
-   othelloGames[gameId]={board:initBoard(),turn:"black",players:l.players};
-
-   l.players.forEach((p,i)=>{
-    const s=io.sockets.sockets.get(p.id);
-    if(s)s.emit("othello_state",{board:initBoard(),turn:"black",color:i===0?"black":"white"});
-   });
-
-   delete othelloLobbies[id];
+  if(!winnerColor){
+    blackUser.othelloPoints = (blackUser.othelloPoints || 0) + 4;
+    whiteUser.othelloPoints = (whiteUser.othelloPoints || 0) + 4;
+    blackUser.xp += 2;
+    whiteUser.xp += 2;
+  } else if(winnerColor === 'black'){
+    blackUser.othelloPoints = (blackUser.othelloPoints || 0) + 12;
+    whiteUser.othelloPoints = (whiteUser.othelloPoints || 0) + 3;
+    blackUser.xp += 10;
+    whiteUser.xp += 2;
+  } else {
+    whiteUser.othelloPoints = (whiteUser.othelloPoints || 0) + 12;
+    blackUser.othelloPoints = (blackUser.othelloPoints || 0) + 3;
+    whiteUser.xp += 10;
+    blackUser.xp += 2;
   }
 
-  io.emit("othello_lobbies_update",othelloLobbies);
- });
+  await Promise.all([blackUser.save(), whiteUser.save()]);
+  game.rated = true;
+}
 
- socket.on("othello_move",({x,y})=>{
-  const game=Object.values(othelloGames).find(g=>g.players.some(p=>p.id===socket.id));
-  if(!game)return;
+async function getLeaderboard(User, type){
+  if(type === 'strategy'){
+    return User.find({}, { username: 1, strategyPoints: 1, _id: 0 }).sort({ strategyPoints: -1, username: 1 }).lean();
+  }
 
-  const player=game.players.find(p=>p.id===socket.id);
-  const color=game.players.indexOf(player)===0?"black":"white";
+  if(type === 'chess'){
+    return User.find({}, { username: 1, elo: 1, _id: 0 }).sort({ elo: -1, username: 1 }).lean();
+  }
 
-  if(game.turn!==color)return;
-  if(!valid(game.board,x,y,color))return;
+  if(type === 'othello'){
+    return User.find({}, { username: 1, othelloPoints: 1, _id: 0 }).sort({ othelloPoints: -1, username: 1 }).lean();
+  }
 
-  apply(game.board,x,y,color);
-  game.turn=color==="black"?"white":"black";
+  return User.find({}, { username: 1, xp: 1, _id: 0 }).sort({ xp: -1, username: 1 }).lean();
+}
 
-  game.players.forEach(p=>{
-   const s=io.sockets.sockets.get(p.id);
-   if(s)s.emit("othello_state",{board:game.board,turn:game.turn,color:(p.id===player.id?color:(color==="black"?"white":"black"))});
-  });
- });
-
-});
+module.exports = {
+  applyRankedResult,
+  applyOthelloResult,
+  getLeaderboard
+};
