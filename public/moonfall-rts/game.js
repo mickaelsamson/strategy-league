@@ -240,11 +240,24 @@
       const kind = i % 6 === 0 ? 'spirit' : i % 2 === 0 ? 'steel' : 'food';
       addResource(kind, random(220, state.width - 220), random(220, state.height - 220), kind === 'spirit' ? 620 : 1040);
     }
+
+    for(let i = 0; i < 10; i += 1){
+      separateUnits(.08);
+    }
   }
 
   function seedDecor(spawns){
     state.decor = [];
     const farFromSpawn = (x, y, buffer = 190) => spawns.every(spawn => Math.hypot(spawn.x - x, spawn.y - y) > buffer);
+
+    spawns.forEach((spawn, index) => {
+      state.decor.push({ type: 'road', x: spawn.x, y: spawn.y, toX: state.width / 2, toY: state.height / 2, scale: 1, variant: index });
+      state.decor.push({ type: 'basePath', x: spawn.x, y: spawn.y + 70, scale: 1.1, variant: index });
+      state.decor.push({ type: 'field', x: spawn.x - 190, y: spawn.y - 95, scale: 1, variant: index });
+      state.decor.push({ type: 'field', x: spawn.x + 190, y: spawn.y - 92, scale: .9, variant: index + 1 });
+      state.decor.push({ type: 'bush', x: spawn.x - 245, y: spawn.y + 80, scale: 1.15, variant: 1 });
+      state.decor.push({ type: 'bush', x: spawn.x + 250, y: spawn.y + 92, scale: 1.05, variant: 2 });
+    });
 
     for(let x = 90; x < state.width; x += 170){
       state.decor.push({ type: 'cliff', x, y: 34, scale: random(.85, 1.15) });
@@ -409,6 +422,41 @@
       if(unit.order.type === 'move'){
         moveToward(unit, unit.order.x, unit.order.y, spec.speed, dt);
         if(Math.hypot(unit.x - unit.order.x, unit.y - unit.order.y) < 11) unit.order = { type: 'idle' };
+      }
+    }
+    separateUnits(dt);
+  }
+
+  function separateUnits(dt){
+    const strength = Math.min(1, dt * 18);
+    for(let i = 0; i < state.units.length; i += 1){
+      const a = state.units[i];
+      for(let j = i + 1; j < state.units.length; j += 1){
+        const b = state.units[j];
+        const minDistance = (a.radius + b.radius) * .78;
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const d = Math.hypot(dx, dy) || .001;
+        if(d >= minDistance) continue;
+        const push = (minDistance - d) * .5 * strength;
+        const nx = dx / d;
+        const ny = dy / d;
+        a.x = clamp(a.x - nx * push, 18, state.width - 18);
+        a.y = clamp(a.y - ny * push, 18, state.height - 18);
+        b.x = clamp(b.x + nx * push, 18, state.width - 18);
+        b.y = clamp(b.y + ny * push, 18, state.height - 18);
+      }
+
+      for(const building of state.buildings){
+        if(a.owner !== building.owner && !allied(a.owner, building.owner)) continue;
+        const minDistance = a.radius + building.radius * .62;
+        const dx = a.x - building.x;
+        const dy = a.y - building.y;
+        const d = Math.hypot(dx, dy) || .001;
+        if(d >= minDistance) continue;
+        const push = (minDistance - d) * strength;
+        a.x = clamp(a.x + dx / d * push, 18, state.width - 18);
+        a.y = clamp(a.y + dy / d * push, 18, state.height - 18);
       }
     }
   }
@@ -717,7 +765,8 @@
     }
 
     drawWaterEdges();
-    state.decor.filter(item => inView(item, 180)).forEach(drawDecor);
+    state.decor.filter(item => item.type === 'road' && inRoadView(item)).forEach(drawDecor);
+    state.decor.filter(item => item.type !== 'road' && inView(item, 180)).forEach(drawDecor);
   }
 
   function drawPixelGrass(x, y, seed){
@@ -798,6 +847,74 @@
     if(item.type === 'grass') drawTallGrass(item.x, item.y, item.scale);
     if(item.type === 'cliff') drawCliff(item.x, item.y, item.scale);
     if(item.type === 'water') drawWaterRock(item.x, item.y, item.scale);
+    if(item.type === 'basePath') drawBasePath(item.x, item.y, item.scale, item.variant);
+    if(item.type === 'field') drawField(item.x, item.y, item.scale, item.variant);
+    if(item.type === 'road') drawRoad(item);
+  }
+
+  function inRoadView(item){
+    const minX = Math.min(item.x, item.toX) - 120;
+    const maxX = Math.max(item.x, item.toX) + 120;
+    const minY = Math.min(item.y, item.toY) - 120;
+    const maxY = Math.max(item.y, item.toY) + 120;
+    return maxX > state.camera.x &&
+      minX < state.camera.x + dom.canvas.width &&
+      maxY > state.camera.y &&
+      minY < state.camera.y + dom.canvas.height;
+  }
+
+  function drawRoad(item){
+    ctx.save();
+    ctx.strokeStyle = 'rgba(168,122,61,.72)';
+    ctx.lineWidth = 44;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(item.x, item.y + 64);
+    const bend = item.variant % 2 ? -120 : 120;
+    ctx.quadraticCurveTo((item.x + item.toX) / 2 + bend, (item.y + item.toY) / 2, item.toX, item.toY);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(218,178,97,.42)';
+    ctx.lineWidth = 20;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawBasePath(x, y, scale, variant){
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.rotate((variant % 2 ? -.08 : .08));
+    ctx.fillStyle = 'rgba(181,139,74,.78)';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 190, 58, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(221,185,105,.58)';
+    for(let i = -7; i <= 7; i += 1){
+      ctx.fillRect(i * 24 - 5, -7 + (i % 2) * 11, 16, 8);
+    }
+    ctx.restore();
+  }
+
+  function drawField(x, y, scale, variant){
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.rotate(variant % 2 ? .18 : -.18);
+    ctx.fillStyle = '#b58b46';
+    ctx.strokeStyle = '#6d4c28';
+    ctx.lineWidth = 3;
+    ctx.fillRect(-70, -38, 140, 76);
+    ctx.strokeRect(-70, -38, 140, 76);
+    for(let i = -3; i <= 3; i += 1){
+      ctx.strokeStyle = i % 2 ? '#d6bd67' : '#8c6835';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(-62, i * 11);
+      ctx.lineTo(62, i * 11 - 12);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   function drawTree(x, y, scale, variant){
@@ -963,75 +1080,71 @@
   }
 
   function drawHall(faction, color){
+    const wall = faction === 'slayer' ? '#d9c792' : '#544158';
+    const roof = faction === 'slayer' ? '#6ea0a5' : '#8e3f76';
+    drawIsoShadow(0, 42, 100, 34);
+    drawIsoBlock(0, 6, 132, 78, 54, wall, shadeColor(wall, -.18));
+    drawTieredRoof(0, -47, 154, 58, roof);
+    drawTieredRoof(0, -76, 92, 42, faction === 'slayer' ? '#c99654' : '#5d2d5a');
+    drawLantern(-54, -8, color);
+    drawLantern(54, -8, color);
+    ctx.fillStyle = shadeColor(color, -.16);
     ctx.strokeStyle = MANGA_INK;
-    ctx.lineWidth = 5;
-    ctx.fillStyle = faction === 'slayer' ? '#e8d88f' : '#564061';
-    roundRect(-64, -46, 128, 92, 10, true, true);
-    ctx.fillStyle = faction === 'slayer' ? '#5f9cc7' : '#8a3d73';
-    roundRect(-78, -54, 156, 28, 8, true, true);
-    ctx.fillStyle = '#cf9b55';
-    roundRect(-42, -68, 84, 30, 8, true, true);
-    ctx.fillStyle = color;
-    roundRect(-20, 5, 40, 41, 6, true, true);
-    ctx.fillStyle = '#1d2d35';
-    ctx.fillRect(-11, 24, 22, 22);
+    ctx.lineWidth = 4;
+    drawArchDoor(0, 35, 34, 42);
   }
 
   function drawHouse(faction, color){
-    ctx.strokeStyle = MANGA_INK;
-    ctx.lineWidth = 5;
-    ctx.fillStyle = faction === 'slayer' ? '#e9dfac' : '#5d445b';
-    roundRect(-38, -25, 76, 54, 8, true, true);
-    ctx.fillStyle = faction === 'slayer' ? '#bf7b48' : '#743459';
-    ctx.beginPath();
-    ctx.moveTo(-46, -22);
-    ctx.lineTo(0, -56);
-    ctx.lineTo(46, -22);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+    const wall = faction === 'slayer' ? '#dfd19c' : '#59475e';
+    const roof = faction === 'slayer' ? '#b97445' : '#78395f';
+    drawIsoShadow(0, 31, 62, 22);
+    drawIsoBlock(0, 5, 70, 46, 34, wall, shadeColor(wall, -.16));
+    drawTieredRoof(0, -34, 84, 34, roof);
     ctx.fillStyle = color;
-    ctx.fillRect(-10, 4, 20, 25);
+    ctx.strokeStyle = MANGA_INK;
+    ctx.lineWidth = 3;
+    roundRect(-9, 9, 18, 24, 4, true, true);
   }
 
   function drawBarracks(faction, color){
+    const wall = faction === 'slayer' ? '#cdbf8e' : '#49384f';
+    const roof = faction === 'slayer' ? '#517f83' : '#743864';
+    drawIsoShadow(0, 37, 90, 28);
+    drawIsoBlock(0, 9, 110, 62, 44, wall, shadeColor(wall, -.18));
+    drawTieredRoof(0, -42, 130, 46, roof);
+    ctx.fillStyle = '#332015';
     ctx.strokeStyle = MANGA_INK;
-    ctx.lineWidth = 5;
-    ctx.fillStyle = faction === 'slayer' ? '#dccf9f' : '#4a3858';
-    roundRect(-58, -36, 116, 72, 8, true, true);
-    ctx.fillStyle = faction === 'slayer' ? '#527b9d' : '#7d3268';
-    ctx.fillRect(-66, -48, 132, 26);
-    ctx.strokeRect(-66, -48, 132, 26);
+    ctx.lineWidth = 4;
+    drawArchDoor(0, 31, 28, 32);
     ctx.fillStyle = color;
-    ctx.fillRect(-43, -12, 86, 14);
-    ctx.fillStyle = '#281b18';
-    ctx.fillRect(-15, 10, 30, 26);
+    ctx.fillRect(-46, -5, 92, 10);
+    ctx.strokeRect(-46, -5, 92, 10);
   }
 
   function drawTower(faction, color){
-    ctx.strokeStyle = MANGA_INK;
-    ctx.lineWidth = 5;
-    ctx.fillStyle = faction === 'slayer' ? '#d8d2b0' : '#51415a';
-    roundRect(-28, -58, 56, 104, 7, true, true);
-    ctx.fillStyle = color;
-    ctx.fillRect(-35, -64, 70, 24);
-    ctx.strokeRect(-35, -64, 70, 24);
-    ctx.fillStyle = '#fff0aa';
-    ctx.fillRect(-10, -24, 20, 18);
+    const wall = faction === 'slayer' ? '#d9cfac' : '#50435a';
+    const roof = faction === 'slayer' ? '#b97845' : '#7a3a67';
+    drawIsoShadow(0, 39, 50, 18);
+    drawIsoBlock(0, -2, 48, 42, 86, wall, shadeColor(wall, -.2));
+    drawTieredRoof(0, -74, 72, 34, roof);
+    drawLantern(0, -24, color);
   }
 
   function drawShrine(faction, color){
-    ctx.strokeStyle = MANGA_INK;
-    ctx.lineWidth = 5;
-    ctx.fillStyle = faction === 'slayer' ? '#e6d7a2' : '#49304a';
-    roundRect(-44, -35, 88, 70, 8, true, true);
+    const wall = faction === 'slayer' ? '#e1d3a0' : '#4b344f';
+    const roof = faction === 'slayer' ? '#8a9f7c' : '#783d74';
+    drawIsoShadow(0, 31, 68, 22);
+    drawIsoBlock(0, 6, 78, 50, 42, wall, shadeColor(wall, -.16));
+    drawTieredRoof(0, -35, 90, 34, roof);
     ctx.fillStyle = color;
+    ctx.strokeStyle = MANGA_INK;
+    ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.arc(0, -4, 24, 0, Math.PI * 2);
+    ctx.arc(0, -4, 17, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = '#fff1bd';
-    ctx.fillRect(-8, -16, 16, 24);
+    ctx.fillRect(-5, -13, 10, 18);
   }
 
   function drawUnitSprite(unit){
@@ -1042,49 +1155,16 @@
 
     ctx.save();
     ctx.translate(unit.x, unit.y);
+    const bob = Math.sin(state.time * 8 + unit.x * .05 + unit.y * .03) * (unit.order.type === 'idle' ? .6 : 2.2);
+    ctx.translate(0, bob);
     ctx.strokeStyle = MANGA_INK;
     ctx.lineWidth = 4;
-    ctx.fillStyle = 'rgba(31,44,39,.28)';
-    ctx.beginPath();
-    ctx.ellipse(0, 20, 22, 8, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = color;
-    roundRect(-16, -4, 32, 32, 7, true, true);
-    ctx.fillStyle = faction === 'slayer' ? '#f5d7aa' : '#d2b4e8';
-    roundRect(-13, -26, 26, 24, 8, true, true);
-    ctx.fillStyle = faction === 'slayer' ? '#483529' : '#2f2036';
-    ctx.fillRect(-17, -31, 34, 12);
-    ctx.fillStyle = '#111820';
-    ctx.fillRect(-6, -14, 4, 4);
-    ctx.fillRect(5, -14, 4, 4);
-
-    if(unit.type === 'worker'){
-      ctx.fillStyle = '#6b4a2c';
-      ctx.fillRect(-23, -36, 46, 9);
-    }else if(unit.type === 'fighter'){
-      ctx.strokeStyle = '#f4f1dc';
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.moveTo(16, -17);
-      ctx.lineTo(35, -39);
-      ctx.stroke();
-    }else if(unit.type === 'ranged'){
-      ctx.strokeStyle = '#3b2518';
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.arc(21, -7, 15, -1.3, 1.3);
-      ctx.stroke();
-    }else{
-      ctx.strokeStyle = '#fff2a8';
-      ctx.lineWidth = 6;
-      ctx.beginPath();
-      ctx.moveTo(-24, -22);
-      ctx.lineTo(26, -44);
-      ctx.stroke();
-      ctx.fillStyle = '#fff2a8';
-      ctx.fillRect(-20, 1, 40, 7);
-    }
+    drawUnitShadow();
+    drawUnitLegs(unit, color);
+    drawUnitRobe(unit, color, faction);
+    drawUnitArms(unit, faction);
+    drawUnitHead(unit, faction, color);
+    drawUnitEquipment(unit, faction);
 
     if(unit.carried){
       ctx.fillStyle = RESOURCE_COLORS[unit.carried.kind];
@@ -1097,6 +1177,325 @@
     }
     ctx.restore();
     drawHealth(unit);
+  }
+
+  function drawUnitShadow(){
+    ctx.fillStyle = 'rgba(28,42,34,.28)';
+    ctx.beginPath();
+    ctx.ellipse(0, 24, 25, 9, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawUnitLegs(unit, color){
+    ctx.fillStyle = shadeColor(color, -.34);
+    ctx.strokeStyle = MANGA_INK;
+    ctx.lineWidth = 4;
+    roundRect(-13, 13, 10, 18, 4, true, true);
+    roundRect(4, 13, 10, 18, 4, true, true);
+    ctx.fillStyle = '#192b35';
+    roundRect(-17, 26, 15, 7, 3, true, true);
+    roundRect(3, 26, 15, 7, 3, true, true);
+  }
+
+  function drawUnitRobe(unit, color, faction){
+    const dark = shadeColor(color, -.18);
+    const light = shadeColor(color, .24);
+    ctx.strokeStyle = MANGA_INK;
+    ctx.lineWidth = 4;
+    ctx.fillStyle = dark;
+    ctx.beginPath();
+    ctx.moveTo(-18, -8);
+    ctx.quadraticCurveTo(-24, 6, -20, 22);
+    ctx.quadraticCurveTo(-7, 31, 0, 27);
+    ctx.quadraticCurveTo(7, 31, 20, 22);
+    ctx.quadraticCurveTo(24, 6, 18, -8);
+    ctx.quadraticCurveTo(8, -18, 0, -16);
+    ctx.quadraticCurveTo(-8, -18, -18, -8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = faction === 'slayer' ? light : shadeColor('#6f315f', .12);
+    ctx.beginPath();
+    ctx.moveTo(-9, -12);
+    ctx.lineTo(0, 22);
+    ctx.lineTo(10, -12);
+    ctx.quadraticCurveTo(0, -18, -9, -12);
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(24,44,55,.42)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, -11);
+    ctx.lineTo(0, 24);
+    ctx.stroke();
+
+    if(unit.type === 'elite'){
+      ctx.fillStyle = '#ffe68a';
+      ctx.strokeStyle = MANGA_INK;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 4, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
+
+  function drawUnitArms(unit, faction){
+    const skin = faction === 'slayer' ? '#f5c890' : '#caa6df';
+    ctx.fillStyle = skin;
+    ctx.strokeStyle = MANGA_INK;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.ellipse(-21, 4, 8, 14, -.35, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(21, 4, 8, 14, .35, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  function drawUnitHead(unit, faction, color){
+    const skin = faction === 'slayer' ? '#f4c996' : '#d5b1eb';
+    const hair = faction === 'slayer' ? '#4b3325' : '#25182d';
+    ctx.strokeStyle = MANGA_INK;
+    ctx.lineWidth = 4;
+    ctx.fillStyle = skin;
+    ctx.beginPath();
+    ctx.ellipse(0, -25, 17, 18, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = hair;
+    ctx.beginPath();
+    ctx.ellipse(-4, -36, 19, 12, -.2, Math.PI, Math.PI * 2);
+    ctx.quadraticCurveTo(-14, -24, -6, -24);
+    ctx.quadraticCurveTo(0, -31, 7, -24);
+    ctx.quadraticCurveTo(18, -25, 16, -37);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#101820';
+    ctx.fillRect(-7, -25, 4, 4);
+    ctx.fillRect(5, -25, 4, 4);
+    ctx.fillStyle = '#9c4a5d';
+    ctx.fillRect(-3, -17, 6, 3);
+
+    if(faction === 'demon'){
+      ctx.fillStyle = '#efe1ff';
+      ctx.strokeStyle = MANGA_INK;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-13, -38);
+      ctx.lineTo(-24, -49);
+      ctx.lineTo(-17, -33);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(13, -38);
+      ctx.lineTo(24, -49);
+      ctx.lineTo(17, -33);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.fillRect(-13, -11, 26, 5);
+    }else if(unit.type !== 'worker'){
+      ctx.fillStyle = color;
+      ctx.strokeStyle = MANGA_INK;
+      ctx.lineWidth = 3;
+      roundRect(-18, -36, 36, 8, 4, true, true);
+    }
+  }
+
+  function drawUnitEquipment(unit, faction){
+    ctx.save();
+    ctx.strokeStyle = MANGA_INK;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    if(unit.type === 'worker'){
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = '#6d4a28';
+      ctx.beginPath();
+      ctx.moveTo(-28, -28);
+      ctx.lineTo(24, -48);
+      ctx.stroke();
+      ctx.fillStyle = '#b68b4b';
+      ctx.strokeStyle = MANGA_INK;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(18, -52);
+      ctx.lineTo(36, -44);
+      ctx.lineTo(25, -34);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }else if(unit.type === 'fighter'){
+      ctx.strokeStyle = '#f7f3db';
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(19, -2);
+      ctx.lineTo(39, -42);
+      ctx.stroke();
+      ctx.strokeStyle = MANGA_INK;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(19, -2);
+      ctx.lineTo(39, -42);
+      ctx.stroke();
+    }else if(unit.type === 'ranged'){
+      ctx.strokeStyle = faction === 'slayer' ? '#5a351f' : '#3a2242';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.arc(27, -8, 18, -1.35, 1.35);
+      ctx.stroke();
+      ctx.strokeStyle = '#f2ddb0';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(31, -25);
+      ctx.lineTo(31, 8);
+      ctx.stroke();
+    }else{
+      ctx.strokeStyle = '#fff2a8';
+      ctx.lineWidth = 7;
+      ctx.beginPath();
+      ctx.moveTo(-32, -5);
+      ctx.lineTo(35, -48);
+      ctx.stroke();
+      ctx.strokeStyle = MANGA_INK;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-32, -5);
+      ctx.lineTo(35, -48);
+      ctx.stroke();
+      ctx.fillStyle = '#fff2a8';
+      ctx.strokeStyle = MANGA_INK;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(-21, 4, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function shadeColor(hex, percent){
+    const color = hex.replace('#', '');
+    const num = parseInt(color.length === 3 ? color.split('').map(ch => ch + ch).join('') : color, 16);
+    const amt = Math.round(255 * percent);
+    const r = clamp((num >> 16) + amt, 0, 255);
+    const g = clamp(((num >> 8) & 255) + amt, 0, 255);
+    const b = clamp((num & 255) + amt, 0, 255);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function drawIsoShadow(x, y, w, h){
+    ctx.fillStyle = 'rgba(38,48,35,.28)';
+    ctx.beginPath();
+    ctx.ellipse(x, y, w, h, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawIsoBlock(x, y, w, d, h, front, side){
+    const hw = w / 2;
+    const hd = d / 2;
+    ctx.strokeStyle = MANGA_INK;
+    ctx.lineWidth = 4;
+    ctx.fillStyle = side;
+    ctx.beginPath();
+    ctx.moveTo(x + hw, y - hd);
+    ctx.lineTo(x + hw, y + h - hd);
+    ctx.lineTo(x, y + h);
+    ctx.lineTo(x, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = shadeColor(side, -.08);
+    ctx.beginPath();
+    ctx.moveTo(x - hw, y - hd);
+    ctx.lineTo(x, y);
+    ctx.lineTo(x, y + h);
+    ctx.lineTo(x - hw, y + h - hd);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = front;
+    ctx.beginPath();
+    ctx.moveTo(x - hw, y - hd);
+    ctx.lineTo(x, y - d);
+    ctx.lineTo(x + hw, y - hd);
+    ctx.lineTo(x, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  function drawTieredRoof(x, y, w, d, color){
+    const hw = w / 2;
+    const hd = d / 2;
+    ctx.strokeStyle = MANGA_INK;
+    ctx.lineWidth = 4;
+    ctx.fillStyle = shadeColor(color, .12);
+    ctx.beginPath();
+    ctx.moveTo(x - hw, y);
+    ctx.lineTo(x, y - hd);
+    ctx.lineTo(x + hw, y);
+    ctx.lineTo(x, y + hd);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x - hw, y);
+    ctx.lineTo(x, y + hd);
+    ctx.lineTo(x, y + hd + 18);
+    ctx.lineTo(x - hw, y + 18);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = shadeColor(color, -.18);
+    ctx.beginPath();
+    ctx.moveTo(x + hw, y);
+    ctx.lineTo(x, y + hd);
+    ctx.lineTo(x, y + hd + 18);
+    ctx.lineTo(x + hw, y + 18);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#f4d06b';
+    ctx.fillRect(x - 6, y - hd - 8, 12, 10);
+  }
+
+  function drawLantern(x, y, color){
+    ctx.fillStyle = '#2b1c15';
+    ctx.strokeStyle = MANGA_INK;
+    ctx.lineWidth = 3;
+    ctx.fillRect(x - 5, y - 14, 10, 22);
+    ctx.strokeRect(x - 5, y - 14, 10, 22);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y - 17, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  function drawArchDoor(x, y, w, h){
+    ctx.beginPath();
+    ctx.moveTo(x - w / 2, y + h / 2);
+    ctx.lineTo(x - w / 2, y - h / 6);
+    ctx.quadraticCurveTo(x, y - h / 2, x + w / 2, y - h / 6);
+    ctx.lineTo(x + w / 2, y + h / 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
   }
 
   function drawSelectionRing(entity, radius){
@@ -1344,10 +1743,14 @@
       return;
     }
 
+    const columns = Math.ceil(Math.sqrt(selectedUnits.length));
+    const spacing = 42;
     selectedUnits.forEach((unit, index) => {
-      const angle = index / Math.max(1, selectedUnits.length) * Math.PI * 2;
-      const spread = selectedUnits.length > 1 ? 34 : 0;
-      unit.order = { type: 'move', x: point.wx + Math.cos(angle) * spread, y: point.wy + Math.sin(angle) * spread };
+      const row = Math.floor(index / columns);
+      const col = index % columns;
+      const centeredX = (col - (columns - 1) / 2) * spacing;
+      const centeredY = (row - (Math.ceil(selectedUnits.length / columns) - 1) / 2) * spacing;
+      unit.order = { type: 'move', x: point.wx + centeredX, y: point.wy + centeredY };
     });
   }
 
@@ -1445,5 +1848,8 @@
 
   renderSlots();
   bind();
+  if(new URLSearchParams(window.location.search).has('autostart')){
+    startGame({ preventDefault(){} });
+  }
   requestAnimationFrame(loop);
 })();

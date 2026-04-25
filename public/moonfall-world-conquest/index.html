@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/assets/styles/theme.css">
+  <link rel="stylesheet" href="/moonfall-world-conquest/style.css">
+  <script defer src="/assets/scripts/site-shell.js"></script>
+  <script defer src="/moonfall-world-conquest/game.js"></script>
+  <title>Moonfall World Conquest</title>
+</head>
+<body class="with-navbar conquest-page">
+<div id="navbar-container"></div>
+
+<main class="conquest-app">
+  <section id="setupView" class="setup-view">
+    <div class="setup-main">
+      <div class="setup-title">
+        <span class="eyebrow">Risklike conquest</span>
+        <h1>Moonfall World Conquest</h1>
+      </div>
+
+      <form id="setupForm" class="setup-card">
+        <div class="setup-grid">
+          <label>Joueurs
+            <select id="playerCount">
+              <option value="2">2</option>
+              <option value="3" selected>3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+            </select>
+          </label>
+          <label>Rythme
+            <select id="pace">
+              <option value="quick" selected>Rapide</option>
+              <option value="classic">Classique</option>
+            </select>
+          </label>
+          <label>IA
+            <select id="aiStyle">
+              <option value="balanced" selected>Equilibree</option>
+              <option value="bold">Agressive</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="slots" class="slots"></div>
+
+        <div class="setup-actions">
+          <button id="shuffleBtn" type="button" class="secondary-btn">Melanger</button>
+          <button type="submit" class="primary-btn">Lancer la conquete</button>
+        </div>
+      </form>
+    </div>
+
+    <aside class="rulebook">
+      <h2>Regles de base</h2>
+      <div class="rule-list">
+        <p><strong>Renforts.</strong> Minimum 3 armees par tour, plus territoires controles divises par 3 et bonus de regions completes.</p>
+        <p><strong>Attaque.</strong> Depuis un territoire adjacent avec au moins 2 armees. Attaquant jusqu'a 3 des, defenseur jusqu'a 2, egalite pour le defenseur.</p>
+        <p><strong>Conquete.</strong> Quand la defense tombe a 0, le territoire change de camp et des armees avancent depuis le front victorieux.</p>
+        <p><strong>Cartes.</strong> Une conquete dans le tour donne une carte. Trois cartes compatibles se convertissent en renforts croissants.</p>
+        <p><strong>Fortification.</strong> En fin de tour, deplace des armees entre deux territoires allies adjacents.</p>
+      </div>
+    </aside>
+  </section>
+
+  <section id="gameView" class="game-view is-hidden" hidden>
+    <header class="topbar">
+      <div>
+        <span class="eyebrow">Tour <b id="turnHud">1</b></span>
+        <strong id="activePlayer">Joueur</strong>
+      </div>
+      <div class="status-strip">
+        <span><b id="phaseHud">Renforts</b> phase</span>
+        <span><b id="reserveHud">0</b> reserve</span>
+        <span><b id="cardsHud">0</b> cartes</span>
+      </div>
+      <div class="top-actions">
+        <button id="cardsBtn" type="button">Echanger</button>
+        <button id="restartBtn" type="button" title="Nouvelle partie">↺</button>
+      </div>
+    </header>
+
+    <div class="conquest-layout">
+      <aside class="side-panel">
+        <section>
+          <h2>Territoire</h2>
+          <div id="territoryInfo" class="territory-info"></div>
+        </section>
+
+        <section>
+          <h2>Ordres</h2>
+          <div id="actionPanel" class="command-grid">
+            <button id="reinforceBtn" type="button">Renforcer +1</button>
+            <button id="attackBtn" type="button">Attaquer</button>
+            <button id="blitzBtn" type="button">Blitz</button>
+            <button id="fortifyBtn" type="button">Fortifier +1</button>
+            <button id="maxFortifyBtn" type="button">Fortifier max</button>
+            <button id="nextBtn" type="button">Phase suivante</button>
+          </div>
+        </section>
+
+        <section>
+          <h2>Joueurs</h2>
+          <div id="playersPanel" class="players-panel"></div>
+        </section>
+      </aside>
+
+      <div class="map-frame">
+        <div id="mapStage" class="map-stage">
+          <img class="map-image" src="/moonfall-world-conquest/map.svg" alt="Carte Moonfall World Conquest">
+          <svg id="territoryLayer" class="territory-layer" viewBox="0 0 1536 1024" aria-label="Territoires"></svg>
+        </div>
+        <div id="notice" class="notice" aria-live="polite"></div>
+      </div>
+
+      <aside class="intel-panel">
+        <section>
+          <h2>Journal</h2>
+          <div id="logList" class="log-list"></div>
+        </section>
+        <section>
+          <h2>Cartes</h2>
+          <div id="cardsPanel" class="cards-panel"></div>
+        </section>
+        <section>
+          <h2>Regions</h2>
+          <div id="regionsPanel" class="regions-panel"></div>
+        </section>
+      </aside>
+    </div>
+  </section>
+</main>
+</body>
+</html>

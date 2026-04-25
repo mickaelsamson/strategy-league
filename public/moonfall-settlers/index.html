@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/assets/styles/theme.css">
+  <link rel="stylesheet" href="/moonfall-settlers/style.css">
+  <script defer src="/assets/scripts/site-shell.js"></script>
+  <script defer src="/moonfall-settlers/game.js"></script>
+  <title>Moonfall Settlers</title>
+</head>
+<body class="with-navbar moonsettlers-page">
+<div id="navbar-container"></div>
+
+<main class="moonsettlers-app">
+  <section id="setupView" class="setup-view">
+    <div class="setup-art" aria-hidden="true">
+      <div class="moon-disc"></div>
+      <div class="preview-board">
+        <span class="hex h1"></span>
+        <span class="hex h2"></span>
+        <span class="hex h3"></span>
+        <span class="hex h4"></span>
+        <span class="hex h5"></span>
+        <span class="hex h6"></span>
+        <span class="hex h7"></span>
+      </div>
+      <div class="blade-line"></div>
+    </div>
+
+    <form id="setupForm" class="setup-card">
+      <span class="eyebrow">Moonfall board strategy</span>
+      <h1>Moonfall Settlers</h1>
+      <p class="setup-copy">Un Catan-like sombre et tactique: clans rivaux, colonies, routes, ports, cartes de developpement et l'Oni de la Lune au centre du conflit.</p>
+
+      <div class="setup-grid">
+        <label>Joueurs
+          <select id="playerCount">
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4" selected>4</option>
+          </select>
+        </label>
+        <label>Plateau
+          <select id="boardMode">
+            <option value="balanced" selected>Equilibre</option>
+            <option value="wild">Sauvage</option>
+          </select>
+        </label>
+        <label>Score
+          <select id="targetScore">
+            <option value="8">8</option>
+            <option value="10" selected>10</option>
+            <option value="12">12</option>
+          </select>
+        </label>
+      </div>
+
+      <div id="slots" class="slots"></div>
+
+      <div class="setup-actions">
+        <button id="shuffleBtn" type="button" class="secondary-btn">Melanger</button>
+        <button type="submit" class="primary-btn">Lancer la partie</button>
+      </div>
+    </form>
+  </section>
+
+  <section id="gameView" class="game-view is-hidden" hidden>
+    <header class="topbar">
+      <div class="turn-block">
+        <span class="eyebrow">Tour <b id="turnHud">1</b></span>
+        <strong id="activePlayer">Clan</strong>
+      </div>
+      <div class="status-strip">
+        <span><b id="phaseHud">Placement</b> phase</span>
+        <span><b id="diceHud">--</b> des</span>
+        <span><b id="pointsHud">0</b> points</span>
+        <span><b id="targetHud">10</b> objectif</span>
+      </div>
+      <div class="top-actions">
+        <button id="rollBtn" type="button">Des</button>
+        <button id="endTurnBtn" type="button">Fin</button>
+        <button id="newGameBtn" type="button" title="Nouvelle partie">R</button>
+      </div>
+    </header>
+
+    <div class="play-layout">
+      <aside class="side-panel">
+        <section>
+          <h2>Clan</h2>
+          <div id="resourcePanel" class="resource-panel"></div>
+        </section>
+
+        <section>
+          <h2>Construction</h2>
+          <div class="command-grid build-grid">
+            <button id="roadBtn" type="button">Route</button>
+            <button id="settlementBtn" type="button">Colonie</button>
+            <button id="cityBtn" type="button">Cite</button>
+            <button id="devBtn" type="button">Carte</button>
+          </div>
+          <div id="costPanel" class="cost-panel"></div>
+        </section>
+
+        <section>
+          <h2>Echange</h2>
+          <div class="trade-panel">
+            <label>Donner
+              <select id="tradeGive"></select>
+            </label>
+            <label>Qte don
+              <input id="tradeGiveAmount" type="number" min="1" max="19" value="1">
+            </label>
+            <label>Recevoir
+              <select id="tradeGet"></select>
+            </label>
+            <label>Qte retour
+              <input id="tradeGetAmount" type="number" min="1" max="19" value="1">
+            </label>
+            <label>Clan
+              <select id="tradePartner"></select>
+            </label>
+            <div class="trade-actions">
+              <button id="tradeBtn" type="button">Banque</button>
+              <button id="playerTradeBtn" type="button">Clans</button>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2>Cartes</h2>
+          <div id="devPanel" class="dev-panel"></div>
+        </section>
+      </aside>
+
+      <div class="board-frame">
+        <canvas id="boardCanvas" aria-label="Plateau Moonfall Settlers"></canvas>
+        <div id="notice" class="notice" aria-live="polite"></div>
+      </div>
+
+      <aside class="intel-panel">
+        <section>
+          <h2>Joueurs</h2>
+          <div id="playersPanel" class="players-panel"></div>
+        </section>
+        <section>
+          <h2>Plateau</h2>
+          <div id="boardPanel" class="board-panel"></div>
+        </section>
+        <section>
+          <h2>Journal</h2>
+          <div id="logPanel" class="log-panel"></div>
+        </section>
+      </aside>
+    </div>
+  </section>
+</main>
+</body>
+</html>

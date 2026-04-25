@@ -1,0 +1,609 @@
+body.moonsettlers-page{
+  margin:0;
+  padding:0;
+  overflow:hidden;
+  background:
+    linear-gradient(135deg, rgba(7,16,22,.98), rgba(31,18,24,.98) 48%, rgba(11,24,25,.98)),
+    repeating-linear-gradient(45deg, rgba(255,255,255,.026) 0 1px, transparent 1px 13px);
+}
+
+body.moonsettlers-page [hidden],
+.is-hidden{
+  display:none !important;
+}
+
+.moonsettlers-app{
+  width:100%;
+  min-height:calc(100vh - 64px);
+}
+
+.setup-view{
+  min-height:calc(100vh - 64px);
+  max-width:1280px;
+  margin:0 auto;
+  display:grid;
+  grid-template-columns:minmax(360px, .9fr) minmax(560px, 1.1fr);
+  gap:24px;
+  align-items:center;
+}
+
+.setup-art{
+  min-height:640px;
+  position:relative;
+  overflow:hidden;
+  border:1px solid rgba(230,203,135,.22);
+  border-radius:8px;
+  background:
+    linear-gradient(160deg, rgba(15,31,35,.96), rgba(55,21,27,.78)),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 1px, transparent 1px 34px);
+  box-shadow:0 26px 80px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+.moon-disc{
+  position:absolute;
+  width:170px;
+  height:170px;
+  top:38px;
+  right:44px;
+  border-radius:50%;
+  background:#f7efd1;
+  box-shadow:0 0 56px rgba(247,239,209,.34);
+}
+
+.moon-disc::after{
+  content:"";
+  position:absolute;
+  width:132px;
+  height:132px;
+  top:14px;
+  left:-28px;
+  border-radius:50%;
+  background:#17262b;
+}
+
+.preview-board{
+  position:absolute;
+  left:50%;
+  top:54%;
+  width:390px;
+  height:330px;
+  transform:translate(-50%, -50%) rotate(-8deg);
+}
+
+.hex{
+  position:absolute;
+  width:126px;
+  height:110px;
+  clip-path:polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+  border:1px solid rgba(255,255,255,.2);
+  box-shadow:inset 0 -10px 0 rgba(0,0,0,.13), 0 10px 28px rgba(0,0,0,.18);
+}
+
+.h1{left:132px; top:0; background:#235f4f;}
+.h2{left:66px; top:84px; background:#b55a3c;}
+.h3{left:198px; top:84px; background:#d9b45f;}
+.h4{left:0; top:168px; background:#6f5bb7;}
+.h5{left:132px; top:168px; background:#41545f;}
+.h6{left:264px; top:168px; background:#8aa15d;}
+.h7{left:132px; top:252px; background:#22141a;}
+
+.blade-line{
+  position:absolute;
+  left:-80px;
+  bottom:96px;
+  width:650px;
+  height:18px;
+  transform:rotate(-18deg);
+  background:linear-gradient(90deg, transparent, rgba(244,206,108,.9), rgba(92,207,187,.72), transparent);
+  box-shadow:0 0 30px rgba(92,207,187,.24);
+}
+
+.setup-card,
+.topbar,
+.side-panel,
+.intel-panel{
+  border:1px solid rgba(230,203,135,.22);
+  border-radius:8px;
+  background:linear-gradient(180deg, rgba(33,38,42,.96), rgba(20,22,28,.97));
+  box-shadow:0 22px 78px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.07);
+}
+
+.setup-card{
+  padding:22px;
+}
+
+.setup-card h1{
+  margin:10px 0 12px;
+  font-size:62px;
+  line-height:.94;
+}
+
+.setup-copy{
+  max-width:660px;
+  margin:0 0 20px;
+  color:#ded4c1;
+  line-height:1.55;
+}
+
+.eyebrow{
+  display:block;
+  color:#f2c86d;
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:0;
+  text-transform:uppercase;
+}
+
+.setup-grid{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:12px;
+  margin-bottom:14px;
+}
+
+label{
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+  color:#d8d1c2;
+  font-size:13px;
+  font-weight:900;
+}
+
+input,
+select{
+  min-height:42px;
+  border:1px solid rgba(230,203,135,.26);
+  border-radius:8px;
+  background:#0c1216;
+  color:#fff;
+  padding:0 10px;
+  font:inherit;
+}
+
+.slots{
+  display:grid;
+  gap:10px;
+  max-height:42vh;
+  overflow:auto;
+  padding-right:4px;
+}
+
+.slot{
+  display:grid;
+  grid-template-columns:34px 1fr 126px;
+  gap:8px;
+  align-items:end;
+  padding:10px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:8px;
+  background:rgba(255,255,255,.045);
+}
+
+.slot-number{
+  height:42px;
+  display:grid;
+  place-items:center;
+  border-radius:8px;
+  background:rgba(255,255,255,.08);
+  font-weight:900;
+}
+
+.setup-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-top:16px;
+}
+
+button{
+  min-height:42px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:8px;
+  color:white;
+  font-weight:900;
+  cursor:pointer;
+  transition:transform .16s ease, border-color .16s ease, background .16s ease;
+}
+
+button:hover{
+  transform:translateY(-1px);
+  border-color:rgba(255,255,255,.3);
+}
+
+button:disabled{
+  opacity:.42;
+  cursor:not-allowed;
+  transform:none;
+}
+
+.primary-btn{
+  padding:0 20px;
+  border-color:rgba(218,66,82,.72);
+  background:linear-gradient(135deg, #d94b55, #8e2231);
+}
+
+.secondary-btn{
+  padding:0 18px;
+  background:rgba(255,255,255,.07);
+}
+
+body.app-shell-active.moonsettlers-page button:not(.shell-nav-item):not(.shell-brand):not(.online-player){
+  border-color:rgba(230,203,135,.24) !important;
+  background:#263d47 !important;
+}
+
+body.app-shell-active.moonsettlers-page .primary-btn,
+body.app-shell-active.moonsettlers-page #rollBtn{
+  border-color:rgba(218,66,82,.72) !important;
+  background:linear-gradient(135deg, #d94b55, #8e2231) !important;
+}
+
+body.app-shell-active.moonsettlers-page .secondary-btn,
+body.app-shell-active.moonsettlers-page #endTurnBtn,
+body.app-shell-active.moonsettlers-page #newGameBtn{
+  background:rgba(255,255,255,.08) !important;
+}
+
+.game-view{
+  height:calc(100vh - 64px);
+  min-height:690px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.topbar{
+  min-height:58px;
+  display:grid;
+  grid-template-columns:230px 1fr 198px;
+  align-items:center;
+  gap:12px;
+  padding:8px 12px;
+}
+
+.topbar strong{
+  display:block;
+  margin-top:4px;
+  font-size:18px;
+}
+
+.status-strip,
+.top-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.status-strip{
+  justify-content:center;
+  flex-wrap:wrap;
+}
+
+.status-strip span{
+  min-height:34px;
+  padding:7px 10px;
+  border-radius:8px;
+  background:#24343a;
+  color:#e9dfc4;
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.18);
+}
+
+.top-actions{
+  justify-content:flex-end;
+}
+
+.top-actions button{
+  min-width:48px;
+  padding:0 11px;
+  background:#4b2731;
+}
+
+.play-layout{
+  min-height:0;
+  flex:1;
+  display:grid;
+  grid-template-columns:238px minmax(0, 1fr) 260px;
+  grid-template-areas:"side board intel";
+  gap:10px;
+}
+
+.side-panel{
+  grid-area:side;
+}
+
+.board-frame{
+  grid-area:board;
+}
+
+.intel-panel{
+  grid-area:intel;
+}
+
+.side-panel,
+.intel-panel{
+  min-height:0;
+  overflow:auto;
+  padding:10px;
+}
+
+.side-panel section,
+.intel-panel section{
+  padding-bottom:14px;
+  margin-bottom:14px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+
+.side-panel section:last-child,
+.intel-panel section:last-child{
+  border-bottom:0;
+}
+
+h2{
+  margin:0 0 10px;
+  font-size:15px;
+}
+
+.resource-panel{
+  display:grid;
+  gap:8px;
+}
+
+.resource-row,
+.player-row,
+.board-stat,
+.log-entry,
+.dev-card-row,
+.cost-chip{
+  border-radius:8px;
+  background:rgba(255,255,255,.065);
+}
+
+.resource-row{
+  min-height:42px;
+  display:grid;
+  grid-template-columns:28px 1fr auto;
+  align-items:center;
+  gap:8px;
+  padding:7px 9px;
+}
+
+.resource-mark{
+  width:26px;
+  height:26px;
+  border-radius:8px;
+  display:grid;
+  place-items:center;
+  color:#101417;
+  font-size:12px;
+  font-weight:900;
+}
+
+.resource-row strong,
+.player-row strong{
+  display:block;
+}
+
+.resource-row span,
+.player-row span,
+.board-stat span,
+.log-entry{
+  color:#d2cab8;
+  font-size:13px;
+}
+
+.command-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+.command-grid button,
+.trade-panel button,
+.dev-panel button{
+  min-height:44px;
+  padding:0 8px;
+  background:#263d47;
+  font-size:12px;
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.2);
+}
+
+.command-grid button.active{
+  border-color:#f2c86d;
+  background:#70452f;
+}
+
+.cost-panel{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:10px;
+}
+
+.cost-chip{
+  padding:6px 8px;
+  color:#eadfc8;
+  font-size:12px;
+}
+
+.trade-panel{
+  display:grid;
+  gap:8px;
+  grid-template-columns:1fr 1fr;
+}
+
+.trade-panel label:first-child,
+.trade-panel label:nth-child(3),
+.trade-panel label:nth-child(5),
+.trade-actions{
+  grid-column:1 / -1;
+}
+
+.trade-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+.dev-panel{
+  display:grid;
+  gap:8px;
+}
+
+.dev-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+.dev-card-row{
+  padding:8px;
+  display:grid;
+  gap:4px;
+}
+
+.dev-card-row strong{
+  color:white;
+}
+
+.dev-card-row span{
+  color:#d2cab8;
+  font-size:12px;
+}
+
+.board-frame{
+  position:relative;
+  min-width:0;
+  min-height:0;
+  border:4px solid #18292e;
+  border-radius:8px;
+  overflow:hidden;
+  background:#101b20;
+  box-shadow:0 14px 0 rgba(0,0,0,.16), 0 24px 80px rgba(0,0,0,.34);
+}
+
+#boardCanvas{
+  width:100%;
+  height:100%;
+  display:block;
+  cursor:default;
+}
+
+.notice{
+  position:absolute;
+  left:50%;
+  bottom:18px;
+  transform:translateX(-50%);
+  max-width:620px;
+  padding:10px 14px;
+  border:1px solid rgba(242,200,109,.42);
+  border-radius:8px;
+  background:rgba(17,22,25,.92);
+  color:#ffe6a8;
+  font-weight:900;
+  text-align:center;
+  box-shadow:0 16px 42px rgba(0,0,0,.32);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .18s ease;
+}
+
+.notice.visible{
+  opacity:1;
+}
+
+.players-panel,
+.board-panel,
+.log-panel{
+  display:grid;
+  gap:8px;
+}
+
+.player-row{
+  padding:9px;
+  border-left:4px solid currentColor;
+}
+
+.player-row.active{
+  background:rgba(242,200,109,.13);
+}
+
+.player-row.out{
+  opacity:.58;
+}
+
+.board-stat{
+  padding:8px;
+}
+
+.board-stat strong{
+  display:block;
+  margin-bottom:4px;
+}
+
+.log-panel{
+  max-height:260px;
+  overflow:auto;
+  padding-right:4px;
+}
+
+.log-entry{
+  padding:8px;
+  line-height:1.35;
+}
+
+@media (max-width:1180px){
+  body.moonsettlers-page{
+    overflow:auto;
+  }
+
+  .setup-view,
+  .topbar,
+  .play-layout{
+    grid-template-columns:1fr;
+  }
+
+  .play-layout{
+    grid-template-areas:
+      "board"
+      "side"
+      "intel";
+  }
+
+  .game-view{
+    height:auto;
+    min-height:980px;
+  }
+
+  .board-frame{
+    min-height:680px;
+  }
+
+  .setup-art{
+    min-height:420px;
+  }
+}
+
+@media (max-width:760px){
+  .setup-card h1{
+    font-size:46px;
+  }
+
+  .setup-grid,
+  .slot{
+    grid-template-columns:1fr;
+  }
+
+  .slot-number{
+    width:42px;
+  }
+
+  .status-strip,
+  .top-actions{
+    justify-content:flex-start;
+  }
+
+  .board-frame{
+    min-height:560px;
+  }
+}

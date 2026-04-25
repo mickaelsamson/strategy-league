@@ -85,7 +85,14 @@ body{
 }
 
 .game-tile.strategy{
-  background:url("/strategy/map.png") center/cover;
+  background:url("/moonfall-world-conquest/map.svg") center/cover;
+}
+
+.game-tile.moonfall-settlers{
+  background:
+    linear-gradient(30deg, transparent 0 24%, rgba(255,255,255,.08) 24% 26%, transparent 26% 50%),
+    radial-gradient(circle at 64% 34%, #f4e6bd 0 28px, transparent 29px),
+    linear-gradient(135deg, #173039, #2c1a21 48%, #123a35);
 }
 
 .game-tile.moonfall{
@@ -197,10 +204,17 @@ body{
       <span class="play-button">Play Now</span>
     </a>
 
-    <a class="game-tile strategy" href="/strategy/index.html">
-      <span class="game-tag">Tactical Arena</span>
-      <h2>Strategy Arena</h2>
-      <p>Map control, territory pressure, and a dedicated Strategy ELO ready for future ranked rules.</p>
+    <a class="game-tile strategy" href="/moonfall-world-conquest/index.html">
+      <span class="game-tag">World Conquest</span>
+      <h2>Moonfall World Conquest</h2>
+      <p>Risklike turns, territory cards, region bonuses, dice battles and AI opponents on the Moonfall map.</p>
+      <span class="play-button">Play Now</span>
+    </a>
+
+    <a class="game-tile moonfall-settlers" href="/moonfall-settlers/index.html">
+      <span class="game-tag">Catan-like</span>
+      <h2>Moonfall Settlers</h2>
+      <p>Hexes, ports, colonies, cities, dev cards and a moonlit Oni twist in a clean strategy board.</p>
       <span class="play-button">Play Now</span>
     </a>
 

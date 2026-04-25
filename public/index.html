@@ -338,7 +338,14 @@ body{
 }
 
 .game-card.strategy{
-  background:url("/strategy/map.png") center/cover;
+  background:url("/moonfall-world-conquest/map.svg") center/cover;
+}
+
+.game-card.moonfall-settlers{
+  background:
+    linear-gradient(30deg, transparent 0 24%, rgba(255,255,255,.08) 24% 26%, transparent 26% 50%),
+    radial-gradient(circle at 64% 34%, #f4e6bd 0 22px, transparent 23px),
+    linear-gradient(135deg, #173039, #2c1a21 48%, #123a35);
 }
 
 .game-card > *{
@@ -493,7 +500,8 @@ body{
 .popular-thumb.chess{background:url("/chess/board.png") center/cover;}
 .popular-thumb.othello{background:linear-gradient(135deg, #183f34, #faf3e7);}
 .popular-thumb.azul{background:linear-gradient(135deg, #083044, #0196b3 46%, #ffc44e);}
-.popular-thumb.strategy{background:url("/strategy/map.png") center/cover;}
+.popular-thumb.strategy{background:url("/moonfall-world-conquest/map.svg") center/cover;}
+.popular-thumb.moonfall-settlers{background:linear-gradient(135deg, #173039, #d9b45f 44%, #6d5bb4);}
 
 .popular-item b,
 .popular-item span{
@@ -592,11 +600,17 @@ body{
             <p>Tile Drafting</p>
             <span class="live-dot"><b data-playing="azul">0</b> playing</span>
           </a>
-          <a class="game-card strategy" href="/strategy/index.html">
+          <a class="game-card strategy" href="/moonfall-world-conquest/index.html">
             <span class="new-pill">New</span>
-            <h3>STRATEGY ARENA</h3>
-            <p>Turn-based Strategy</p>
+            <h3>MOONFALL WORLD CONQUEST</h3>
+            <p>Risklike Conquest</p>
             <span class="live-dot"><b data-playing="strategy">0</b> playing</span>
+          </a>
+          <a class="game-card moonfall-settlers" href="/moonfall-settlers/index.html">
+            <span class="new-pill">New</span>
+            <h3>MOONFALL SETTLERS</h3>
+            <p>Catan-like Board</p>
+            <span class="live-dot">Local board</span>
           </a>
         </div>
       </section>
@@ -619,9 +633,14 @@ body{
           <span><b>Azul Arena</b><small>Tile Drafting</small></span>
           <em>›</em>
         </a>
-        <a class="quick-game" href="/strategy/index.html">
-          <span class="quick-icon">S</span>
-          <span><b>Strategy Games</b><small>Tactical</small></span>
+        <a class="quick-game" href="/moonfall-world-conquest/index.html">
+          <span class="quick-icon">W</span>
+          <span><b>World Conquest</b><small>Territorial</small></span>
+          <em>›</em>
+        </a>
+        <a class="quick-game" href="/moonfall-settlers/index.html">
+          <span class="quick-icon">M</span>
+          <span><b>Moonfall Settlers</b><small>Catan-like</small></span>
           <em>›</em>
         </a>
       </div>
@@ -660,7 +679,8 @@ body{
       <div class="popular-item"><span class="popular-thumb chess"></span><span><b>Chess</b><span><strong data-playing="chess">0</strong> playing</span></span></div>
       <div class="popular-item"><span class="popular-thumb othello"></span><span><b>Othello</b><span><strong data-playing="othello">0</strong> playing</span></span></div>
       <div class="popular-item"><span class="popular-thumb azul"></span><span><b>Azul Arena</b><span><strong data-playing="azul">0</strong> playing</span></span></div>
-      <div class="popular-item"><span class="popular-thumb strategy"></span><span><b>Strategy Arena</b><span><strong data-playing="strategy">0</strong> playing</span></span></div>
+      <div class="popular-item"><span class="popular-thumb strategy"></span><span><b>Moonfall World Conquest</b><span><strong data-playing="strategy">0</strong> playing</span></span></div>
+      <div class="popular-item"><span class="popular-thumb moonfall-settlers"></span><span><b>Moonfall Settlers</b><span>Local board</span></span></div>
     </div>
   </section>
 </main>
@@ -758,7 +778,8 @@ document.getElementById("homeSearch").addEventListener("keydown", event => {
   if(value.includes("chess")) window.location.href = "/chess/index.html";
   else if(value.includes("othello")) window.location.href = "/othello/index.html";
   else if(value.includes("azul")) window.location.href = "/azul/index.html";
-  else if(value.includes("strategy")) window.location.href = "/strategy/index.html";
+  else if(value.includes("catan") || value.includes("settlers") || value.includes("colonist")) window.location.href = "/moonfall-settlers/index.html";
+  else if(value.includes("strategy") || value.includes("world") || value.includes("conquest") || value.includes("moonfall")) window.location.href = "/moonfall-world-conquest/index.html";
   else window.location.href = `/profile.html?username=${encodeURIComponent(value)}`;
 });
 

@@ -1,0 +1,1934 @@
+(() => {
+  const RESOURCE_KEYS = ['cedar', 'clay', 'rice', 'wisteria', 'sunsteel'];
+  const RESOURCES = {
+    cedar: { name: 'Cedre', short: 'Ce', color: '#78d6a7', tile: '#245f50', dark: '#153c35' },
+    clay: { name: 'Argile', short: 'Ar', color: '#e08a58', tile: '#a84f38', dark: '#6b2d25' },
+    rice: { name: 'Riz', short: 'Ri', color: '#f1d274', tile: '#c19a42', dark: '#79622d' },
+    wisteria: { name: 'Glycine', short: 'Gl', color: '#b99bff', tile: '#6d5bb4', dark: '#43346f' },
+    sunsteel: { name: 'Acier', short: 'Ac', color: '#c7d2d9', tile: '#52636e', dark: '#2f3c45' }
+  };
+
+  const TILE_BAG = [
+    'cedar', 'cedar', 'cedar', 'cedar',
+    'clay', 'clay', 'clay',
+    'rice', 'rice', 'rice', 'rice',
+    'wisteria', 'wisteria', 'wisteria', 'wisteria',
+    'sunsteel', 'sunsteel', 'sunsteel',
+    'crater'
+  ];
+
+  const NUMBER_BAG = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12];
+  const PORT_BAG = ['generic', 'generic', 'generic', 'generic', 'cedar', 'clay', 'rice', 'wisteria', 'sunsteel'];
+  const MAX_PIECES = { roads: 15, settlements: 5, cities: 4 };
+  const TARGET_DEFAULT = 10;
+
+  const COSTS = {
+    road: { cedar: 1, clay: 1 },
+    settlement: { cedar: 1, clay: 1, rice: 1, wisteria: 1 },
+    city: { rice: 2, sunsteel: 3 },
+    dev: { rice: 1, wisteria: 1, sunsteel: 1 }
+  };
+
+  const DEV_CARDS = {
+    knight: { name: 'Chasseur', detail: 'Deplace l Oni et compte pour la Grande Armee.' },
+    road: { name: 'Deux Routes', detail: 'Place deux routes sans payer.' },
+    plenty: { name: 'Offrande', detail: 'Prends deux ressources a la banque.' },
+    monopoly: { name: 'Serment', detail: 'Prends une ressource chez tous les clans.' },
+    vp: { name: 'Relique', detail: 'Vaut un point de victoire.' }
+  };
+
+  const DEV_DECK_BAG = [
+    ...Array(14).fill('knight'),
+    ...Array(5).fill('vp'),
+    ...Array(2).fill('road'),
+    ...Array(2).fill('plenty'),
+    ...Array(2).fill('monopoly')
+  ];
+
+  const PLAYER_PRESETS = [
+    { name: 'Clan Aube', color: '#f05a5f', accent: '#ffd36b' },
+    { name: 'Clan Givre', color: '#58b7ff', accent: '#ccecff' },
+    { name: 'Clan Braise', color: '#f29b46', accent: '#ffe2b5' },
+    { name: 'Clan Onde', color: '#52cfae', accent: '#c9fff0' }
+  ];
+
+  const PIP_WEIGHT = { 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1 };
+
+  const dom = {
+    setupView: document.getElementById('setupView'),
+    gameView: document.getElementById('gameView'),
+    form: document.getElementById('setupForm'),
+    slots: document.getElementById('slots'),
+    playerCount: document.getElementById('playerCount'),
+    boardMode: document.getElementById('boardMode'),
+    targetScore: document.getElementById('targetScore'),
+    shuffleBtn: document.getElementById('shuffleBtn'),
+    canvas: document.getElementById('boardCanvas'),
+    notice: document.getElementById('notice'),
+    turnHud: document.getElementById('turnHud'),
+    activePlayer: document.getElementById('activePlayer'),
+    phaseHud: document.getElementById('phaseHud'),
+    diceHud: document.getElementById('diceHud'),
+    pointsHud: document.getElementById('pointsHud'),
+    targetHud: document.getElementById('targetHud'),
+    rollBtn: document.getElementById('rollBtn'),
+    endTurnBtn: document.getElementById('endTurnBtn'),
+    newGameBtn: document.getElementById('newGameBtn'),
+    roadBtn: document.getElementById('roadBtn'),
+    settlementBtn: document.getElementById('settlementBtn'),
+    cityBtn: document.getElementById('cityBtn'),
+    devBtn: document.getElementById('devBtn'),
+    resourcePanel: document.getElementById('resourcePanel'),
+    costPanel: document.getElementById('costPanel'),
+    tradeGive: document.getElementById('tradeGive'),
+    tradeGiveAmount: document.getElementById('tradeGiveAmount'),
+    tradeGet: document.getElementById('tradeGet'),
+    tradeGetAmount: document.getElementById('tradeGetAmount'),
+    tradePartner: document.getElementById('tradePartner'),
+    tradeBtn: document.getElementById('tradeBtn'),
+    playerTradeBtn: document.getElementById('playerTradeBtn'),
+    devPanel: document.getElementById('devPanel'),
+    playersPanel: document.getElementById('playersPanel'),
+    boardPanel: document.getElementById('boardPanel'),
+    logPanel: document.getElementById('logPanel')
+  };
+
+  const ctx = dom.canvas.getContext('2d');
+  let state = null;
+  let renderQueued = false;
+  let noticeTimer = null;
+  let aiTimer = null;
+
+  const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+  const randomInt = max => Math.floor(Math.random() * max);
+  const sumResources = resources => RESOURCE_KEYS.reduce((total, key) => total + (resources[key] || 0), 0);
+
+  function shuffle(list){
+    const array = list.slice();
+    for(let i = array.length - 1; i > 0; i -= 1){
+      const j = randomInt(i + 1);
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
+
+  function escapeHtml(text){
+    return String(text || '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function getSavedName(){
+    try{
+      return JSON.parse(localStorage.getItem('user') || 'null')?.username || 'Joueur';
+    }catch(_err){
+      return 'Joueur';
+    }
+  }
+
+  function notice(text){
+    dom.notice.textContent = text;
+    dom.notice.classList.add('visible');
+    clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(() => dom.notice.classList.remove('visible'), 2600);
+  }
+
+  function log(text){
+    if(!state) return;
+    state.log.unshift(text);
+    state.log = state.log.slice(0, 18);
+  }
+
+  function renderSlots(){
+    const count = Number(dom.playerCount.value);
+    dom.slots.innerHTML = '';
+
+    for(let i = 0; i < count; i += 1){
+      const preset = PLAYER_PRESETS[i];
+      const row = document.createElement('div');
+      row.className = 'slot';
+      row.innerHTML = `
+        <div class="slot-number" style="color:${preset.color}">${i + 1}</div>
+        <label>Nom<input data-field="name" value="${escapeHtml(i === 0 ? getSavedName() : preset.name)}"></label>
+        <label>Type<select data-field="type">
+          <option value="human"${i === 0 ? ' selected' : ''}>Humain</option>
+          <option value="ai"${i !== 0 ? ' selected' : ''}>IA</option>
+        </select></label>
+      `;
+      dom.slots.appendChild(row);
+    }
+  }
+
+  function shuffleSlotNames(){
+    [...dom.slots.querySelectorAll('.slot')].forEach((slot, index) => {
+      const input = slot.querySelector('[data-field="name"]');
+      if(index === 0) return;
+      input.value = shuffle(PLAYER_PRESETS.map(preset => preset.name))[0];
+    });
+  }
+
+  function readSetup(){
+    return [...dom.slots.querySelectorAll('.slot')].map((slot, index) => {
+      const preset = PLAYER_PRESETS[index];
+      const name = slot.querySelector('[data-field="name"]').value.trim() || preset.name;
+      const type = slot.querySelector('[data-field="type"]').value;
+      return createPlayer(index, name, type, preset);
+    });
+  }
+
+  function createPlayer(id, name, type, preset){
+    return {
+      id,
+      name,
+      type,
+      color: preset.color,
+      accent: preset.accent,
+      resources: { cedar: 0, clay: 0, rice: 0, wisteria: 0, sunsteel: 0 },
+      devCards: [],
+      knights: 0,
+      pieces: { roads: 0, settlements: 0, cities: 0 },
+      longestRoad: 0,
+      hasLongestRoad: false,
+      hasLargestArmy: false,
+      alive: true
+    };
+  }
+
+  function startGame(event){
+    event.preventDefault();
+    const players = readSetup();
+    const targetScore = Number(dom.targetScore.value) || TARGET_DEFAULT;
+    state = {
+      players,
+      board: createBoard(dom.boardMode.value),
+      targetScore,
+      turn: 0,
+      turnNumber: 1,
+      phase: 'setup',
+      setupQueue: players.map(player => player.id).concat(players.map(player => player.id).reverse()),
+      setupStep: 0,
+      setupPart: 'settlement',
+      setupPendingVertex: null,
+      activeMode: 'settlement',
+      selected: null,
+      hover: null,
+      dice: null,
+      devDeck: shuffle(DEV_DECK_BAG),
+      devPlayedThisTurn: false,
+      freeRoads: 0,
+      pendingRobber: null,
+      largestArmyHolder: null,
+      longestRoadHolder: null,
+      winner: null,
+      log: [],
+      view: { width: 1, height: 1, scale: 1, offsetX: 0, offsetY: 0 }
+    };
+
+    dom.setupView.hidden = true;
+    dom.setupView.classList.add('is-hidden');
+    dom.gameView.hidden = false;
+    dom.gameView.classList.remove('is-hidden');
+    resizeCanvas();
+    log('Les clans entrent dans la nuit de Moonfall.');
+    notice('Placement initial: colonie puis route.');
+    updateAll();
+    scheduleAi();
+  }
+
+  function createBoard(mode){
+    const coords = [];
+    for(let q = -2; q <= 2; q += 1){
+      for(let r = -2; r <= 2; r += 1){
+        const s = -q - r;
+        if(Math.max(Math.abs(q), Math.abs(r), Math.abs(s)) <= 2){
+          coords.push({ q, r, s });
+        }
+      }
+    }
+
+    coords.sort((a, b) => a.r - b.r || a.q - b.q);
+    const tileSpecs = createTileSpecs(coords, mode);
+    const topology = buildTopology(coords);
+    const tiles = coords.map((coord, index) => ({
+      id: index,
+      ...coord,
+      type: tileSpecs[index].type,
+      number: tileSpecs[index].number,
+      center: axialToUnit(coord.q, coord.r),
+      vertexIds: topology.tileLinks[index].vertexIds,
+      edgeIds: topology.tileLinks[index].edgeIds
+    }));
+
+    const crater = tiles.find(tile => tile.type === 'crater') || tiles[9];
+    return {
+      tiles,
+      vertices: topology.vertices,
+      edges: topology.edges,
+      robberTile: crater.id
+    };
+  }
+
+  function createTileSpecs(coords, mode){
+    let best = null;
+    for(let attempt = 0; attempt < 400; attempt += 1){
+      const types = shuffle(TILE_BAG);
+      if(mode === 'balanced'){
+        const centerIndex = coords.findIndex(coord => coord.q === 0 && coord.r === 0);
+        const craterIndex = types.indexOf('crater');
+        [types[centerIndex], types[craterIndex]] = [types[craterIndex], types[centerIndex]];
+      }
+
+      const numbers = shuffle(NUMBER_BAG);
+      const specs = types.map(type => ({ type, number: type === 'crater' ? null : numbers.shift() }));
+      best = specs;
+      if(mode === 'wild' || !hasAdjacentHotNumbers(coords, specs)) return specs;
+    }
+    return best;
+  }
+
+  function hasAdjacentHotNumbers(coords, specs){
+    for(let i = 0; i < coords.length; i += 1){
+      if(![6, 8].includes(specs[i].number)) continue;
+      for(let j = i + 1; j < coords.length; j += 1){
+        if(![6, 8].includes(specs[j].number)) continue;
+        const a = coords[i];
+        const b = coords[j];
+        if(Math.max(Math.abs(a.q - b.q), Math.abs(a.r - b.r), Math.abs(a.s - b.s)) === 1) return true;
+      }
+    }
+    return false;
+  }
+
+  function axialToUnit(q, r){
+    return {
+      x: Math.sqrt(3) * (q + r / 2),
+      y: 1.5 * r
+    };
+  }
+
+  function buildTopology(coords){
+    const vertices = [];
+    const edges = [];
+    const vertexMap = new Map();
+    const edgeMap = new Map();
+    const tileLinks = [];
+
+    coords.forEach((coord, tileId) => {
+      const center = axialToUnit(coord.q, coord.r);
+      const vertexIds = [];
+      const edgeIds = [];
+
+      for(let corner = 0; corner < 6; corner += 1){
+        const angle = (Math.PI / 180) * (30 + corner * 60);
+        const x = center.x + Math.cos(angle);
+        const y = center.y + Math.sin(angle);
+        const key = `${Math.round(x * 1000)}:${Math.round(y * 1000)}`;
+
+        if(!vertexMap.has(key)){
+          vertexMap.set(key, vertices.length);
+          vertices.push({ id: vertices.length, x, y, tileIds: [], edgeIds: [], building: null, port: null });
+        }
+
+        const vertexId = vertexMap.get(key);
+        vertices[vertexId].tileIds.push(tileId);
+        vertexIds.push(vertexId);
+      }
+
+      for(let corner = 0; corner < 6; corner += 1){
+        const a = vertexIds[corner];
+        const b = vertexIds[(corner + 1) % 6];
+        const key = [a, b].sort((left, right) => left - right).join(':');
+
+        if(!edgeMap.has(key)){
+          edgeMap.set(key, edges.length);
+          edges.push({ id: edges.length, v1: a, v2: b, tileIds: [], road: null, port: null });
+        }
+
+        const edgeId = edgeMap.get(key);
+        edges[edgeId].tileIds.push(tileId);
+        edgeIds.push(edgeId);
+        vertices[a].edgeIds.push(edgeId);
+        vertices[b].edgeIds.push(edgeId);
+      }
+
+      tileLinks[tileId] = { vertexIds, edgeIds };
+    });
+
+    vertices.forEach(vertex => {
+      vertex.tileIds = [...new Set(vertex.tileIds)];
+      vertex.edgeIds = [...new Set(vertex.edgeIds)];
+    });
+
+    assignPorts(vertices, edges);
+    return { vertices, edges, tileLinks };
+  }
+
+  function assignPorts(vertices, edges){
+    const boundaryEdges = edges
+      .filter(edge => edge.tileIds.length === 1)
+      .sort((a, b) => edgeAngle(vertices, a) - edgeAngle(vertices, b));
+    const ports = shuffle(PORT_BAG);
+    const step = boundaryEdges.length / ports.length;
+
+    ports.forEach((port, index) => {
+      const edge = boundaryEdges[Math.floor(index * step + step / 2) % boundaryEdges.length];
+      edge.port = port;
+      vertices[edge.v1].port = port;
+      vertices[edge.v2].port = port;
+    });
+  }
+
+  function edgeAngle(vertices, edge){
+    const a = vertices[edge.v1];
+    const b = vertices[edge.v2];
+    return Math.atan2((a.y + b.y) / 2, (a.x + b.x) / 2);
+  }
+
+  function resizeCanvas(){
+    if(!state) return;
+    const rect = dom.canvas.parentElement.getBoundingClientRect();
+    const width = Math.max(320, rect.width);
+    const height = Math.max(420, rect.height);
+    const dpr = window.devicePixelRatio || 1;
+    dom.canvas.width = Math.floor(width * dpr);
+    dom.canvas.height = Math.floor(height * dpr);
+    dom.canvas.style.width = `${width}px`;
+    dom.canvas.style.height = `${height}px`;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    state.view.width = width;
+    state.view.height = height;
+    updateLayout();
+    queueRender();
+  }
+
+  function updateLayout(){
+    const vertices = state.board.vertices;
+    const minX = Math.min(...vertices.map(vertex => vertex.x));
+    const maxX = Math.max(...vertices.map(vertex => vertex.x));
+    const minY = Math.min(...vertices.map(vertex => vertex.y));
+    const maxY = Math.max(...vertices.map(vertex => vertex.y));
+    const pad = state.view.width < 700 ? 36 : 58;
+    const scale = Math.min((state.view.width - pad * 2) / (maxX - minX), (state.view.height - pad * 2) / (maxY - minY));
+    state.view.scale = Math.max(42, scale);
+    state.view.offsetX = state.view.width / 2 - ((minX + maxX) / 2) * state.view.scale;
+    state.view.offsetY = state.view.height / 2 - ((minY + maxY) / 2) * state.view.scale;
+  }
+
+  function screenPoint(point){
+    return {
+      x: point.x * state.view.scale + state.view.offsetX,
+      y: point.y * state.view.scale + state.view.offsetY
+    };
+  }
+
+  function queueRender(){
+    if(renderQueued) return;
+    renderQueued = true;
+    requestAnimationFrame(render);
+  }
+
+  function render(){
+    renderQueued = false;
+    if(!state) return;
+    updateLayout();
+    drawScene();
+  }
+
+  function drawScene(){
+    const { width, height } = state.view;
+    ctx.clearRect(0, 0, width, height);
+    const bg = ctx.createLinearGradient(0, 0, width, height);
+    bg.addColorStop(0, '#0e2027');
+    bg.addColorStop(.55, '#172128');
+    bg.addColorStop(1, '#25151c');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, width, height);
+    drawTableTexture(width, height);
+    drawMoon(width, height);
+    state.board.tiles
+      .slice()
+      .sort((a, b) => a.center.y - b.center.y)
+      .forEach(drawTile);
+    drawPorts();
+    drawPlacementHints();
+    drawRoads();
+    drawBuildings();
+    drawRobber();
+    drawHover();
+  }
+
+  function drawTableTexture(width, height){
+    ctx.save();
+    ctx.globalAlpha = .26;
+    ctx.strokeStyle = '#385157';
+    ctx.lineWidth = 1;
+    for(let x = -height; x < width + height; x += 42){
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x + height, height);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawMoon(width){
+    ctx.save();
+    ctx.translate(width - 92, 86);
+    ctx.fillStyle = 'rgba(246, 231, 188, .84)';
+    ctx.beginPath();
+    ctx.arc(0, 0, 42, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.fillStyle = '#172128';
+    ctx.beginPath();
+    ctx.arc(-18, -8, 38, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function getTileCorners(tile){
+    const center = screenPoint(tile.center);
+    const corners = [];
+    for(let corner = 0; corner < 6; corner += 1){
+      const angle = (Math.PI / 180) * (30 + corner * 60);
+      corners.push({
+        x: center.x + Math.cos(angle) * state.view.scale,
+        y: center.y + Math.sin(angle) * state.view.scale
+      });
+    }
+    return corners;
+  }
+
+  function drawTile(tile){
+    const center = screenPoint(tile.center);
+    const corners = getTileCorners(tile);
+    const hot = [6, 8].includes(tile.number);
+    const resource = RESOURCES[tile.type];
+
+    ctx.save();
+    ctx.beginPath();
+    corners.forEach((point, index) => {
+      if(index === 0) ctx.moveTo(point.x, point.y);
+      else ctx.lineTo(point.x, point.y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = tile.type === 'crater' ? '#21151b' : resource.tile;
+    ctx.fill();
+    ctx.clip();
+    drawTilePattern(tile, center);
+    ctx.restore();
+
+    ctx.save();
+    ctx.beginPath();
+    corners.forEach((point, index) => index === 0 ? ctx.moveTo(point.x, point.y) : ctx.lineTo(point.x, point.y));
+    ctx.closePath();
+    ctx.lineWidth = state.hover?.tileId === tile.id ? 4 : 2;
+    ctx.strokeStyle = state.hover?.tileId === tile.id ? '#f6d37c' : 'rgba(255,244,211,.28)';
+    ctx.stroke();
+    ctx.restore();
+
+    if(tile.type !== 'crater'){
+      drawNumberToken(center, tile.number, hot);
+    }
+  }
+
+  function drawTilePattern(tile, center){
+    const size = state.view.scale;
+    if(tile.type === 'cedar'){
+      for(let i = -2; i <= 2; i += 1){
+        drawTree(center.x + i * size * .22, center.y + ((i % 2) * size * .12), size * .22);
+      }
+    }else if(tile.type === 'clay'){
+      ctx.strokeStyle = 'rgba(70,31,24,.42)';
+      ctx.lineWidth = 3;
+      for(let i = -3; i <= 3; i += 1){
+        ctx.beginPath();
+        ctx.moveTo(center.x - size * .72, center.y + i * size * .2);
+        ctx.lineTo(center.x + size * .72, center.y + i * size * .12 - size * .16);
+        ctx.stroke();
+      }
+    }else if(tile.type === 'rice'){
+      ctx.strokeStyle = 'rgba(255,243,174,.42)';
+      ctx.lineWidth = 2;
+      for(let i = -3; i <= 3; i += 1){
+        ctx.beginPath();
+        ctx.moveTo(center.x - size * .75, center.y + i * size * .17);
+        ctx.quadraticCurveTo(center.x, center.y + i * size * .17 + 10, center.x + size * .75, center.y + i * size * .17);
+        ctx.stroke();
+      }
+    }else if(tile.type === 'wisteria'){
+      ctx.strokeStyle = 'rgba(225,214,255,.36)';
+      ctx.lineWidth = 2;
+      for(let i = -2; i <= 2; i += 1){
+        ctx.beginPath();
+        ctx.moveTo(center.x + i * size * .18, center.y - size * .52);
+        ctx.bezierCurveTo(center.x + i * size * .2 + 14, center.y - 8, center.x + i * size * .12 - 14, center.y + 28, center.x + i * size * .14, center.y + size * .52);
+        ctx.stroke();
+      }
+      ctx.fillStyle = 'rgba(236,220,255,.55)';
+      for(let i = 0; i < 16; i += 1){
+        ctx.beginPath();
+        ctx.ellipse(center.x + Math.cos(i) * size * .48, center.y + Math.sin(i * 1.7) * size * .38, 4, 7, i, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }else if(tile.type === 'sunsteel'){
+      ctx.fillStyle = 'rgba(24,30,34,.34)';
+      for(let i = -1; i <= 1; i += 1){
+        ctx.beginPath();
+        ctx.moveTo(center.x + i * size * .26 - size * .25, center.y + size * .42);
+        ctx.lineTo(center.x + i * size * .26, center.y - size * .44);
+        ctx.lineTo(center.x + i * size * .26 + size * .28, center.y + size * .42);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.strokeStyle = 'rgba(236,247,255,.38)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(center.x - size * .22, center.y - size * .1);
+      ctx.lineTo(center.x, center.y - size * .44);
+      ctx.lineTo(center.x + size * .2, center.y - size * .08);
+      ctx.stroke();
+    }else{
+      ctx.fillStyle = '#120c11';
+      ctx.beginPath();
+      ctx.arc(center.x, center.y, size * .48, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(229,78,93,.42)';
+      ctx.lineWidth = 3;
+      for(let i = 0; i < 8; i += 1){
+        const angle = (Math.PI * 2 / 8) * i;
+        ctx.beginPath();
+        ctx.moveTo(center.x, center.y);
+        ctx.lineTo(center.x + Math.cos(angle) * size * .75, center.y + Math.sin(angle) * size * .75);
+        ctx.stroke();
+      }
+    }
+  }
+
+  function drawTree(x, y, size){
+    ctx.fillStyle = 'rgba(14,55,43,.56)';
+    ctx.beginPath();
+    ctx.moveTo(x, y - size);
+    ctx.lineTo(x - size * .62, y + size * .5);
+    ctx.lineTo(x + size * .62, y + size * .5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = 'rgba(218,166,84,.55)';
+    ctx.fillRect(x - size * .08, y + size * .3, size * .16, size * .54);
+  }
+
+  function drawNumberToken(center, number, hot){
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, 21, 0, Math.PI * 2);
+    ctx.fillStyle = hot ? '#5b1d27' : '#f3e2bc';
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = hot ? '#f0b35d' : '#6a5230';
+    ctx.stroke();
+    ctx.fillStyle = hot ? '#ffd46f' : '#2c2520';
+    ctx.font = '900 18px Trebuchet MS, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(number), center.x, center.y + 1);
+    ctx.restore();
+  }
+
+  function drawPorts(){
+    const boundary = state.board.edges.filter(edge => edge.port);
+    boundary.forEach(edge => {
+      const a = screenPoint(state.board.vertices[edge.v1]);
+      const b = screenPoint(state.board.vertices[edge.v2]);
+      const mx = (a.x + b.x) / 2;
+      const my = (a.y + b.y) / 2;
+      const angle = Math.atan2(my - state.view.height / 2, mx - state.view.width / 2);
+      const px = mx + Math.cos(angle) * 34;
+      const py = my + Math.sin(angle) * 34;
+      const label = edge.port === 'generic' ? '3:1' : `${RESOURCES[edge.port].short} 2:1`;
+
+      ctx.save();
+      ctx.strokeStyle = 'rgba(242,200,109,.55)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(px, py);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+      roundedRect(px - 25, py - 13, 50, 26, 8);
+      ctx.fillStyle = '#18252a';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(242,200,109,.42)';
+      ctx.stroke();
+      ctx.fillStyle = '#ffe4a6';
+      ctx.font = '900 11px Trebuchet MS, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, px, py + 1);
+      ctx.restore();
+    });
+  }
+
+  function drawPlacementHints(){
+    if(!isHumanInteraction()) return;
+    const player = getInteractionPlayer();
+    if(!player) return;
+
+    ctx.save();
+    if(state.activeMode === 'settlement'){
+      state.board.vertices.forEach(vertex => {
+        if(canBuildSettlement(player.id, vertex.id, state.phase === 'setup')){
+          const point = screenPoint(vertex);
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, 12, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(242,200,109,.3)';
+          ctx.fill();
+          ctx.strokeStyle = '#f2c86d';
+          ctx.stroke();
+        }
+      });
+    }else if(state.activeMode === 'city'){
+      state.board.vertices.forEach(vertex => {
+        if(canBuildCity(player.id, vertex.id)){
+          const point = screenPoint(vertex);
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, 14, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(92,207,187,.26)';
+          ctx.fill();
+          ctx.strokeStyle = '#7fe3d0';
+          ctx.stroke();
+        }
+      });
+    }else if(state.activeMode === 'road'){
+      state.board.edges.forEach(edge => {
+        if(canBuildRoad(player.id, edge.id, state.phase === 'setup' || state.freeRoads > 0)){
+          const a = screenPoint(state.board.vertices[edge.v1]);
+          const b = screenPoint(state.board.vertices[edge.v2]);
+          ctx.strokeStyle = 'rgba(242,200,109,.7)';
+          ctx.lineWidth = 5;
+          ctx.setLineDash([9, 8]);
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      });
+    }
+    ctx.restore();
+  }
+
+  function drawRoads(){
+    state.board.edges.forEach(edge => {
+      if(edge.road === null) return;
+      const player = state.players[edge.road];
+      const a = screenPoint(state.board.vertices[edge.v1]);
+      const b = screenPoint(state.board.vertices[edge.v2]);
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = 'rgba(0,0,0,.48)';
+      ctx.lineWidth = 12;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+      ctx.strokeStyle = player.color;
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+      ctx.strokeStyle = player.accent;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+      ctx.restore();
+    });
+  }
+
+  function drawBuildings(){
+    state.board.vertices.forEach(vertex => {
+      if(!vertex.building) return;
+      const point = screenPoint(vertex);
+      const player = state.players[vertex.building.playerId];
+      drawBuilding(point.x, point.y, player, vertex.building.kind);
+    });
+  }
+
+  function drawBuilding(x, y, player, kind){
+    const size = kind === 'city' ? 18 : 14;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = 'rgba(0,0,0,.44)';
+    ctx.beginPath();
+    ctx.ellipse(0, size * .72, size * 1.05, size * .36, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = player.color;
+    ctx.strokeStyle = '#11181c';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, -size);
+    ctx.lineTo(size, -size * .25);
+    ctx.lineTo(size * .7, size);
+    ctx.lineTo(-size * .7, size);
+    ctx.lineTo(-size, -size * .25);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = player.accent;
+    ctx.beginPath();
+    ctx.moveTo(0, -size * 1.18);
+    ctx.lineTo(size * .58, -size * .45);
+    ctx.lineTo(-size * .58, -size * .45);
+    ctx.closePath();
+    ctx.fill();
+
+    if(kind === 'city'){
+      ctx.fillStyle = player.color;
+      ctx.fillRect(-size * .38, -size * 1.65, size * .76, size * .7);
+      ctx.strokeRect(-size * .38, -size * 1.65, size * .76, size * .7);
+      ctx.fillStyle = player.accent;
+      ctx.fillRect(-size * .22, -size * 1.98, size * .44, size * .36);
+    }
+    ctx.restore();
+  }
+
+  function drawRobber(){
+    const tile = state.board.tiles[state.board.robberTile];
+    const center = screenPoint(tile.center);
+    ctx.save();
+    ctx.translate(center.x, center.y - 42);
+    ctx.fillStyle = 'rgba(5,8,12,.84)';
+    ctx.strokeStyle = '#f05a5f';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 8, 18, Math.PI, 0);
+    ctx.lineTo(15, 32);
+    ctx.lineTo(-15, 32);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-9, -2);
+    ctx.lineTo(-22, -20);
+    ctx.lineTo(-2, -9);
+    ctx.moveTo(9, -2);
+    ctx.lineTo(22, -20);
+    ctx.lineTo(2, -9);
+    ctx.stroke();
+    ctx.fillStyle = '#ffd36b';
+    ctx.beginPath();
+    ctx.arc(-6, 10, 2.8, 0, Math.PI * 2);
+    ctx.arc(6, 10, 2.8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawHover(){
+    if(!state.hover) return;
+    ctx.save();
+    ctx.strokeStyle = '#ffe4a6';
+    ctx.lineWidth = 3;
+    if(state.hover.vertexId !== undefined){
+      const vertex = state.board.vertices[state.hover.vertexId];
+      const point = screenPoint(vertex);
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, 18, 0, Math.PI * 2);
+      ctx.stroke();
+    }else if(state.hover.edgeId !== undefined){
+      const edge = state.board.edges[state.hover.edgeId];
+      const a = screenPoint(state.board.vertices[edge.v1]);
+      const b = screenPoint(state.board.vertices[edge.v2]);
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function roundedRect(x, y, width, height, radius){
+    const r = Math.min(radius, width / 2, height / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + width - r, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+    ctx.lineTo(x + width, y + height - r);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+    ctx.lineTo(x + r, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  function handleMouseMove(event){
+    if(!state) return;
+    const point = getCanvasPoint(event);
+    state.hover = hitTest(point.x, point.y);
+    queueRender();
+  }
+
+  function handleCanvasLeave(){
+    if(!state) return;
+    state.hover = null;
+    queueRender();
+  }
+
+  function handleCanvasClick(event){
+    if(!state || state.winner || !isHumanInteraction()) return;
+    const point = getCanvasPoint(event);
+    const hit = hitTest(point.x, point.y);
+    if(!hit) return;
+    const player = getInteractionPlayer();
+
+    if(state.phase === 'setup'){
+      handleSetupClick(player, hit);
+      return;
+    }
+
+    if(state.activeMode === 'robber' && hit.tileId !== undefined){
+      moveRobber(player.id, hit.tileId);
+      return;
+    }
+
+    if(state.phase !== 'main') return;
+
+    if(state.activeMode === 'road' && hit.edgeId !== undefined){
+      if(buildRoad(player.id, hit.edgeId, state.freeRoads > 0)){
+        if(state.freeRoads > 0){
+          state.freeRoads -= 1;
+          if(state.freeRoads === 0) state.activeMode = null;
+        }
+        updateAll();
+      }
+      return;
+    }
+
+    if(state.activeMode === 'settlement' && hit.vertexId !== undefined){
+      if(buildSettlement(player.id, hit.vertexId, false)) updateAll();
+      return;
+    }
+
+    if(state.activeMode === 'city' && hit.vertexId !== undefined){
+      if(buildCity(player.id, hit.vertexId)) updateAll();
+      return;
+    }
+
+    if(hit.tileId !== undefined) state.selected = { type: 'tile', id: hit.tileId };
+    if(hit.vertexId !== undefined) state.selected = { type: 'vertex', id: hit.vertexId };
+    updateAll();
+  }
+
+  function getCanvasPoint(event){
+    const rect = dom.canvas.getBoundingClientRect();
+    return {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top
+    };
+  }
+
+  function hitTest(x, y){
+    const player = getInteractionPlayer();
+    const mode = state.activeMode;
+    const vertexRadius = mode === 'settlement' || mode === 'city' ? 22 : 14;
+    let nearestVertex = null;
+    let nearestVertexDistance = Infinity;
+
+    state.board.vertices.forEach(vertex => {
+      const point = screenPoint(vertex);
+      const dist = Math.hypot(point.x - x, point.y - y);
+      if(dist < nearestVertexDistance){
+        nearestVertexDistance = dist;
+        nearestVertex = vertex;
+      }
+    });
+
+    if(nearestVertex && nearestVertexDistance <= vertexRadius){
+      return { vertexId: nearestVertex.id };
+    }
+
+    let nearestEdge = null;
+    let nearestEdgeDistance = Infinity;
+    state.board.edges.forEach(edge => {
+      const a = screenPoint(state.board.vertices[edge.v1]);
+      const b = screenPoint(state.board.vertices[edge.v2]);
+      const dist = distanceToSegment({ x, y }, a, b);
+      if(dist < nearestEdgeDistance){
+        nearestEdgeDistance = dist;
+        nearestEdge = edge;
+      }
+    });
+
+    if(nearestEdge && nearestEdgeDistance <= (mode === 'road' ? 18 : 10)){
+      if(!player || mode !== 'road' || canBuildRoad(player.id, nearestEdge.id, state.phase === 'setup' || state.freeRoads > 0)){
+        return { edgeId: nearestEdge.id };
+      }
+    }
+
+    for(const tile of state.board.tiles){
+      if(pointInPolygon({ x, y }, getTileCorners(tile))) return { tileId: tile.id };
+    }
+    return null;
+  }
+
+  function distanceToSegment(point, a, b){
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len = dx * dx + dy * dy;
+    const t = len === 0 ? 0 : clamp(((point.x - a.x) * dx + (point.y - a.y) * dy) / len, 0, 1);
+    return Math.hypot(point.x - (a.x + dx * t), point.y - (a.y + dy * t));
+  }
+
+  function pointInPolygon(point, polygon){
+    let inside = false;
+    for(let i = 0, j = polygon.length - 1; i < polygon.length; j = i, i += 1){
+      const xi = polygon[i].x;
+      const yi = polygon[i].y;
+      const xj = polygon[j].x;
+      const yj = polygon[j].y;
+      const intersect = ((yi > point.y) !== (yj > point.y)) && point.x < ((xj - xi) * (point.y - yi)) / (yj - yi) + xi;
+      if(intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  function handleSetupClick(player, hit){
+    if(state.setupPart === 'settlement' && hit.vertexId !== undefined){
+      if(!canBuildSettlement(player.id, hit.vertexId, true)){
+        notice('Placement impossible.');
+        return;
+      }
+      placeSettlement(player.id, hit.vertexId, true);
+      state.setupPendingVertex = hit.vertexId;
+      state.setupPart = 'road';
+      state.activeMode = 'road';
+      log(`${player.name} fonde une colonie.`);
+      notice(`${player.name}: route initiale.`);
+      updateAll();
+      return;
+    }
+
+    if(state.setupPart === 'road' && hit.edgeId !== undefined){
+      if(!canBuildRoad(player.id, hit.edgeId, true)){
+        notice('Route impossible.');
+        return;
+      }
+      placeRoad(player.id, hit.edgeId, true);
+      if(state.setupStep >= state.players.length) grantInitialResources(player.id, state.setupPendingVertex);
+      advanceSetup();
+    }
+  }
+
+  function advanceSetup(){
+    state.setupPendingVertex = null;
+    state.setupPart = 'settlement';
+    state.setupStep += 1;
+
+    if(state.setupStep >= state.setupQueue.length){
+      state.phase = 'roll';
+      state.activeMode = null;
+      state.turn = 0;
+      state.turnNumber = 1;
+      log('La derniere torche est plantee. Les des decident la suite.');
+      notice(`${currentPlayer().name}: lance les des.`);
+      updateAll();
+      scheduleAi();
+      return;
+    }
+
+    state.activeMode = 'settlement';
+    const next = getSetupPlayer();
+    notice(`${next.name}: colonie initiale.`);
+    updateAll();
+    scheduleAi();
+  }
+
+  function grantInitialResources(playerId, vertexId){
+    const player = state.players[playerId];
+    const vertex = state.board.vertices[vertexId];
+    vertex.tileIds.forEach(tileId => {
+      const tile = state.board.tiles[tileId];
+      if(tile.type === 'crater') return;
+      player.resources[tile.type] += 1;
+    });
+    log(`${player.name} recoit ses ressources de depart.`);
+  }
+
+  function rollDice(){
+    if(!state || state.phase !== 'roll' || state.winner) return;
+    const player = currentPlayer();
+    const roll = 1 + randomInt(6) + 1 + randomInt(6);
+    state.dice = roll;
+    state.devPlayedThisTurn = false;
+    log(`${player.name} lance ${roll}.`);
+
+    if(roll === 7){
+      discardForSeven();
+      state.phase = 'robber';
+      state.activeMode = 'robber';
+      state.pendingRobber = { playerId: player.id, source: 'dice' };
+      notice(`${player.name}: deplace l Oni.`);
+      updateAll();
+      scheduleAi();
+      return;
+    }
+
+    distributeResources(roll);
+    state.phase = 'main';
+    state.activeMode = null;
+    updateAll();
+    scheduleAi();
+  }
+
+  function discardForSeven(){
+    state.players.forEach(player => {
+      const total = sumResources(player.resources);
+      if(total <= 7) return;
+      let toDiscard = Math.floor(total / 2);
+      while(toDiscard > 0){
+        const available = RESOURCE_KEYS.filter(key => player.resources[key] > 0);
+        if(!available.length) break;
+        const key = available[randomInt(available.length)];
+        player.resources[key] -= 1;
+        toDiscard -= 1;
+      }
+      log(`${player.name} perd des provisions dans la panique.`);
+    });
+  }
+
+  function distributeResources(roll){
+    let gained = 0;
+    state.board.tiles.forEach(tile => {
+      if(tile.number !== roll || tile.id === state.board.robberTile || tile.type === 'crater') return;
+      tile.vertexIds.forEach(vertexId => {
+        const building = state.board.vertices[vertexId].building;
+        if(!building) return;
+        const amount = building.kind === 'city' ? 2 : 1;
+        state.players[building.playerId].resources[tile.type] += amount;
+        gained += amount;
+      });
+    });
+
+    log(gained ? `${gained} ressources arrivent sur le plateau.` : 'La nuit reste silencieuse.');
+  }
+
+  function moveRobber(playerId, tileId){
+    if(state.board.robberTile === tileId){
+      notice('Choisis une autre tuile.');
+      return false;
+    }
+
+    const player = state.players[playerId];
+    state.board.robberTile = tileId;
+    const victims = getRobberVictims(playerId, tileId);
+    if(victims.length){
+      const victim = victims[randomInt(victims.length)];
+      const available = RESOURCE_KEYS.filter(key => victim.resources[key] > 0);
+      const resource = available[randomInt(available.length)];
+      victim.resources[resource] -= 1;
+      player.resources[resource] += 1;
+      log(`${player.name} vole ${RESOURCES[resource].name} a ${victim.name}.`);
+    }else{
+      log(`${player.name} deplace l Oni sans butin.`);
+    }
+
+    state.phase = 'main';
+    state.activeMode = null;
+    state.pendingRobber = null;
+    updateAll();
+    scheduleAi();
+    return true;
+  }
+
+  function getRobberVictims(playerId, tileId){
+    const ids = new Set();
+    const tile = state.board.tiles[tileId];
+    tile.vertexIds.forEach(vertexId => {
+      const building = state.board.vertices[vertexId].building;
+      if(building && building.playerId !== playerId && sumResources(state.players[building.playerId].resources) > 0){
+        ids.add(building.playerId);
+      }
+    });
+    return [...ids].map(id => state.players[id]);
+  }
+
+  function setMode(mode){
+    if(!state || state.phase !== 'main' || !isHumanInteraction()) return;
+    state.activeMode = state.activeMode === mode ? null : mode;
+    updateAll();
+  }
+
+  function buildRoad(playerId, edgeId, free){
+    const player = state.players[playerId];
+    if(!canBuildRoad(playerId, edgeId, free)){
+      notice('Route impossible.');
+      return false;
+    }
+    if(!free && !spend(player, COSTS.road)){
+      notice('Ressources insuffisantes.');
+      return false;
+    }
+    placeRoad(playerId, edgeId, true);
+    log(`${player.name} trace une route.`);
+    updateAwards();
+    checkVictory(playerId);
+    return true;
+  }
+
+  function placeRoad(playerId, edgeId){
+    const edge = state.board.edges[edgeId];
+    edge.road = playerId;
+    state.players[playerId].pieces.roads += 1;
+  }
+
+  function buildSettlement(playerId, vertexId, free){
+    const player = state.players[playerId];
+    if(!canBuildSettlement(playerId, vertexId, free)){
+      notice('Colonie impossible.');
+      return false;
+    }
+    if(!free && !spend(player, COSTS.settlement)){
+      notice('Ressources insuffisantes.');
+      return false;
+    }
+    placeSettlement(playerId, vertexId, true);
+    log(`${player.name} fonde une colonie.`);
+    checkVictory(playerId);
+    return true;
+  }
+
+  function placeSettlement(playerId, vertexId){
+    const vertex = state.board.vertices[vertexId];
+    vertex.building = { playerId, kind: 'settlement' };
+    state.players[playerId].pieces.settlements += 1;
+  }
+
+  function buildCity(playerId, vertexId){
+    const player = state.players[playerId];
+    if(!canBuildCity(playerId, vertexId)){
+      notice('Cite impossible.');
+      return false;
+    }
+    if(!spend(player, COSTS.city)){
+      notice('Ressources insuffisantes.');
+      return false;
+    }
+    const vertex = state.board.vertices[vertexId];
+    vertex.building.kind = 'city';
+    player.pieces.settlements -= 1;
+    player.pieces.cities += 1;
+    log(`${player.name} eleve une cite.`);
+    checkVictory(playerId);
+    return true;
+  }
+
+  function buyDevCard(){
+    const player = currentPlayer();
+    if(!isHumanInteraction() || state.phase !== 'main') return;
+    if(!state.devDeck.length){
+      notice('Le paquet est vide.');
+      return;
+    }
+    if(!spend(player, COSTS.dev)){
+      notice('Ressources insuffisantes.');
+      return;
+    }
+    const type = state.devDeck.pop();
+    player.devCards.push({ type, fresh: true });
+    log(`${player.name} pioche ${DEV_CARDS[type].name}.`);
+    checkVictory(player.id);
+    updateAll();
+  }
+
+  function playDevCard(type){
+    const player = currentPlayer();
+    if(!isHumanInteraction() || state.phase !== 'main' || state.devPlayedThisTurn) return;
+    const index = player.devCards.findIndex(card => card.type === type && !card.fresh && card.type !== 'vp');
+    if(index < 0){
+      notice('Carte indisponible ce tour.');
+      return;
+    }
+    player.devCards.splice(index, 1);
+    state.devPlayedThisTurn = true;
+
+    if(type === 'knight'){
+      player.knights += 1;
+      state.activeMode = 'robber';
+      state.pendingRobber = { playerId: player.id, source: 'knight' };
+      updateLargestArmy();
+      log(`${player.name} joue un Chasseur.`);
+      notice('Deplace l Oni.');
+    }else if(type === 'road'){
+      state.freeRoads = 2;
+      state.activeMode = 'road';
+      log(`${player.name} joue Deux Routes.`);
+      notice('Place deux routes gratuites.');
+    }else if(type === 'plenty'){
+      const first = document.getElementById('plentyOne')?.value || 'cedar';
+      const second = document.getElementById('plentyTwo')?.value || first;
+      player.resources[first] += 1;
+      player.resources[second] += 1;
+      log(`${player.name} recoit une Offrande.`);
+    }else if(type === 'monopoly'){
+      const resource = document.getElementById('monopolyResource')?.value || 'cedar';
+      let total = 0;
+      state.players.forEach(other => {
+        if(other.id === player.id) return;
+        total += other.resources[resource];
+        player.resources[resource] += other.resources[resource];
+        other.resources[resource] = 0;
+      });
+      log(`${player.name} prend ${total} ${RESOURCES[resource].name}.`);
+    }
+
+    checkVictory(player.id);
+    updateAll();
+  }
+
+  function bankTrade(){
+    if(!state || state.phase !== 'main' || !isHumanInteraction()) return;
+    const player = currentPlayer();
+    const give = dom.tradeGive.value;
+    const get = dom.tradeGet.value;
+    if(give === get){
+      notice('Choisis deux ressources differentes.');
+      return;
+    }
+    const ratio = getTradeRatio(player.id, give);
+    if(player.resources[give] < ratio){
+      notice(`Il faut ${ratio} ${RESOURCES[give].name}.`);
+      return;
+    }
+    player.resources[give] -= ratio;
+    player.resources[get] += 1;
+    log(`${player.name} echange ${ratio}:1 avec la banque.`);
+    updateAll();
+  }
+
+  function playerTrade(){
+    if(!state || state.phase !== 'main' || !isHumanInteraction()) return;
+    const player = currentPlayer();
+    const partner = state.players[Number(dom.tradePartner.value)];
+    const give = dom.tradeGive.value;
+    const get = dom.tradeGet.value;
+    const giveAmount = clamp(Number(dom.tradeGiveAmount.value) || 1, 1, 19);
+    const getAmount = clamp(Number(dom.tradeGetAmount.value) || 1, 1, 19);
+
+    dom.tradeGiveAmount.value = String(giveAmount);
+    dom.tradeGetAmount.value = String(getAmount);
+
+    if(!partner || partner.id === player.id){
+      notice('Choisis un clan.');
+      return;
+    }
+    if(give === get){
+      notice('Choisis deux ressources differentes.');
+      return;
+    }
+    if(player.resources[give] < giveAmount){
+      notice(`${player.name} manque de ${RESOURCES[give].name}.`);
+      return;
+    }
+    if(partner.resources[get] < getAmount){
+      notice(`${partner.name} manque de ${RESOURCES[get].name}.`);
+      return;
+    }
+
+    player.resources[give] -= giveAmount;
+    partner.resources[give] += giveAmount;
+    partner.resources[get] -= getAmount;
+    player.resources[get] += getAmount;
+    log(`${player.name} echange avec ${partner.name}.`);
+    updateAll();
+  }
+
+  function endTurn(){
+    if(!state || state.phase !== 'main' || !isHumanInteraction()) return;
+    finishTurn();
+  }
+
+  function finishTurn(){
+    const player = currentPlayer();
+    player.devCards.forEach(card => {
+      card.fresh = false;
+    });
+    state.activeMode = null;
+    state.freeRoads = 0;
+    state.devPlayedThisTurn = false;
+    state.dice = null;
+    state.phase = 'roll';
+    state.turn = (state.turn + 1) % state.players.length;
+    if(state.turn === 0) state.turnNumber += 1;
+    log(`${currentPlayer().name} prend la main.`);
+    notice(`${currentPlayer().name}: lance les des.`);
+    updateAll();
+    scheduleAi();
+  }
+
+  function spend(player, cost){
+    if(!canAfford(player, cost)) return false;
+    RESOURCE_KEYS.forEach(key => {
+      player.resources[key] -= cost[key] || 0;
+    });
+    return true;
+  }
+
+  function canAfford(player, cost){
+    return RESOURCE_KEYS.every(key => player.resources[key] >= (cost[key] || 0));
+  }
+
+  function canBuildRoad(playerId, edgeId, free){
+    const player = state.players[playerId];
+    const edge = state.board.edges[edgeId];
+    if(!edge || edge.road !== null) return false;
+    if(player.pieces.roads >= MAX_PIECES.roads) return false;
+    if(!free && !canAfford(player, COSTS.road)) return false;
+
+    if(state.phase === 'setup'){
+      return state.setupPendingVertex !== null && (edge.v1 === state.setupPendingVertex || edge.v2 === state.setupPendingVertex);
+    }
+
+    return [edge.v1, edge.v2].some(vertexId => roadConnectsAtVertex(playerId, vertexId));
+  }
+
+  function roadConnectsAtVertex(playerId, vertexId){
+    const vertex = state.board.vertices[vertexId];
+    if(vertex.building){
+      return vertex.building.playerId === playerId;
+    }
+
+    return vertex.edgeIds.some(edgeId => state.board.edges[edgeId].road === playerId);
+  }
+
+  function canBuildSettlement(playerId, vertexId, free){
+    const player = state.players[playerId];
+    const vertex = state.board.vertices[vertexId];
+    if(!vertex || vertex.building) return false;
+    if(player.pieces.settlements >= MAX_PIECES.settlements) return false;
+    if(!free && !canAfford(player, COSTS.settlement)) return false;
+
+    const adjacentBlocked = vertex.edgeIds.some(edgeId => {
+      const edge = state.board.edges[edgeId];
+      const otherId = edge.v1 === vertexId ? edge.v2 : edge.v1;
+      return Boolean(state.board.vertices[otherId].building);
+    });
+    if(adjacentBlocked) return false;
+
+    if(state.phase === 'setup') return true;
+    return vertex.edgeIds.some(edgeId => state.board.edges[edgeId].road === playerId);
+  }
+
+  function canBuildCity(playerId, vertexId){
+    const player = state.players[playerId];
+    const vertex = state.board.vertices[vertexId];
+    if(!vertex?.building || vertex.building.playerId !== playerId || vertex.building.kind !== 'settlement') return false;
+    if(player.pieces.cities >= MAX_PIECES.cities) return false;
+    return canAfford(player, COSTS.city);
+  }
+
+  function updateAwards(){
+    state.players.forEach(player => {
+      player.longestRoad = calculateLongestRoad(player.id);
+    });
+
+    const best = state.players.reduce((leader, player) => player.longestRoad > leader.longestRoad ? player : leader, state.players[0]);
+    const holder = state.longestRoadHolder === null ? null : state.players[state.longestRoadHolder];
+    if(best.longestRoad >= 5 && (!holder || best.longestRoad > holder.longestRoad)){
+      state.players.forEach(player => {
+        player.hasLongestRoad = player.id === best.id;
+      });
+      state.longestRoadHolder = best.id;
+      log(`${best.name} controle la Plus Longue Route.`);
+    }
+  }
+
+  function updateLargestArmy(){
+    const best = state.players.reduce((leader, player) => player.knights > leader.knights ? player : leader, state.players[0]);
+    const holder = state.largestArmyHolder === null ? null : state.players[state.largestArmyHolder];
+    if(best.knights >= 3 && (!holder || best.knights > holder.knights)){
+      state.players.forEach(player => {
+        player.hasLargestArmy = player.id === best.id;
+      });
+      state.largestArmyHolder = best.id;
+      log(`${best.name} revele la Grande Armee.`);
+    }
+  }
+
+  function calculateLongestRoad(playerId){
+    const playerEdges = state.board.edges.filter(edge => edge.road === playerId);
+    if(!playerEdges.length) return 0;
+    let best = 0;
+
+    state.board.vertices.forEach(vertex => {
+      best = Math.max(best, dfsRoad(playerId, vertex.id, new Set()));
+    });
+    return best;
+  }
+
+  function dfsRoad(playerId, vertexId, usedEdges){
+    const vertex = state.board.vertices[vertexId];
+    if(vertex.building && vertex.building.playerId !== playerId && usedEdges.size > 0) return 0;
+
+    let best = 0;
+    vertex.edgeIds.forEach(edgeId => {
+      if(usedEdges.has(edgeId)) return;
+      const edge = state.board.edges[edgeId];
+      if(edge.road !== playerId) return;
+      const nextVertexId = edge.v1 === vertexId ? edge.v2 : edge.v1;
+      const nextUsed = new Set(usedEdges);
+      nextUsed.add(edgeId);
+      best = Math.max(best, 1 + dfsRoad(playerId, nextVertexId, nextUsed));
+    });
+    return best;
+  }
+
+  function victoryPoints(player){
+    const devPoints = player.devCards.filter(card => card.type === 'vp').length;
+    return player.pieces.settlements + player.pieces.cities * 2 + devPoints + (player.hasLongestRoad ? 2 : 0) + (player.hasLargestArmy ? 2 : 0);
+  }
+
+  function checkVictory(playerId){
+    const player = state.players[playerId];
+    if(victoryPoints(player) >= state.targetScore){
+      state.winner = playerId;
+      state.phase = 'ended';
+      state.activeMode = null;
+      log(`${player.name} remporte Moonfall Settlers.`);
+      notice(`${player.name} gagne la partie.`);
+    }
+  }
+
+  function getTradeRatio(playerId, resource){
+    const ports = getPlayerPorts(playerId);
+    if(ports.has(resource)) return 2;
+    if(ports.has('generic')) return 3;
+    return 4;
+  }
+
+  function getPlayerPorts(playerId){
+    const ports = new Set();
+    state.board.vertices.forEach(vertex => {
+      if(vertex.port && vertex.building?.playerId === playerId) ports.add(vertex.port);
+    });
+    return ports;
+  }
+
+  function currentPlayer(){
+    return state.players[state.turn];
+  }
+
+  function getSetupPlayer(){
+    return state.players[state.setupQueue[state.setupStep]];
+  }
+
+  function getInteractionPlayer(){
+    if(!state) return null;
+    if(state.phase === 'setup') return getSetupPlayer();
+    if(state.phase === 'ended') return null;
+    return currentPlayer();
+  }
+
+  function isHumanInteraction(){
+    const player = getInteractionPlayer();
+    return Boolean(player && player.type === 'human' && !state.winner);
+  }
+
+  function scheduleAi(){
+    clearTimeout(aiTimer);
+    if(!state || state.winner) return;
+    const player = getInteractionPlayer();
+    if(!player || player.type !== 'ai') return;
+    aiTimer = setTimeout(runAi, state.phase === 'setup' ? 650 : 850);
+  }
+
+  function runAi(){
+    if(!state || state.winner) return;
+    const player = getInteractionPlayer();
+    if(!player || player.type !== 'ai') return;
+
+    if(state.phase === 'setup'){
+      runAiSetup(player);
+    }else if(state.phase === 'roll'){
+      rollDice();
+    }else if(state.phase === 'robber'){
+      moveRobber(player.id, chooseRobberTile(player.id));
+    }else if(state.phase === 'main'){
+      runAiMain(player);
+    }
+  }
+
+  function runAiSetup(player){
+    if(state.setupPart === 'settlement'){
+      const vertexId = chooseBestSettlement(player.id, true);
+      placeSettlement(player.id, vertexId, true);
+      state.setupPendingVertex = vertexId;
+      state.setupPart = 'road';
+      state.activeMode = 'road';
+      log(`${player.name} fonde une colonie.`);
+      updateAll();
+      scheduleAi();
+      return;
+    }
+
+    const edgeId = chooseBestRoad(player.id, true);
+    placeRoad(player.id, edgeId, true);
+    if(state.setupStep >= state.players.length) grantInitialResources(player.id, state.setupPendingVertex);
+    advanceSetup();
+  }
+
+  function runAiMain(player){
+    maybePlayAiKnight(player);
+
+    for(let i = 0; i < 8; i += 1){
+      if(tryAiCity(player)) continue;
+      if(tryAiSettlement(player)) continue;
+      if(tryAiRoad(player)) continue;
+      if(tryAiDev(player)) continue;
+      if(tryAiBankTrade(player)) continue;
+      break;
+    }
+
+    updateAll();
+    setTimeout(() => {
+      if(state && !state.winner && currentPlayer().id === player.id && state.phase === 'main') finishTurn();
+    }, 650);
+  }
+
+  function maybePlayAiKnight(player){
+    if(state.devPlayedThisTurn) return;
+    const index = player.devCards.findIndex(card => card.type === 'knight' && !card.fresh);
+    if(index < 0 || Math.random() > .36) return;
+    player.devCards.splice(index, 1);
+    player.knights += 1;
+    state.devPlayedThisTurn = true;
+    updateLargestArmy();
+    moveRobber(player.id, chooseRobberTile(player.id));
+  }
+
+  function tryAiCity(player){
+    const candidates = state.board.vertices
+      .filter(vertex => canBuildCity(player.id, vertex.id))
+      .sort((a, b) => vertexScore(b.id) - vertexScore(a.id));
+    if(!candidates.length) return false;
+    buildCity(player.id, candidates[0].id);
+    return true;
+  }
+
+  function tryAiSettlement(player){
+    const vertexId = chooseBestSettlement(player.id, false);
+    if(vertexId === null) return false;
+    if(!canAfford(player, COSTS.settlement)) return false;
+    buildSettlement(player.id, vertexId, false);
+    return true;
+  }
+
+  function tryAiRoad(player){
+    const edgeId = chooseBestRoad(player.id, false);
+    if(edgeId === null || !canAfford(player, COSTS.road)) return false;
+    buildRoad(player.id, edgeId, false);
+    return true;
+  }
+
+  function tryAiDev(player){
+    if(!state.devDeck.length || !canAfford(player, COSTS.dev) || Math.random() > .45) return false;
+    spend(player, COSTS.dev);
+    const type = state.devDeck.pop();
+    player.devCards.push({ type, fresh: true });
+    log(`${player.name} pioche une carte.`);
+    checkVictory(player.id);
+    return true;
+  }
+
+  function tryAiBankTrade(player){
+    const plans = [COSTS.city, COSTS.settlement, COSTS.road, COSTS.dev];
+    for(const cost of plans){
+      const missing = RESOURCE_KEYS.find(key => player.resources[key] < (cost[key] || 0));
+      if(!missing) continue;
+      const give = RESOURCE_KEYS.find(key => {
+        const ratio = getTradeRatio(player.id, key);
+        return key !== missing && player.resources[key] - (cost[key] || 0) >= ratio;
+      });
+      if(!give) continue;
+      const ratio = getTradeRatio(player.id, give);
+      player.resources[give] -= ratio;
+      player.resources[missing] += 1;
+      log(`${player.name} echange avec la banque.`);
+      return true;
+    }
+    return false;
+  }
+
+  function chooseBestSettlement(playerId, free){
+    const candidates = state.board.vertices
+      .filter(vertex => canBuildSettlement(playerId, vertex.id, free))
+      .sort((a, b) => vertexScore(b.id) - vertexScore(a.id));
+    return candidates.length ? candidates[0].id : null;
+  }
+
+  function chooseBestRoad(playerId, free){
+    const candidates = state.board.edges
+      .filter(edge => canBuildRoad(playerId, edge.id, free))
+      .sort((a, b) => edgeScore(b.id, playerId) - edgeScore(a.id, playerId));
+    return candidates.length ? candidates[0].id : null;
+  }
+
+  function vertexScore(vertexId){
+    const vertex = state.board.vertices[vertexId];
+    const types = new Set();
+    let score = vertex.port ? 2.2 : 0;
+    vertex.tileIds.forEach(tileId => {
+      const tile = state.board.tiles[tileId];
+      if(tile.type === 'crater') return;
+      types.add(tile.type);
+      score += PIP_WEIGHT[tile.number] || 0;
+    });
+    return score + types.size * 1.4;
+  }
+
+  function edgeScore(edgeId, playerId){
+    const edge = state.board.edges[edgeId];
+    const aScore = canBuildSettlement(playerId, edge.v1, false) ? vertexScore(edge.v1) : vertexScore(edge.v1) * .25;
+    const bScore = canBuildSettlement(playerId, edge.v2, false) ? vertexScore(edge.v2) : vertexScore(edge.v2) * .25;
+    return Math.max(aScore, bScore);
+  }
+
+  function chooseRobberTile(playerId){
+    const current = state.board.robberTile;
+    let bestTile = state.board.tiles.find(tile => tile.id !== current && tile.type !== 'crater') || state.board.tiles[0];
+    let bestScore = -Infinity;
+
+    state.board.tiles.forEach(tile => {
+      if(tile.id === current) return;
+      let score = 0;
+      tile.vertexIds.forEach(vertexId => {
+        const building = state.board.vertices[vertexId].building;
+        if(!building) return;
+        const points = building.kind === 'city' ? 2 : 1;
+        score += building.playerId === playerId ? -4 * points : 3 * points;
+      });
+      score += PIP_WEIGHT[tile.number] || 0;
+      if(score > bestScore){
+        bestScore = score;
+        bestTile = tile;
+      }
+    });
+    return bestTile.id;
+  }
+
+  function updateAll(){
+    updateHud();
+    updateButtons();
+    renderResourcePanel();
+    renderCostPanel();
+    renderTradePanel();
+    renderDevPanel();
+    renderPlayersPanel();
+    renderBoardPanel();
+    renderLogPanel();
+    queueRender();
+  }
+
+  function updateHud(){
+    const player = getInteractionPlayer() || currentPlayer();
+    dom.turnHud.textContent = String(state.turnNumber);
+    dom.activePlayer.textContent = player ? player.name : 'Fin';
+    dom.activePlayer.style.color = player ? player.color : '#fff';
+    dom.phaseHud.textContent = phaseLabel();
+    dom.diceHud.textContent = state.dice ? String(state.dice) : '--';
+    dom.targetHud.textContent = String(state.targetScore);
+    dom.pointsHud.textContent = player ? String(victoryPoints(player)) : '0';
+  }
+
+  function phaseLabel(){
+    if(state.phase === 'setup') return state.setupPart === 'settlement' ? 'Colonie' : 'Route';
+    if(state.phase === 'roll') return 'Des';
+    if(state.phase === 'robber') return 'Oni';
+    if(state.phase === 'main') return 'Action';
+    return 'Fin';
+  }
+
+  function updateButtons(){
+    const human = isHumanInteraction();
+    const player = getInteractionPlayer();
+    const mainHuman = human && state.phase === 'main' && state.activeMode !== 'robber';
+    dom.rollBtn.disabled = !(human && state.phase === 'roll');
+    dom.endTurnBtn.disabled = !mainHuman;
+    dom.roadBtn.disabled = !mainHuman || (!canAfford(player, COSTS.road) && state.freeRoads === 0);
+    dom.settlementBtn.disabled = !mainHuman || !canAfford(player, COSTS.settlement);
+    dom.cityBtn.disabled = !mainHuman || !canAfford(player, COSTS.city);
+    dom.devBtn.disabled = !mainHuman || !canAfford(player, COSTS.dev) || !state.devDeck.length;
+    dom.tradeBtn.disabled = !mainHuman;
+    dom.playerTradeBtn.disabled = !mainHuman;
+
+    [['road', dom.roadBtn], ['settlement', dom.settlementBtn], ['city', dom.cityBtn]].forEach(([mode, button]) => {
+      button.classList.toggle('active', state.activeMode === mode);
+    });
+  }
+
+  function renderResourcePanel(){
+    const player = getInteractionPlayer() || currentPlayer();
+    dom.resourcePanel.innerHTML = RESOURCE_KEYS.map(key => `
+      <div class="resource-row">
+        <span class="resource-mark" style="background:${RESOURCES[key].color}">${RESOURCES[key].short}</span>
+        <strong>${RESOURCES[key].name}</strong>
+        <b>${player.resources[key]}</b>
+      </div>
+    `).join('');
+  }
+
+  function renderCostPanel(){
+    const items = [
+      ['Route', COSTS.road],
+      ['Colonie', COSTS.settlement],
+      ['Cite', COSTS.city],
+      ['Carte', COSTS.dev]
+    ];
+    dom.costPanel.innerHTML = items.map(([label, cost]) => `
+      <span class="cost-chip"><b>${label}</b> ${formatCost(cost)}</span>
+    `).join('');
+  }
+
+  function formatCost(cost){
+    return RESOURCE_KEYS
+      .filter(key => cost[key])
+      .map(key => `${cost[key]} ${RESOURCES[key].short}`)
+      .join(' ');
+  }
+
+  function renderTradePanel(){
+    const give = dom.tradeGive.value || 'cedar';
+    const get = dom.tradeGet.value || 'clay';
+    const partner = dom.tradePartner.value || '';
+    const activePlayer = state ? (getInteractionPlayer() || currentPlayer()) : null;
+    dom.tradeGive.innerHTML = RESOURCE_KEYS.map(key => `<option value="${key}"${give === key ? ' selected' : ''}>${RESOURCES[key].name}</option>`).join('');
+    dom.tradeGet.innerHTML = RESOURCE_KEYS.map(key => `<option value="${key}"${get === key ? ' selected' : ''}>${RESOURCES[key].name}</option>`).join('');
+    dom.tradePartner.innerHTML = state ? state.players
+      .filter(player => player.id !== activePlayer.id)
+      .map(player => `<option value="${player.id}"${partner === String(player.id) ? ' selected' : ''}>${escapeHtml(player.name)}</option>`)
+      .join('') : '';
+  }
+
+  function renderDevPanel(){
+    const player = getInteractionPlayer() || currentPlayer();
+    const counts = {};
+    const playable = {};
+    Object.keys(DEV_CARDS).forEach(type => {
+      counts[type] = player.devCards.filter(card => card.type === type).length;
+      playable[type] = player.devCards.filter(card => card.type === type && !card.fresh && card.type !== 'vp').length;
+    });
+
+    const resourceOptions = RESOURCE_KEYS.map(key => `<option value="${key}">${RESOURCES[key].name}</option>`).join('');
+    dom.devPanel.innerHTML = `
+      ${Object.keys(DEV_CARDS).map(type => `
+        <div class="dev-card-row">
+          <strong>${DEV_CARDS[type].name} x${counts[type] || 0}</strong>
+          <span>${DEV_CARDS[type].detail}</span>
+        </div>
+      `).join('')}
+      <div class="dev-actions">
+        <button id="playKnight" type="button"${!playable.knight || state.devPlayedThisTurn || !isHumanInteraction() ? ' disabled' : ''}>Chasseur</button>
+        <button id="playRoadCard" type="button"${!playable.road || state.devPlayedThisTurn || !isHumanInteraction() ? ' disabled' : ''}>Routes</button>
+      </div>
+      <label>Offrande
+        <select id="plentyOne">${resourceOptions}</select>
+        <select id="plentyTwo">${resourceOptions}</select>
+      </label>
+      <button id="playPlenty" type="button"${!playable.plenty || state.devPlayedThisTurn || !isHumanInteraction() ? ' disabled' : ''}>Jouer Offrande</button>
+      <label>Serment
+        <select id="monopolyResource">${resourceOptions}</select>
+      </label>
+      <button id="playMonopoly" type="button"${!playable.monopoly || state.devPlayedThisTurn || !isHumanInteraction() ? ' disabled' : ''}>Jouer Serment</button>
+    `;
+
+    const bind = (id, type) => {
+      const button = document.getElementById(id);
+      if(button) button.addEventListener('click', () => playDevCard(type));
+    };
+    bind('playKnight', 'knight');
+    bind('playRoadCard', 'road');
+    bind('playPlenty', 'plenty');
+    bind('playMonopoly', 'monopoly');
+  }
+
+  function renderPlayersPanel(){
+    dom.playersPanel.innerHTML = state.players.map(player => {
+      const ports = [...getPlayerPorts(player.id)].map(port => port === 'generic' ? '3:1' : `${RESOURCES[port].short} 2:1`).join(', ') || 'Aucun port';
+      return `
+        <div class="player-row ${getInteractionPlayer()?.id === player.id ? 'active' : ''}" style="color:${player.color}">
+          <strong>${escapeHtml(player.name)} - ${victoryPoints(player)} pts</strong>
+          <span>${sumResources(player.resources)} ressources, ${player.devCards.length} cartes</span>
+          <span>Route ${player.longestRoad}, Armee ${player.knights}, ${ports}</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderBoardPanel(){
+    const robberTile = state.board.tiles[state.board.robberTile];
+    const selected = describeSelected();
+    dom.boardPanel.innerHTML = `
+      <div class="board-stat"><strong>Oni</strong><span>${tileLabel(robberTile)}</span></div>
+      <div class="board-stat"><strong>Paquet</strong><span>${state.devDeck.length} cartes restantes</span></div>
+      <div class="board-stat"><strong>Selection</strong><span>${selected}</span></div>
+    `;
+  }
+
+  function describeSelected(){
+    if(!state.selected) return 'Aucune';
+    if(state.selected.type === 'tile'){
+      return tileLabel(state.board.tiles[state.selected.id]);
+    }
+    const vertex = state.board.vertices[state.selected.id];
+    if(vertex.building){
+      const player = state.players[vertex.building.playerId];
+      return `${vertex.building.kind === 'city' ? 'Cite' : 'Colonie'} de ${player.name}`;
+    }
+    return vertex.port ? `Port ${vertex.port === 'generic' ? '3:1' : RESOURCES[vertex.port].name}` : 'Intersection libre';
+  }
+
+  function tileLabel(tile){
+    if(tile.type === 'crater') return 'Cratere maudit';
+    return `${RESOURCES[tile.type].name} ${tile.number}`;
+  }
+
+  function renderLogPanel(){
+    dom.logPanel.innerHTML = state.log.map(entry => `<div class="log-entry">${escapeHtml(entry)}</div>`).join('');
+  }
+
+  function resetToSetup(){
+    clearTimeout(aiTimer);
+    state = null;
+    dom.gameView.hidden = true;
+    dom.gameView.classList.add('is-hidden');
+    dom.setupView.hidden = false;
+    dom.setupView.classList.remove('is-hidden');
+  }
+
+  dom.form.addEventListener('submit', startGame);
+  dom.playerCount.addEventListener('change', renderSlots);
+  dom.shuffleBtn.addEventListener('click', shuffleSlotNames);
+  dom.canvas.addEventListener('mousemove', handleMouseMove);
+  dom.canvas.addEventListener('mouseleave', handleCanvasLeave);
+  dom.canvas.addEventListener('click', handleCanvasClick);
+  dom.rollBtn.addEventListener('click', rollDice);
+  dom.endTurnBtn.addEventListener('click', endTurn);
+  dom.newGameBtn.addEventListener('click', resetToSetup);
+  dom.roadBtn.addEventListener('click', () => setMode('road'));
+  dom.settlementBtn.addEventListener('click', () => setMode('settlement'));
+  dom.cityBtn.addEventListener('click', () => setMode('city'));
+  dom.devBtn.addEventListener('click', buyDevCard);
+  dom.tradeBtn.addEventListener('click', bankTrade);
+  dom.playerTradeBtn.addEventListener('click', playerTrade);
+  window.addEventListener('resize', resizeCanvas);
+
+  renderSlots();
+  renderTradePanel();
+})();

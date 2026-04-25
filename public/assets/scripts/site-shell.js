@@ -56,9 +56,9 @@
   function getActiveLink(){
     const path = window.location.pathname;
     if(path === '/' || path.endsWith('/index.html')) return 'home';
-    if(path.includes('/chess') || path.includes('/othello') || path.includes('/azul') || path.endsWith('/games.html')) return 'games';
+    if(path.includes('/chess') || path.includes('/othello') || path.includes('/azul') || path.includes('/moonfall') || path.endsWith('/games.html')) return 'games';
     if(path.includes('/leaderboard')) return 'leaderboard';
-    if(path.includes('/strategy')) return 'games';
+    if(path.includes('/strategy') || path.includes('/moonfall-world-conquest')) return 'games';
     if(path.includes('/profile')) return 'profile';
     if(path.includes('/admin')) return 'admin';
     return 'home';
@@ -181,7 +181,7 @@
 
   function isSocketOwnedByPage(){
     const path = window.location.pathname;
-    return path.includes('/chess') || path.includes('/othello') || path.includes('/azul') || path.includes('/strategy');
+    return path.includes('/chess') || path.includes('/othello') || path.includes('/azul');
   }
 
   function waitForPageSocket(){

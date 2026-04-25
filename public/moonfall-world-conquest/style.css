@@ -1,0 +1,563 @@
+body.conquest-page{
+  margin:0;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 16% 14%, rgba(74,153,142,.22), transparent 24rem),
+    radial-gradient(circle at 86% 18%, rgba(233,180,82,.14), transparent 26rem),
+    linear-gradient(135deg, #0d2328, #221419 58%, #0b0c12);
+}
+
+body.conquest-page [hidden],
+.is-hidden{
+  display:none !important;
+}
+
+.conquest-app{
+  width:100%;
+  min-height:calc(100vh - 64px);
+}
+
+.setup-view{
+  min-height:calc(100vh - 64px);
+  max-width:1320px;
+  margin:0 auto;
+  display:grid;
+  grid-template-columns:minmax(560px, 1fr) 360px;
+  gap:22px;
+  align-items:center;
+}
+
+.setup-title{
+  margin-bottom:18px;
+}
+
+.setup-title h1{
+  margin:8px 0 0;
+  max-width:760px;
+  font-size:68px;
+  line-height:.94;
+}
+
+.eyebrow{
+  display:block;
+  color:#f0c76e;
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:0;
+  text-transform:uppercase;
+}
+
+.setup-card,
+.rulebook,
+.topbar,
+.side-panel,
+.intel-panel{
+  border:1px solid rgba(239,199,110,.22);
+  border-radius:8px;
+  background:linear-gradient(180deg, rgba(38,38,42,.94), rgba(22,22,28,.96));
+  box-shadow:0 20px 72px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+.setup-card,
+.rulebook{
+  padding:18px;
+}
+
+.setup-grid{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:12px;
+  margin-bottom:14px;
+}
+
+label{
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+  color:#d8d6c9;
+  font-size:13px;
+  font-weight:900;
+}
+
+input,
+select{
+  min-height:42px;
+  border:1px solid rgba(240,199,110,.24);
+  border-radius:8px;
+  background:#0d1217;
+  color:#fff;
+  padding:0 10px;
+  font:inherit;
+}
+
+.slots{
+  display:grid;
+  gap:10px;
+  max-height:52vh;
+  overflow:auto;
+  padding-right:4px;
+}
+
+.slot{
+  display:grid;
+  grid-template-columns:34px 1fr 120px 112px;
+  gap:8px;
+  align-items:end;
+  padding:10px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:8px;
+  background:rgba(255,255,255,.045);
+}
+
+.slot-number{
+  height:42px;
+  display:grid;
+  place-items:center;
+  border-radius:8px;
+  background:rgba(255,255,255,.08);
+  font-weight:900;
+}
+
+.setup-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-top:16px;
+}
+
+button{
+  min-height:42px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:8px;
+  color:white;
+  font-weight:900;
+  cursor:pointer;
+  transition:transform .16s ease, border-color .16s ease, background .16s ease;
+}
+
+button:hover{
+  transform:translateY(-1px);
+  border-color:rgba(255,255,255,.3);
+}
+
+button:disabled{
+  opacity:.42;
+  cursor:not-allowed;
+  transform:none;
+}
+
+.primary-btn{
+  padding:0 20px;
+  border-color:rgba(205,61,77,.68);
+  background:linear-gradient(135deg, #d95055, #842234);
+}
+
+.secondary-btn{
+  padding:0 18px;
+  background:rgba(255,255,255,.07);
+}
+
+.rulebook h2,
+.side-panel h2,
+.intel-panel h2{
+  margin:0 0 10px;
+  font-size:15px;
+}
+
+.rule-list{
+  display:grid;
+  gap:10px;
+}
+
+.rule-list p{
+  margin:0;
+  color:#d6d0bd;
+  line-height:1.45;
+}
+
+.rule-list strong{
+  color:#fff0b8;
+}
+
+.game-view{
+  height:calc(100vh - 64px);
+  min-height:680px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.topbar{
+  min-height:58px;
+  display:grid;
+  grid-template-columns:260px 1fr 178px;
+  align-items:center;
+  gap:12px;
+  padding:8px 12px;
+}
+
+.topbar strong{
+  display:block;
+  margin-top:4px;
+  font-size:18px;
+}
+
+.status-strip,
+.top-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.status-strip{
+  justify-content:center;
+  flex-wrap:wrap;
+}
+
+.status-strip span{
+  min-height:34px;
+  padding:7px 11px;
+  border-radius:8px;
+  background:#23333b;
+  color:#e9dfc4;
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.18);
+}
+
+.top-actions{
+  justify-content:flex-end;
+}
+
+.top-actions button{
+  padding:0 12px;
+  background:rgba(255,255,255,.08);
+}
+
+.conquest-layout{
+  min-height:0;
+  flex:1;
+  display:grid;
+  grid-template-columns:238px minmax(0, 1fr) 246px;
+  grid-template-areas:"side map intel";
+  gap:10px;
+}
+
+.side-panel{
+  grid-area:side;
+}
+
+.map-frame{
+  grid-area:map;
+}
+
+.intel-panel{
+  grid-area:intel;
+}
+
+.side-panel,
+.intel-panel{
+  min-height:0;
+  overflow:auto;
+  padding:10px;
+}
+
+.side-panel section,
+.intel-panel section{
+  padding-bottom:14px;
+  margin-bottom:14px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+
+.side-panel section:last-child,
+.intel-panel section:last-child{
+  border-bottom:0;
+}
+
+.territory-info{
+  min-height:124px;
+  display:grid;
+  gap:8px;
+}
+
+.info-card,
+.player-row,
+.region-row,
+.card-row,
+.log-entry{
+  border-radius:8px;
+  background:rgba(255,255,255,.065);
+}
+
+.info-card{
+  padding:10px;
+}
+
+.info-card strong{
+  display:block;
+  margin-bottom:5px;
+}
+
+.info-card span{
+  display:block;
+  color:#d0cabc;
+  font-size:13px;
+  line-height:1.35;
+}
+
+.command-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+.command-grid button{
+  min-height:44px;
+  padding:0 7px;
+  background:#263d47;
+  font-size:12px;
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.2);
+}
+
+.command-grid button:last-child{
+  grid-column:1 / -1;
+  background:#4b2731;
+}
+
+.map-frame{
+  position:relative;
+  min-width:0;
+  min-height:0;
+  border:4px solid #17272c;
+  border-radius:8px;
+  overflow:hidden;
+  background:#16262b;
+  box-shadow:0 14px 0 rgba(0,0,0,.16), 0 24px 80px rgba(0,0,0,.36);
+}
+
+.map-stage{
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+}
+
+.map-image,
+.territory-layer{
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:contain;
+  grid-area:1 / 1;
+}
+
+.territory-layer{
+  position:relative;
+  z-index:2;
+}
+
+.connection-line{
+  stroke:rgba(238,232,202,.34);
+  stroke-width:3;
+  stroke-linecap:round;
+  stroke-dasharray:10 9;
+  pointer-events:none;
+}
+
+.connection-line.front{
+  stroke:rgba(219,65,79,.72);
+  stroke-width:5;
+}
+
+.connection-line.owned{
+  stroke:rgba(108,207,155,.5);
+  stroke-dasharray:0;
+}
+
+.territory-shape{
+  fill:var(--territory-fill);
+  stroke:rgba(255,248,214,.72);
+  stroke-width:3;
+  stroke-linejoin:round;
+  cursor:pointer;
+  transition:fill .16s ease, stroke .16s ease, stroke-width .16s ease;
+}
+
+.territory-shape:hover,
+.territory-shape.focused{
+  fill:var(--territory-hover);
+  stroke:#fff3a2;
+  stroke-width:5;
+}
+
+.territory-shape.targeted{
+  stroke:#ff5964;
+  stroke-width:6;
+}
+
+.territory-shape.selectable{
+  stroke:#8ee1bb;
+}
+
+.territory-token{
+  pointer-events:none;
+}
+
+.territory-token circle{
+  fill:#101419;
+  stroke:var(--owner-color);
+  stroke-width:5;
+}
+
+.territory-token text{
+  fill:#fff;
+  stroke:#111;
+  stroke-width:4;
+  paint-order:stroke;
+  font:900 28px Trebuchet MS, sans-serif;
+  text-anchor:middle;
+  dominant-baseline:central;
+}
+
+.territory-label{
+  fill:#fff4cc;
+  stroke:#111;
+  stroke-width:3;
+  paint-order:stroke;
+  font:900 15px Trebuchet MS, sans-serif;
+  text-anchor:middle;
+  pointer-events:none;
+}
+
+.notice{
+  position:absolute;
+  left:50%;
+  bottom:20px;
+  transform:translateX(-50%);
+  max-width:560px;
+  padding:10px 14px;
+  border:2px solid #15191d;
+  border-radius:8px;
+  background:#243039;
+  color:#fff0ba;
+  font-weight:900;
+  text-align:center;
+  box-shadow:0 8px 0 rgba(0,0,0,.18);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .18s ease;
+  z-index:5;
+}
+
+.notice.visible{
+  opacity:1;
+}
+
+.players-panel,
+.regions-panel,
+.cards-panel,
+.log-list{
+  display:grid;
+  gap:8px;
+}
+
+.player-row,
+.region-row,
+.card-row,
+.log-entry{
+  padding:9px;
+  font-size:12px;
+}
+
+.player-row{
+  border-left:4px solid currentColor;
+}
+
+.player-row strong,
+.region-row strong{
+  display:block;
+  color:white;
+}
+
+.player-row span,
+.region-row span,
+.card-row span,
+.log-entry{
+  color:#d0cabc;
+}
+
+.player-row.defeated{
+  opacity:.45;
+}
+
+.card-row{
+  display:grid;
+  grid-template-columns:26px 1fr;
+  gap:8px;
+  align-items:center;
+}
+
+.card-row b{
+  width:26px;
+  height:26px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:#243640;
+  color:#fff1b8;
+}
+
+.card-row strong{
+  display:block;
+  color:white;
+}
+
+.log-entry{
+  line-height:1.35;
+}
+
+@media (max-width:1180px){
+  body.conquest-page{
+    overflow:auto;
+  }
+
+  .setup-view,
+  .conquest-layout,
+  .topbar{
+    grid-template-columns:1fr;
+  }
+
+  .conquest-layout{
+    grid-template-areas:
+      "map"
+      "side"
+      "intel";
+  }
+
+  .game-view{
+    height:auto;
+    min-height:980px;
+  }
+
+  .map-frame{
+    min-height:620px;
+  }
+}
+
+@media (max-width:760px){
+  .setup-title h1{
+    font-size:46px;
+  }
+
+  .setup-grid,
+  .slot{
+    grid-template-columns:1fr;
+  }
+
+  .slot-number{
+    width:42px;
+  }
+
+  .map-frame{
+    min-height:420px;
+  }
+}
