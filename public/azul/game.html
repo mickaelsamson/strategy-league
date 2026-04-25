@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="/assets/styles/theme.css">
+<script defer src="/assets/scripts/site-shell.js"></script>
+<title>Azul Game</title>
+<script src="/socket.io/socket.io.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="azul-game-page">
+
+<main class="azul-game">
+  <header class="game-hero">
+    <div>
+      <span class="game-kicker">Ranked Azul</span>
+      <h1>Azul Arena</h1>
+    </div>
+    <div class="hero-actions">
+      <button class="ghost-btn" onclick="clearSelection()">Clear</button>
+      <button class="danger-btn" onclick="resign()">Resign</button>
+      <button class="ghost-btn" onclick="goBack()">Exit</button>
+    </div>
+  </header>
+
+  <section class="azul-table">
+    <aside class="side-panel">
+      <div class="turn-card">
+        <span id="roundLabel">Round 1</span>
+        <strong id="turnLabel">Waiting...</strong>
+        <p id="selectionHint">Select tiles from a factory or the center.</p>
+      </div>
+      <div id="playersMini" class="players-mini"></div>
+      <div class="rules-card">
+        <h3>Rules</h3>
+        <p>Take all tiles of one color from a factory or center, send leftovers to the center, fill one pattern line or take floor penalties. Completed lines score into the wall at round end.</p>
+      </div>
+    </aside>
+
+    <section class="draft-zone">
+      <div id="factories" class="factories"></div>
+      <div class="center-zone">
+        <h3>Center</h3>
+        <div id="center" class="center-pool"></div>
+      </div>
+    </section>
+
+    <section id="boards" class="boards"></section>
+  </section>
+</main>
+
+<div id="endScreen" class="end-screen">
+  <h1 id="winnerText"></h1>
+  <p id="endMessage"></p>
+  <div id="xpReward" class="xp-reward">+0 XP</div>
+  <div class="end-actions">
+    <button onclick="rematch()">Rematch</button>
+    <button onclick="goBack()">Back</button>
+  </div>
+  <p id="rematchStatus" class="rematch-status"></p>
+</div>
+
+<audio id="tileSound" src="https://assets.mixkit.co/sfx/preview/mixkit-game-click-1114.mp3"></audio>
+
+<script src="game.js"></script>
+</body>
+</html>

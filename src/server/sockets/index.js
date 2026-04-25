@@ -1,8 +1,9 @@
 const { createChessModule } = require('../games/chess/socket');
 const { createOthelloModule } = require('../games/othello/socket');
+const { createAzulModule } = require('../games/azul/socket');
 const { DISCONNECT_FORFEIT_MS } = require('../config/constants');
 
-function registerSockets({ io, User, state, applyRankedResult, applyOthelloResult }){
+function registerSockets({ io, User, state, applyRankedResult, applyOthelloResult, applyAzulResult }){
   async function updatePresence(){
     const users = {};
 
@@ -19,6 +20,7 @@ function registerSockets({ io, User, state, applyRankedResult, applyOthelloResul
         elo: user?.chessElo || user?.elo || 1000,
         chessElo: user?.chessElo || user?.elo || 1000,
         othelloElo: user?.othelloElo || user?.othelloPoints || 1000,
+        azulElo: user?.azulElo || user?.azulPoints || 1000,
         strategyElo: user?.strategyElo || user?.strategyPoints || 1000
       };
     }
@@ -26,6 +28,7 @@ function registerSockets({ io, User, state, applyRankedResult, applyOthelloResul
     io.emit('online_users', users);
     io.emit('lobbies_update', state.lobbies);
     io.emit('othello_lobbies_update', state.othelloLobbies);
+    io.emit('azul_lobbies_update', state.azulLobbies);
   }
 
   function clearPendingDisconnectForUsername(username){
@@ -49,6 +52,14 @@ function registerSockets({ io, User, state, applyRankedResult, applyOthelloResul
       state,
       updatePresence,
       applyOthelloResult: (game, winnerColor, reason) => applyOthelloResult(User, game, winnerColor, reason)
+    });
+
+    const azul = createAzulModule({
+      io,
+      socket,
+      state,
+      updatePresence,
+      applyAzulResult: (game, winner, reason) => applyAzulResult(User, game, winner, reason)
     });
 
     socket.on('register_online', username => {
@@ -101,11 +112,30 @@ function registerSockets({ io, User, state, applyRankedResult, applyOthelloResul
         othello.emitState(game);
       }
 
+      for(const gameId in state.azulGames){
+        const game = state.azulGames[gameId];
+        if(!game || game.ended) continue;
+
+        const player = game.players.find(p => p.username === username);
+        if(!player) continue;
+
+        const previousSocketId = player.id;
+        player.id = socket.id;
+
+        if(previousSocketId && previousSocketId !== socket.id){
+          delete state.azulPlayerGames[previousSocketId];
+        }
+
+        state.azulPlayerGames[socket.id] = gameId;
+        azul.emitState(game);
+      }
+
       updatePresence();
     });
 
     chess.register();
     othello.register();
+    azul.register();
 
     socket.on('disconnect', ()=>{
       if(socket.username){
@@ -159,7 +189,13 @@ function registerSockets({ io, User, state, applyRankedResult, applyOthelloResul
         if(state.othelloLobbies[id].players.length === 0) delete state.othelloLobbies[id];
       }
 
+      for(const id in state.azulLobbies){
+        state.azulLobbies[id].players = state.azulLobbies[id].players.filter(p => p.id !== socket.id);
+        if(state.azulLobbies[id].players.length === 0) delete state.azulLobbies[id];
+      }
+
       io.emit('othello_lobbies_update', state.othelloLobbies);
+      io.emit('azul_lobbies_update', state.azulLobbies);
       updatePresence();
     });
   });

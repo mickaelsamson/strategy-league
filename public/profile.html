@@ -198,6 +198,7 @@ body{
     <div class="elo-list">
       <span>ELO Chess: <strong id="chessElo">1000</strong></span>
       <span>ELO Othello: <strong id="othelloElo">1000</strong></span>
+      <span>ELO Azul: <strong id="azulElo">1000</strong></span>
       <span>ELO Strategy: <strong id="strategyElo">1000</strong></span>
     </div>
   </div>
@@ -347,6 +348,7 @@ function renderProfile(profile){
   document.getElementById("username").innerText = profile.username || profileUsername;
   document.getElementById("chessElo").innerText = profile.chessElo ?? profile.elo ?? 1000;
   document.getElementById("othelloElo").innerText = profile.othelloElo ?? 1000;
+  document.getElementById("azulElo").innerText = profile.azulElo ?? 1000;
   document.getElementById("strategyElo").innerText = profile.strategyElo ?? 1000;
   renderAvatar(profile.avatar || "");
   renderAvatarGrid(profile.avatar || "");
@@ -420,6 +422,7 @@ async function loadProfile(){
         elo: profile.chessElo || profile.elo,
         chessElo: profile.chessElo,
         othelloElo: profile.othelloElo,
+        azulElo: profile.azulElo,
         strategyElo: profile.strategyElo,
         xp: profile.xp
       }));
@@ -433,6 +436,7 @@ async function loadProfile(){
       elo: user.elo || 1000,
       chessElo: user.chessElo || user.elo || 1000,
       othelloElo: user.othelloElo || 1000,
+      azulElo: user.azulElo || 1000,
       strategyElo: user.strategyElo || 1000,
       avatar: user.avatar || "",
       xp: user.xp || 0,

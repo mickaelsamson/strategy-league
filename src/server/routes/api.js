@@ -19,6 +19,7 @@ function getLeaderboardValue(user, type){
   if(type === 'chess') return user.chessElo || user.elo || 1000;
   if(type === 'strategy') return user.strategyElo || user.strategyPoints || 1000;
   if(type === 'othello') return user.othelloElo || user.othelloPoints || 1000;
+  if(type === 'azul') return user.azulElo || user.azulPoints || 1000;
   return user.xp || 0;
 }
 
@@ -46,7 +47,7 @@ function createApiRouter({ User, state, isGameAllowed }){
         return res.status(400).json({ error: 'User already exists' });
       }
 
-      const user = new User({ username, email, password, elo: 1000, chessElo: 1000, othelloElo: 1000, strategyElo: 1000, xp: 0, isAdmin: false });
+      const user = new User({ username, email, password, elo: 1000, chessElo: 1000, othelloElo: 1000, azulElo: 1000, strategyElo: 1000, xp: 0, isAdmin: false });
       await user.save();
       res.json({ success: true });
     }catch(err){
@@ -74,6 +75,7 @@ function createApiRouter({ User, state, isGameAllowed }){
         elo: user.chessElo || user.elo,
         chessElo: user.chessElo || user.elo || 1000,
         othelloElo: user.othelloElo || user.othelloPoints || 1000,
+        azulElo: user.azulElo || user.azulPoints || 1000,
         strategyElo: user.strategyElo || user.strategyPoints || 1000,
         xp: user.xp,
         isAdmin: user.isAdmin
@@ -100,12 +102,17 @@ function createApiRouter({ User, state, isGameAllowed }){
     ]);
 
     const strategy = 0;
+    const azul = countUniquePlayers([
+      ...Object.values(state.azulLobbies || {}),
+      ...Object.values(state.azulGames || {}).filter(game => !game?.ended)
+    ]);
 
     res.json({
       chess,
       othello,
+      azul,
       strategy,
-      total: chess + othello + strategy
+      total: chess + othello + azul + strategy
     });
   });
 
@@ -161,6 +168,7 @@ function createApiRouter({ User, state, isGameAllowed }){
         elo: user.chessElo || user.elo || 1000,
         chessElo: user.chessElo || user.elo || 1000,
         othelloElo: user.othelloElo || user.othelloPoints || 1000,
+        azulElo: user.azulElo || user.azulPoints || 1000,
         strategyElo: user.strategyElo || user.strategyPoints || 1000,
         xp: user.xp || 0,
         level: Math.floor((user.xp || 0) / 100) + 1,

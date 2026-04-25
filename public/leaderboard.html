@@ -136,6 +136,7 @@ button:hover{
     <button onclick="load('global')">Global XP</button>
     <button onclick="load('chess')">ELO Chess</button>
     <button onclick="load('othello')">ELO Othello</button>
+    <button onclick="load('azul')">ELO Azul</button>
     <button onclick="load('strategy')">ELO Strategy</button>
   </div>
 
@@ -170,6 +171,7 @@ function renderTooltipContent(profile){
   const losses = profile?.stats?.losses || 0;
   const chessElo = profile?.chessElo ?? profile?.elo ?? 1000;
   const othelloElo = profile?.othelloElo ?? 1000;
+  const azulElo = profile?.azulElo ?? 1000;
   const strategyElo = profile?.strategyElo ?? 1000;
   const xp = profile?.xp ?? 0;
 
@@ -179,6 +181,7 @@ function renderTooltipContent(profile){
     <div>Losses: ${losses}</div>
     <div>ELO Chess: ${chessElo}</div>
     <div>ELO Othello: ${othelloElo}</div>
+    <div>ELO Azul: ${azulElo}</div>
     <div>ELO Strategy: ${strategyElo}</div>
     <div>XP: ${xp}</div>
   `;

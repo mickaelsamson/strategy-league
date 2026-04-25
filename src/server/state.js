@@ -5,8 +5,11 @@ const state = {
   chessGames: {},
   othelloLobbies: {},
   othelloGames: {},
+  azulLobbies: {},
+  azulGames: {},
   playerGames: {},
   othelloPlayerGames: {},
+  azulPlayerGames: {},
   rematchRequests: {},
   pendingDisconnects: {}
 };

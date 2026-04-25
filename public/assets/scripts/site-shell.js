@@ -56,7 +56,7 @@
   function getActiveLink(){
     const path = window.location.pathname;
     if(path === '/' || path.endsWith('/index.html')) return 'home';
-    if(path.includes('/chess') || path.includes('/othello') || path.endsWith('/games.html')) return 'games';
+    if(path.includes('/chess') || path.includes('/othello') || path.includes('/azul') || path.endsWith('/games.html')) return 'games';
     if(path.includes('/leaderboard')) return 'leaderboard';
     if(path.includes('/strategy')) return 'games';
     if(path.includes('/profile')) return 'profile';
@@ -181,7 +181,7 @@
 
   function isSocketOwnedByPage(){
     const path = window.location.pathname;
-    return path.includes('/chess') || path.includes('/othello') || path.includes('/strategy');
+    return path.includes('/chess') || path.includes('/othello') || path.includes('/azul') || path.includes('/strategy');
   }
 
   function waitForPageSocket(){

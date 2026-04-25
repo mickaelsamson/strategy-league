@@ -49,6 +49,11 @@ function getOthelloScoreFinal(game){
   return `${score.black}-${score.white}`;
 }
 
+function getAzulScoreFinal(game){
+  if(!Array.isArray(game?.players)) return '';
+  return game.players.map(player => `${player.username} ${player.score || 0}`).join(' - ');
+}
+
 function resultPayload(username, result, xpChange, eloChange){
   return { username, result, xpChange, eloChange };
 }
@@ -201,7 +206,79 @@ async function applyOthelloResult(User, game, winnerColor, reason = 'game_end'){
   };
 }
 
+async function applyAzulResult(User, game, winnerUsername, reason = 'game_end'){
+  if(!game || game.rated) return;
+  if(!Array.isArray(game.players) || game.players.length < 2) return;
+
+  const [playerA, playerB] = game.players;
+  const [userA, userB] = await Promise.all([
+    User.findOne({ username: playerA.username }),
+    User.findOne({ username: playerB.username })
+  ]);
+  if(!userA || !userB) return;
+
+  const scoreFinal = getAzulScoreFinal(game);
+  const eloA = userA.azulElo || userA.azulPoints || 1000;
+  const eloB = userB.azulElo || userB.azulPoints || 1000;
+
+  if(!winnerUsername){
+    userA.azulPoints = (userA.azulPoints || 0) + 4;
+    userB.azulPoints = (userB.azulPoints || 0) + 4;
+    userA.azulElo = eloA;
+    userB.azulElo = eloB;
+    userA.xp += 4;
+    userB.xp += 4;
+    userA.draws = (userA.draws || 0) + 1;
+    userB.draws = (userB.draws || 0) + 1;
+    pushHistoryEntry(userA, { result: 'draw', opponent: userB.username, xpChange: 4, reason, gameKey: 'azul', gameName: 'Azul', scoreFinal, eloChange: 0 });
+    pushHistoryEntry(userB, { result: 'draw', opponent: userA.username, xpChange: 4, reason, gameKey: 'azul', gameName: 'Azul', scoreFinal, eloChange: 0 });
+    game.result = { winner: null, loser: null, reason, eloDelta: 0 };
+
+    await Promise.all([userA.save(), userB.save()]);
+    game.rated = true;
+    return {
+      players: {
+        [userA.username]: resultPayload(userA.username, 'draw', 4, 0),
+        [userB.username]: resultPayload(userB.username, 'draw', 4, 0)
+      }
+    };
+  }
+
+  const winnerUser = winnerUsername === userA.username ? userA : userB;
+  const loserUser = winnerUsername === userA.username ? userB : userA;
+  const winnerElo = winnerUser.azulElo || winnerUser.azulPoints || 1000;
+  const loserElo = loserUser.azulElo || loserUser.azulPoints || 1000;
+  const eloDelta = computeEloDelta(winnerElo, loserElo);
+
+  winnerUser.azulPoints = (winnerUser.azulPoints || 0) + 14;
+  loserUser.azulPoints = (loserUser.azulPoints || 0) + 4;
+  winnerUser.azulElo = winnerElo + eloDelta;
+  loserUser.azulElo = Math.max(100, loserElo - eloDelta);
+  winnerUser.xp += 18;
+  loserUser.xp += 4;
+  winnerUser.wins = (winnerUser.wins || 0) + 1;
+  loserUser.losses = (loserUser.losses || 0) + 1;
+
+  pushHistoryEntry(winnerUser, { result: 'win', opponent: loserUser.username, xpChange: 18, reason, gameKey: 'azul', gameName: 'Azul', scoreFinal, eloChange: eloDelta });
+  pushHistoryEntry(loserUser, { result: 'loss', opponent: winnerUser.username, xpChange: 4, reason, gameKey: 'azul', gameName: 'Azul', scoreFinal, eloChange: -eloDelta });
+
+  await Promise.all([winnerUser.save(), loserUser.save()]);
+
+  game.rated = true;
+  game.result = { winner: winnerUser.username, loser: loserUser.username, reason, eloDelta };
+  return {
+    players: {
+      [winnerUser.username]: resultPayload(winnerUser.username, 'win', 18, eloDelta),
+      [loserUser.username]: resultPayload(loserUser.username, 'loss', 4, -eloDelta)
+    }
+  };
+}
+
 async function getLeaderboard(User, type){
+  if(type === 'azul'){
+    return User.find({}, { username: 1, azulElo: 1, azulPoints: 1, _id: 0 }).sort({ azulElo: -1, azulPoints: -1, username: 1 }).lean();
+  }
+
   if(type === 'strategy'){
     return User.find({}, { username: 1, strategyElo: 1, strategyPoints: 1, _id: 0 }).sort({ strategyElo: -1, strategyPoints: -1, username: 1 }).lean();
   }
@@ -220,5 +297,6 @@ async function getLeaderboard(User, type){
 module.exports = {
   applyRankedResult,
   applyOthelloResult,
+  applyAzulResult,
   getLeaderboard
 };

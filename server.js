@@ -7,7 +7,7 @@ const User = require('./models/User');
 const { state, isGameAllowed } = require('./src/server/state');
 const { createApiRouter } = require('./src/server/routes/api');
 const { registerSockets } = require('./src/server/sockets');
-const { applyRankedResult, applyOthelloResult } = require('./src/server/services/user-service');
+const { applyRankedResult, applyOthelloResult, applyAzulResult } = require('./src/server/services/user-service');
 
 const app = express();
 const server = http.createServer(app);
@@ -21,7 +21,7 @@ app.get('/', (req, res)=>{
 res.sendFile('index.html', { root: 'public' });
 });
 
-registerSockets({ io, User, state, applyRankedResult, applyOthelloResult });
+registerSockets({ io, User, state, applyRankedResult, applyOthelloResult, applyAzulResult });
 
 async function startServer(){
   await mongoose.connect(process.env.MONGO_URI);

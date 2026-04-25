@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="/assets/styles/theme.css">
+<script defer src="/assets/scripts/site-shell.js"></script>
+<title>Azul Lobby</title>
+<script src="/socket.io/socket.io.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="azul-lobby-page">
+
+<main class="azul-container">
+  <header class="azul-header">
+    <span class="game-kicker">Ranked Azul</span>
+    <h1>Azul Lobby</h1>
+    <p>Create a room, ready up, and draft the perfect wall.</p>
+  </header>
+
+  <section class="lobby-layout">
+    <div class="panel lobby-create">
+      <span class="game-kicker">New Match</span>
+      <h2>Create Room</h2>
+      <input id="name" placeholder="Lobby name">
+      <button onclick="createLobby()">Create Lobby</button>
+      <button class="ghost-btn" onclick="window.location.href='/games.html'">Back to Games</button>
+    </div>
+
+    <div class="panel">
+      <h3>Open Lobbies</h3>
+      <div id="lobbies"></div>
+    </div>
+  </section>
+</main>
+
+<script src="lobby.js"></script>
+</body>
+</html>

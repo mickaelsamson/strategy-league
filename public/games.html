@@ -31,7 +31,7 @@ body{
 
 .games-grid{
   display:grid;
-  grid-template-columns:repeat(3, minmax(0, 1fr));
+  grid-template-columns:repeat(4, minmax(0, 1fr));
   gap:20px;
 }
 
@@ -73,6 +73,15 @@ body{
     radial-gradient(circle at 68% 42%, #111 0 46px, transparent 47px),
     radial-gradient(circle at 42% 72%, #121212 0 44px, transparent 45px),
     linear-gradient(135deg, #163d32, #0b211d 52%, #3a1018);
+}
+
+.game-tile.azul{
+  background:
+    radial-gradient(circle at 28% 26%, #f7f1df 0 36px, transparent 37px),
+    radial-gradient(circle at 65% 34%, #0196b3 0 18px, transparent 19px),
+    radial-gradient(circle at 72% 54%, #f24f58 0 18px, transparent 19px),
+    radial-gradient(circle at 38% 70%, #f0b84f 0 18px, transparent 19px),
+    linear-gradient(135deg, #082f44, #123d55 44%, #42111a);
 }
 
 .game-tile.strategy{
@@ -131,7 +140,13 @@ body{
   cursor:pointer;
 }
 
-@media (max-width:900px){
+@media (max-width:1100px){
+  .games-grid{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width:700px){
   .games-grid{
     grid-template-columns:1fr;
   }
@@ -164,6 +179,13 @@ body{
       <span class="game-tag">Classic Board</span>
       <h2>Othello</h2>
       <p>Flip the board, build your Othello ELO, and track every XP gain.</p>
+      <span class="play-button">Play Now</span>
+    </a>
+
+    <a class="game-tile azul" href="/azul/index.html">
+      <span class="game-tag">Tile Drafting</span>
+      <h2>Azul</h2>
+      <p>Draft tiles, complete pattern lines, score walls and chase endgame bonuses.</p>
       <span class="play-button">Play Now</span>
     </a>
 
