@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/assets/styles/theme.css">
+  <link rel="stylesheet" href="/moonfall-rts/style.css">
+  <script defer src="/assets/scripts/site-shell.js"></script>
+  <script defer src="/moonfall-rts/game.js"></script>
+  <title>Moonfall RTS</title>
+</head>
+<body class="with-navbar moonfall-page">
+<div id="navbar-container"></div>
+
+<main class="moonfall-app">
+  <section id="setupView" class="setup-view">
+    <div class="setup-copy">
+      <span class="eyebrow">Real time strategy</span>
+      <h1>Moonfall RTS</h1>
+      <p>Un RTS original inspire chasseurs contre demons : recolte, construction, production, heros, escouades, IA, alliances et grandes cartes jusqu'a 8 joueurs.</p>
+    </div>
+
+    <form id="setupForm" class="setup-card">
+      <div class="setup-top">
+        <label>Joueurs
+          <select id="playerCount">
+            <option value="2">2</option>
+            <option value="4" selected>4</option>
+            <option value="6">6</option>
+            <option value="8">8</option>
+          </select>
+        </label>
+        <label>Carte
+          <select id="mapSize">
+            <option value="normal">Grande</option>
+            <option value="huge" selected>Immense</option>
+          </select>
+        </label>
+        <label>Mode
+          <select id="matchMode">
+            <option value="teams" selected>Equipes</option>
+            <option value="ffa">Chacun pour soi</option>
+          </select>
+        </label>
+      </div>
+
+      <div id="slots" class="slots"></div>
+
+      <div class="setup-actions">
+        <button id="shuffleBtn" type="button" class="secondary-btn">Melanger</button>
+        <button type="submit" class="primary-btn">Commencer</button>
+      </div>
+    </form>
+  </section>
+
+  <section id="gameView" class="game-view is-hidden" hidden>
+    <header class="topbar">
+      <div>
+        <span class="eyebrow">Moonfall RTS</span>
+        <strong id="factionLabel">Chasseurs</strong>
+      </div>
+      <div class="resources">
+        <span><b id="foodHud">0</b> vivres</span>
+        <span><b id="steelHud">0</b> acier</span>
+        <span><b id="spiritHud">0</b> souffle</span>
+        <span><b id="popHud">0/0</b> pop</span>
+      </div>
+      <div class="top-actions">
+        <span id="dayHud">Aube</span>
+        <button id="pauseBtn" type="button" title="Pause">II</button>
+        <button id="backBtn" type="button" title="Configuration">↺</button>
+      </div>
+    </header>
+
+    <div class="war-layout">
+      <aside class="side-panel">
+        <section>
+          <h2>Selection</h2>
+          <div id="selectionPanel" class="selection-panel"></div>
+        </section>
+
+        <section>
+          <h2>Production</h2>
+          <div class="command-grid">
+            <button id="workerBtn" type="button">Ouvrier</button>
+            <button id="fighterBtn" type="button">Combattant</button>
+            <button id="rangedBtn" type="button">Tireur</button>
+            <button id="eliteBtn" type="button">Elite</button>
+          </div>
+        </section>
+
+        <section>
+          <h2>Construction</h2>
+          <div class="command-grid">
+            <button id="houseBtn" type="button">Maison</button>
+            <button id="barracksBtn" type="button">Caserne</button>
+            <button id="towerBtn" type="button">Tour</button>
+            <button id="shrineBtn" type="button">Sanctuaire</button>
+          </div>
+        </section>
+
+        <section>
+          <h2>Ordres</h2>
+          <div class="command-grid">
+            <button id="stopBtn" type="button">Stop</button>
+            <button id="rallyBtn" type="button">Ralliement</button>
+            <button id="selectArmyBtn" type="button">Armee</button>
+            <button id="selectWorkersBtn" type="button">Ouvriers</button>
+          </div>
+        </section>
+      </aside>
+
+      <div class="battlefield-frame">
+        <canvas id="battlefield" width="1280" height="720"></canvas>
+        <div id="notice" class="notice" aria-live="polite"></div>
+      </div>
+
+      <aside class="intel-panel">
+        <canvas id="minimap" width="220" height="160"></canvas>
+        <div id="playersPanel" class="players-panel"></div>
+        <div class="help-panel">
+          <strong>Controles</strong>
+          <span>Clic gauche selection</span>
+          <span>Glisser selection multiple</span>
+          <span>Clic droit ordre</span>
+          <span>WASD / fleches camera</span>
+        </div>
+      </aside>
+    </div>
+  </section>
+</main>
+</body>
+</html>

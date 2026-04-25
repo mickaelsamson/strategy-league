@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/assets/styles/theme.css">
+  <script defer src="/assets/scripts/site-shell.js"></script>
+  <title>Strategy Arena</title>
+  <style>
+    body{
+      margin:0;
+    }
+
+    .strategy-page{
+      max-width:1120px;
+      margin:0 auto;
+    }
+
+    .strategy-board{
+      display:grid;
+      grid-template-columns:minmax(0, 1fr) 320px;
+      gap:20px;
+      align-items:start;
+    }
+
+    .map-panel,
+    .info-panel{
+      border:1px solid var(--shell-line);
+      border-radius:8px;
+      background:linear-gradient(180deg, rgba(64,18,24,.72), rgba(20,7,10,.82));
+      overflow:hidden;
+      box-shadow:0 22px 70px rgba(0,0,0,.3);
+    }
+
+    .map-panel img{
+      display:block;
+      width:100%;
+      height:auto;
+    }
+
+    .info-panel{
+      padding:18px;
+    }
+
+    h1{
+      margin:0 0 8px;
+      font-size:42px;
+    }
+
+    p{
+      color:var(--shell-soft);
+      line-height:1.5;
+    }
+
+    .pill-list{
+      display:grid;
+      gap:10px;
+      margin-top:18px;
+    }
+
+    .pill-list span{
+      padding:10px 12px;
+      border-radius:8px;
+      background:rgba(255,255,255,.07);
+      color:#ffe7e3;
+      font-weight:800;
+    }
+
+    @media (max-width:900px){
+      .strategy-board{
+        grid-template-columns:1fr;
+      }
+    }
+  </style>
+</head>
+<body class="with-navbar">
+<div id="navbar-container"></div>
+
+<main class="strategy-page">
+  <h1>Strategy Arena</h1>
+  <p>Jeu de conquete type Warzone/Risk : controle de territoires, renforts, fronts et alliances. Le RTS temps reel vit maintenant dans Moonfall RTS.</p>
+
+  <section class="strategy-board">
+    <div class="map-panel">
+      <img src="/strategy/map.png" alt="Carte Strategy Arena">
+    </div>
+    <aside class="info-panel">
+      <h2>Direction</h2>
+      <p>Cette page reste reservee au jeu de strategie territoriale. Elle pourra recevoir les regles Warzone/Risk, les lobbies et le classement Strategy.</p>
+      <div class="pill-list">
+        <span>Territoires</span>
+        <span>Renforts</span>
+        <span>Equipes</span>
+        <span>ELO Strategy</span>
+      </div>
+    </aside>
+  </section>
+</main>
+</body>
+</html>

@@ -31,7 +31,7 @@ body{
 
 .games-grid{
   display:grid;
-  grid-template-columns:repeat(4, minmax(0, 1fr));
+  grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));
   gap:20px;
 }
 
@@ -86,6 +86,14 @@ body{
 
 .game-tile.strategy{
   background:url("/strategy/map.png") center/cover;
+}
+
+.game-tile.moonfall{
+  background:
+    radial-gradient(circle at 72% 32%, #ff5d92 0 28px, transparent 30px),
+    radial-gradient(circle at 35% 58%, #5dd8ff 0 34px, transparent 36px),
+    radial-gradient(circle at 58% 70%, #71d579 0 22px, transparent 24px),
+    linear-gradient(135deg, #10272a, #24161b 54%, #141126);
 }
 
 .game-tile > *{
@@ -193,6 +201,13 @@ body{
       <span class="game-tag">Tactical Arena</span>
       <h2>Strategy Arena</h2>
       <p>Map control, territory pressure, and a dedicated Strategy ELO ready for future ranked rules.</p>
+      <span class="play-button">Play Now</span>
+    </a>
+
+    <a class="game-tile moonfall" href="/moonfall-rts/index.html">
+      <span class="game-tag">Real Time Strategy</span>
+      <h2>Moonfall RTS</h2>
+      <p>Harvest resources, build a base, command Chasseurs or Demons, and fight team battles up to 8 slots.</p>
       <span class="play-button">Play Now</span>
     </a>
   </section>
