@@ -3,7 +3,7 @@ const { createOthelloModule } = require('../games/othello/socket');
 const { createAzulModule } = require('../games/azul/socket');
 const { DISCONNECT_FORFEIT_MS } = require('../config/constants');
 
-function registerSockets({ io, User, state, applyRankedResult, applyOthelloResult, applyAzulResult }){
+function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, applyOthelloResult, applyAzulResult }){
   async function updatePresence(){
     const users = {};
 
@@ -43,7 +43,8 @@ function registerSockets({ io, User, state, applyRankedResult, applyOthelloResul
       socket,
       state,
       updatePresence,
-      applyRankedResult: (game, winner, reason) => applyRankedResult(User, game, winner, reason)
+      applyRankedResult: (game, winner, reason) => applyRankedResult(User, game, winner, reason),
+      isGameAllowed
     });
 
     const othello = createOthelloModule({
@@ -51,7 +52,8 @@ function registerSockets({ io, User, state, applyRankedResult, applyOthelloResul
       socket,
       state,
       updatePresence,
-      applyOthelloResult: (game, winnerColor, reason) => applyOthelloResult(User, game, winnerColor, reason)
+      applyOthelloResult: (game, winnerColor, reason) => applyOthelloResult(User, game, winnerColor, reason),
+      isGameAllowed
     });
 
     const azul = createAzulModule({
@@ -59,7 +61,8 @@ function registerSockets({ io, User, state, applyRankedResult, applyOthelloResul
       socket,
       state,
       updatePresence,
-      applyAzulResult: (game, winner, reason) => applyAzulResult(User, game, winner, reason)
+      applyAzulResult: (game, winner, reason) => applyAzulResult(User, game, winner, reason),
+      isGameAllowed
     });
 
     socket.on('register_online', username => {

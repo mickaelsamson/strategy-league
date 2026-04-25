@@ -8,9 +8,7 @@
 <style>
 body{
   margin:0;
-  background:#020617;
-  color:white;
-  font-family:Arial;
+  color:var(--shell-text);
   display:flex;
   justify-content:center;
 }
@@ -54,21 +52,38 @@ body{
   font-weight:bold;
 }
 
-.elo-list{
-  display:flex;
-  gap:12px;
-  flex-wrap:wrap;
-  color:#cbd5e1;
-  margin-top:6px;
+.elo-grid{
+  display:grid;
+  grid-template-columns:repeat(4, minmax(120px, 1fr));
+  gap:10px;
+  margin:18px 0 20px;
 }
 
-.elo-list span{
-  white-space:nowrap;
+.elo-card{
+  min-height:76px;
+  padding:12px;
+  border-radius:8px;
+  background:linear-gradient(145deg, rgba(28,8,12,0.88), rgba(49,14,20,0.72));
+  border:1px solid var(--shell-line);
+}
+
+.elo-card span{
+  display:block;
+  color:var(--shell-soft);
+  font-size:12px;
+  font-weight:800;
+}
+
+.elo-card strong{
+  display:block;
+  margin-top:5px;
+  font-size:24px;
 }
 
 /* CARD */
 .card{
-  background:#111827;
+  background:var(--shell-card);
+  border:1px solid var(--shell-line);
   padding:20px;
   border-radius:8px;
   margin-bottom:20px;
@@ -180,6 +195,10 @@ body{
   .match{
     flex-direction:column;
   }
+
+  .elo-grid{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+  }
 }
 </style>
 </head>
@@ -195,14 +214,15 @@ body{
   <div class="avatar" id="avatarPreview">♟️</div>
   <div>
     <div class="username" id="username">Player</div>
-    <div class="elo-list">
-      <span>ELO Chess: <strong id="chessElo">1000</strong></span>
-      <span>ELO Othello: <strong id="othelloElo">1000</strong></span>
-      <span>ELO Azul: <strong id="azulElo">1000</strong></span>
-      <span>ELO Strategy: <strong id="strategyElo">1000</strong></span>
-    </div>
   </div>
 </div>
+
+<section class="elo-grid" aria-label="Game ELO ratings">
+  <div class="elo-card"><span>Chess ELO</span><strong id="chessElo">1000</strong></div>
+  <div class="elo-card"><span>Othello ELO</span><strong id="othelloElo">1000</strong></div>
+  <div class="elo-card"><span>Azul ELO</span><strong id="azulElo">1000</strong></div>
+  <div class="elo-card"><span>Strategy ELO</span><strong id="strategyElo">1000</strong></div>
+</section>
 
 <!-- AVATAR PICKER -->
 <div class="card" id="avatarCard" hidden>
@@ -274,6 +294,7 @@ function renderAvatar(avatar){
 }
 
 function resultLabel(match){
+  if(match.gameKey === "admin") return match.reason || "Bonus XP";
   const result = match.result || "draw";
   const reason = match.reason || "game_end";
 

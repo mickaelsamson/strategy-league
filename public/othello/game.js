@@ -10,6 +10,7 @@ let board,turn,color;
 let myName=user.username;
 let opponentName="";
 let gameOver=false;
+let draggingMove=false;
 
 function playSound(){
  const s=document.getElementById("flipSound");
@@ -33,7 +34,8 @@ function spawnParticles(x,y){
 function draw(){
   const el=document.getElementById("board");
  el.innerHTML="";
- const validMoves=getValidMoves(color);
+ const canMove=turn===color && !gameOver;
+ const validMoves=canMove?getValidMoves(color):new Set();
  for(let y=0;y<8;y++){
   for(let x=0;x<8;x++){
    const cell=document.createElement("div");
@@ -42,6 +44,16 @@ function draw(){
    const key=`${x}-${y}`;
    if(validMoves.has(key)){
     cell.classList.add("valid");
+    cell.ondragover=(event)=>{
+     event.preventDefault();
+     cell.classList.add("drag-over");
+    };
+    cell.ondragleave=()=>cell.classList.remove("drag-over");
+    cell.ondrop=(event)=>{
+     event.preventDefault();
+     cell.classList.remove("drag-over");
+     if(draggingMove) play(x,y);
+    };
    }
  
    const value=board?.[y]?.[x];
@@ -66,6 +78,13 @@ function draw(){
  }else{
   turnEl.className="opponent-turn";
   turnEl.innerText="Opponent";
+ }
+
+ const moveDisk=document.getElementById("moveDisk");
+ if(moveDisk){
+  moveDisk.className=`move-disk ${color||""} ${canMove?"ready":""}`;
+  moveDisk.draggable=canMove;
+  moveDisk.style.display=canMove?"inline-flex":"none";
  }
 }
 
@@ -179,9 +198,25 @@ socket.on("othello_end",data=>{
  el.className=`end-screen show ${result==="win"?"victory":result==="loss"?"defeat":"draw"}`;
  document.getElementById("winnerText").innerText=result==="win"?"Victory":result==="loss"?"Defeat":"Draw";
  document.getElementById("endMessage").innerText=message;
+ const score=data.score||count();
+ document.getElementById("finalScore").innerText=`Final score · Black ${score.black ?? score.b ?? 0} - ${score.white ?? score.w ?? 0} White`;
  document.getElementById("xpReward").innerText=`+${xpChange} XP`;
  document.getElementById("rematchStatus").innerText="";
  updateStoredXp(xpChange);
+});
+
+document.getElementById("moveDisk")?.addEventListener("dragstart", event=>{
+ if(turn!==color || gameOver){
+  event.preventDefault();
+  return;
+ }
+ draggingMove=true;
+ event.dataTransfer.effectAllowed="move";
+ event.dataTransfer.setData("text/plain", color || "");
+});
+
+document.addEventListener("dragend", ()=>{
+ draggingMove=false;
 });
 
 socket.on("othello_rematch_status",data=>{
@@ -197,6 +232,7 @@ socket.on("othello_rematch_start",()=>{
  const el=document.getElementById("endScreen");
  el.className="end-screen";
  document.getElementById("rematchStatus").innerText="";
+ document.getElementById("finalScore").innerText="";
  document.getElementById("status").innerText="";
 });
 

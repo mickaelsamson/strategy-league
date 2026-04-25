@@ -7,19 +7,64 @@
 
 <style>
 body {
-  background: #020617;
-  color: white;
-  text-align: center;
-  padding-top: 80px;
+  color: var(--shell-text);
+  text-align: left;
   margin: 0;
-  font-family: Arial, sans-serif;
+}
+
+.admin-page{
+  width:min(980px, 100%);
+  margin:0 auto;
+}
+
+.admin-hero{
+  margin-bottom:22px;
+}
+
+.admin-hero h1{
+  margin:2px 0 8px;
+  font-size:42px;
+}
+
+.admin-hero p{
+  margin:0;
+  color:var(--shell-soft);
+}
+
+.admin-kicker{
+  color:var(--shell-red);
+  font-weight:900;
+}
+
+.admin-grid{
+  display:grid;
+  grid-template-columns:minmax(280px, 360px) 1fr;
+  gap:18px;
+  align-items:start;
+}
+
+.admin-card{
+  background:var(--shell-card);
+  border:1px solid var(--shell-line);
+  border-radius:8px;
+  padding:22px;
+  box-shadow:0 18px 70px rgba(0,0,0,0.22);
+}
+
+.admin-card h2{
+  margin:0 0 10px;
+}
+
+.admin-card p{
+  color:var(--shell-soft);
+  line-height:1.45;
 }
 
 .switch-wrap {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 24px;
+  margin-top: 20px;
 }
 
 .switch {
@@ -67,20 +112,67 @@ input:checked + .slider:before {
 #status {
   margin-top: 18px;
   opacity: 0.9;
+  color:var(--shell-soft);
 }
 
-.back-btn{
-  margin-top:30px;
-  background:#1f2937;
-  padding:10px 15px;
-  border:none;
-  border-radius:10px;
+button{
+  min-height:42px;
+  padding:0 15px;
+  border:1px solid var(--shell-line);
+  border-radius:8px;
   cursor:pointer;
-  color:white;
+  background:linear-gradient(135deg, var(--shell-red), var(--shell-red-dark));
+  color:var(--shell-text);
 }
 
-.back-btn:hover{
-  background:#374151;
+.ghost-btn{
+  background:rgba(255,82,104,0.1);
+}
+
+button:hover{
+  filter:brightness(1.08);
+}
+
+.bonus-form{
+  display:grid;
+  gap:12px;
+}
+
+.bonus-form label{
+  display:grid;
+  gap:6px;
+  color:var(--shell-soft);
+  font-weight:800;
+  font-size:13px;
+}
+
+.bonus-form input,
+.bonus-form textarea{
+  width:100%;
+  box-sizing:border-box;
+  border:1px solid var(--shell-line);
+  border-radius:8px;
+  background:rgba(28,8,12,0.68);
+  color:var(--shell-text);
+  padding:11px 12px;
+  font-size:14px;
+}
+
+.bonus-form textarea{
+  min-height:92px;
+  resize:vertical;
+}
+
+#bonusStatus{
+  min-height:20px;
+  color:var(--shell-soft);
+  margin:0;
+}
+
+@media (max-width:820px){
+  .admin-grid{
+    grid-template-columns:1fr;
+  }
 }
 </style>
 </head>
@@ -90,21 +182,51 @@ input:checked + .slider:before {
 <!-- NAVBAR -->
 <div id="navbar-container"></div>
 
-<h1>Admin Panel</h1>
-<p>Enable or disable game access.</p>
+<main class="admin-page">
+  <header class="admin-hero">
+    <span class="admin-kicker">Control Room</span>
+    <h1>Admin Panel</h1>
+    <p>Manage live access and grant manual XP rewards.</p>
+  </header>
 
-<div class="switch-wrap">
-  <span>Games</span>
-  <label class="switch">
-    <input id="gamesSwitch" type="checkbox" />
-    <span class="slider"></span>
-  </label>
-  <strong id="switchLabel">OFF</strong>
-</div>
+  <section class="admin-grid">
+    <article class="admin-card">
+      <h2>Game Access</h2>
+      <p>Turning this off blocks new lobby creation, joins, and ready-up across all games.</p>
+      <div class="switch-wrap">
+        <span>All games</span>
+        <label class="switch">
+          <input id="gamesSwitch" type="checkbox" />
+          <span class="slider"></span>
+        </label>
+        <strong id="switchLabel">OFF</strong>
+      </div>
+      <p id="status">Loading status...</p>
+    </article>
 
-<p id="status">Loading status...</p>
+    <article class="admin-card">
+      <h2>Bonus XP</h2>
+      <form id="bonusForm" class="bonus-form">
+        <label>
+          <span>Player username</span>
+          <input id="bonusUsername" autocomplete="off" placeholder="Username">
+        </label>
+        <label>
+          <span>XP amount</span>
+          <input id="bonusAmount" type="number" min="1" step="1" placeholder="25">
+        </label>
+        <label>
+          <span>Reason</span>
+          <textarea id="bonusReason" placeholder="Tournament reward, moderation compensation..."></textarea>
+        </label>
+        <button type="submit">Give Bonus XP</button>
+        <p id="bonusStatus"></p>
+      </form>
+    </article>
+  </section>
 
-<button class="back-btn" onclick="goMain()">Back to Main Menu</button>
+  <button class="ghost-btn" onclick="goMain()">Back to Main Menu</button>
+</main>
 
 <script>
 
@@ -112,6 +234,8 @@ const user = JSON.parse(localStorage.getItem("user"));
 const gamesSwitch = document.getElementById("gamesSwitch");
 const switchLabel = document.getElementById("switchLabel");
 const statusEl = document.getElementById("status");
+const bonusForm = document.getElementById("bonusForm");
+const bonusStatus = document.getElementById("bonusStatus");
 
 function render(enabled){
   gamesSwitch.checked = enabled;
@@ -169,6 +293,38 @@ async function setGames(enabled){
 
 gamesSwitch.addEventListener("change", (e) => {
   setGames(e.target.checked);
+});
+
+bonusForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if(!user?.email){
+    bonusStatus.textContent = "Admin user not found.";
+    return;
+  }
+
+  bonusStatus.textContent = "Sending bonus...";
+  try{
+    const res = await fetch("/api/admin/bonus-xp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        adminEmail: user.email,
+        username: document.getElementById("bonusUsername").value.trim(),
+        xp: Number(document.getElementById("bonusAmount").value),
+        reason: document.getElementById("bonusReason").value.trim()
+      })
+    });
+    const data = await res.json();
+    if(!res.ok){
+      bonusStatus.textContent = data?.error || "Bonus rejected.";
+      return;
+    }
+    bonusStatus.textContent = `+${data.amount} XP sent to ${data.username}. New total: ${data.xp}.`;
+    bonusForm.reset();
+  }catch(err){
+    bonusStatus.textContent = "Server error.";
+    console.error(err);
+  }
 });
 
 function goMain(){

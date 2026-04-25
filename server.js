@@ -16,12 +16,12 @@ const io = new Server(server);
 app.use(express.json());
 app.use(express.static('public'));
 
-app.use('/api', createApiRouter({ User, state, isGameAllowed }));
+app.use('/api', createApiRouter({ User, state, isGameAllowed, io }));
 app.get('/', (req, res)=>{
 res.sendFile('index.html', { root: 'public' });
 });
 
-registerSockets({ io, User, state, applyRankedResult, applyOthelloResult, applyAzulResult });
+registerSockets({ io, User, state, isGameAllowed, applyRankedResult, applyOthelloResult, applyAzulResult });
 
 async function startServer(){
   await mongoose.connect(process.env.MONGO_URI);

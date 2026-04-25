@@ -72,7 +72,7 @@ function countOthelloDisks(board){
   return { black, white };
 }
 
-function createOthelloModule({ io, socket, state, updatePresence, applyOthelloResult }){
+function createOthelloModule({ io, socket, state, updatePresence, applyOthelloResult, isGameAllowed }){
   function findGameIdForSocket(){
     let gameId = state.othelloPlayerGames[socket.id];
     if(gameId) return gameId;
@@ -105,6 +105,7 @@ function createOthelloModule({ io, socket, state, updatePresence, applyOthelloRe
 
   function register(){
     socket.on('create_othello_lobby', ({ name })=>{
+      if(isGameAllowed && !isGameAllowed()) return;
       const existing = Object.values(state.othelloLobbies).find(l =>
         l.players.some(p => p.username === socket.username)
       );
@@ -121,6 +122,7 @@ function createOthelloModule({ io, socket, state, updatePresence, applyOthelloRe
     });
 
     socket.on('join_othello_lobby', id => {
+      if(isGameAllowed && !isGameAllowed()) return;
       const lobby = state.othelloLobbies[id];
       if(!lobby || lobby.players.length >= 2) return;
 
@@ -134,6 +136,7 @@ function createOthelloModule({ io, socket, state, updatePresence, applyOthelloRe
     });
 
     socket.on('toggle_othello_ready', id => {
+      if(isGameAllowed && !isGameAllowed()) return;
       const lobby = state.othelloLobbies[id];
       if(!lobby) return;
 
@@ -215,7 +218,8 @@ function createOthelloModule({ io, socket, state, updatePresence, applyOthelloRe
               s.emit('othello_end', {
                 winner: winnerPlayer ? winnerPlayer.username : 'Draw',
                 message: winnerPlayer ? `${winnerPlayer.username} wins!` : 'Draw.',
-                rewards: result?.players || {}
+                rewards: result?.players || {},
+                score
               });
             });
           })
@@ -229,7 +233,8 @@ function createOthelloModule({ io, socket, state, updatePresence, applyOthelloRe
               s.emit('othello_end', {
                 winner: winnerPlayer ? winnerPlayer.username : 'Draw',
                 message: winnerPlayer ? `${winnerPlayer.username} wins!` : 'Draw.',
-                rewards: {}
+                rewards: {},
+                score
               });
             });
           })
@@ -256,6 +261,7 @@ function createOthelloModule({ io, socket, state, updatePresence, applyOthelloRe
 
       applyOthelloResult(game, winner.color, 'resign')
         .then(result=>{
+          const score = countOthelloDisks(game.board);
           game.players.forEach(p => {
             const s = io.sockets.sockets.get(p.id);
             if(s){
@@ -263,13 +269,15 @@ function createOthelloModule({ io, socket, state, updatePresence, applyOthelloRe
                 winner: winner.username,
                 reason: 'resign',
                 message: `${quitter.username} resigned.`,
-                rewards: result?.players || {}
+                rewards: result?.players || {},
+                score
               });
             }
           });
         })
         .catch(err => {
           console.error('Othello points update error:', err);
+          const score = countOthelloDisks(game.board);
           game.players.forEach(p => {
             const s = io.sockets.sockets.get(p.id);
             if(s){
@@ -277,7 +285,8 @@ function createOthelloModule({ io, socket, state, updatePresence, applyOthelloRe
                 winner: winner.username,
                 reason: 'resign',
                 message: `${quitter.username} resigned.`,
-                rewards: {}
+                rewards: {},
+                score
               });
             }
           });

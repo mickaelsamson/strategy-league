@@ -36,7 +36,7 @@ function countUniquePlayers(entries){
   return usernames.size;
 }
 
-function createApiRouter({ User, state, isGameAllowed }){
+function createApiRouter({ User, state, isGameAllowed, io }){
   const router = express.Router();
 
   async function createUser(req, res){
@@ -125,9 +125,64 @@ function createApiRouter({ User, state, isGameAllowed }){
       }
 
       state.manualOverride = Boolean(enabled);
+      if(!state.manualOverride){
+        state.lobbies = {};
+        state.othelloLobbies = {};
+        state.azulLobbies = {};
+        if(io){
+          io.emit('lobbies_update', state.lobbies);
+          io.emit('othello_lobbies_update', state.othelloLobbies);
+          io.emit('azul_lobbies_update', state.azulLobbies);
+        }
+      }
       res.json({ success: true, enabled: state.manualOverride });
     }catch(err){
       console.error(err);
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+
+  router.post('/admin/bonus-xp', async (req, res)=>{
+    try{
+      const { adminEmail, username, xp, reason } = req.body;
+      const adminUser = await User.findOne({ email: adminEmail });
+      if(!adminUser || !adminUser.isAdmin){
+        return res.status(403).json({ error: 'Admin required' });
+      }
+
+      const amount = Math.floor(Number(xp));
+      if(!username || !Number.isFinite(amount) || amount <= 0){
+        return res.status(400).json({ error: 'Enter a player and a positive XP amount.' });
+      }
+
+      const cleanReason = String(reason || '').trim();
+      if(cleanReason.length < 3){
+        return res.status(400).json({ error: 'Reason is required.' });
+      }
+
+      const target = await User.findOne({ username });
+      if(!target){
+        return res.status(404).json({ error: 'Player not found.' });
+      }
+
+      target.xp = (target.xp || 0) + amount;
+      target.matchHistory = target.matchHistory || [];
+      target.matchHistory.unshift({
+        result: 'draw',
+        opponent: adminUser.username || 'Admin',
+        xpChange: amount,
+        reason: `Admin bonus: ${cleanReason.slice(0, 120)}`,
+        gameKey: 'admin',
+        gameName: 'Bonus XP',
+        scoreFinal: '',
+        eloChange: 0
+      });
+      target.matchHistory = target.matchHistory.slice(0, 20);
+      await target.save();
+
+      res.json({ success: true, username: target.username, xp: target.xp, amount, reason: cleanReason });
+    }catch(err){
+      console.error('Bonus XP error:', err);
       res.status(500).json({ error: 'Server error' });
     }
   });

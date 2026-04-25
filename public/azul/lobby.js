@@ -5,6 +5,7 @@ const user = JSON.parse(localStorage.getItem("user"));
 if(!user){
   window.location = "/login.html";
 }
+let gamesEnabled = true;
 
 socket.emit("register_online", user.username);
 
@@ -50,6 +51,7 @@ socket.on("azul_lobbies_update", lobbies => {
 });
 
 function createLobby(){
+  if(!gamesEnabled) return;
   socket.emit("create_azul_lobby", {
     name: document.getElementById("name").value,
     maxPlayers: Number(document.getElementById("maxPlayers").value)
@@ -57,13 +59,29 @@ function createLobby(){
 }
 
 function join(id){
+  if(!gamesEnabled) return;
   socket.emit("join_azul_lobby", id);
 }
 
 function ready(id){
+  if(!gamesEnabled) return;
   socket.emit("toggle_azul_ready", id);
+}
+
+async function checkGamesAccess(){
+  try{
+    const res = await fetch("/api/games/status");
+    const data = await res.json();
+    gamesEnabled = Boolean(data.enabled);
+    const blocked = document.getElementById("blockedScreen");
+    if(blocked) blocked.style.display = gamesEnabled ? "none" : "flex";
+  }catch(err){
+    console.error(err);
+  }
 }
 
 socket.on("azul_start", () => {
   window.location = "/azul/game.html";
 });
+
+checkGamesAccess();

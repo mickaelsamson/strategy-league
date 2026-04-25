@@ -4,6 +4,7 @@ const user=JSON.parse(localStorage.getItem("user"));
 if(!user){
  window.location="/login.html";
 }
+let gamesEnabled=true;
 
 socket.emit("register_online",user.username);
 socket.on("online_users",users=>{
@@ -28,9 +29,23 @@ socket.on("othello_lobbies_update",lobbies=>{
 });
 
 function createLobby(){
+ if(!gamesEnabled)return;
  socket.emit("create_othello_lobby",{name:document.getElementById("name").value});
 }
-function join(id){socket.emit("join_othello_lobby",id);}
-function ready(id){socket.emit("toggle_othello_ready",id);}
+function join(id){if(gamesEnabled)socket.emit("join_othello_lobby",id);}
+function ready(id){if(gamesEnabled)socket.emit("toggle_othello_ready",id);}
+
+async function checkGamesAccess(){
+ try{
+  const res=await fetch("/api/games/status");
+  const data=await res.json();
+  gamesEnabled=Boolean(data.enabled);
+  const blocked=document.getElementById("blockedScreen");
+  if(blocked) blocked.style.display=gamesEnabled?"none":"flex";
+ }catch(err){
+  console.error(err);
+ }
+}
 
 socket.on("othello_start",()=>window.location="/othello/game.html");
+checkGamesAccess();

@@ -4,7 +4,7 @@ function randomId(){
   return Math.random().toString(36).substr(2, 9);
 }
 
-function createChessModule({ io, socket, state, updatePresence, applyRankedResult }){
+function createChessModule({ io, socket, state, updatePresence, applyRankedResult, isGameAllowed }){
   function findGameIdForSocket(){
     let gameId = state.playerGames[socket.id];
     if(gameId) return gameId;
@@ -51,6 +51,7 @@ function createChessModule({ io, socket, state, updatePresence, applyRankedResul
 
   function register(){
     socket.on('create_lobby', ({ name, time })=>{
+      if(isGameAllowed && !isGameAllowed()) return;
       const parsedTime = Number(time);
       if(!CHESS_TIME_CONTROLS.includes(parsedTime)) return;
 
@@ -71,6 +72,7 @@ function createChessModule({ io, socket, state, updatePresence, applyRankedResul
     });
 
     socket.on('join_lobby', id => {
+      if(isGameAllowed && !isGameAllowed()) return;
       const lobby = state.lobbies[id];
       if(!lobby) return;
 
@@ -84,6 +86,7 @@ function createChessModule({ io, socket, state, updatePresence, applyRankedResul
     });
 
     socket.on('toggle_ready', id => {
+      if(isGameAllowed && !isGameAllowed()) return;
       const lobby = state.lobbies[id];
       if(!lobby) return;
 

@@ -12,6 +12,19 @@ body.lobby-page{
   display:block;
 }
 
+.blocked-screen{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(9,3,5,0.96);
+  color:white;
+  z-index:9999;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+  text-align:center;
+}
+
 #main{
   width:min(1060px, 100%);
   margin:0 auto;
@@ -214,7 +227,22 @@ button:hover{ filter:brightness(1.08); }
 .cell:hover{ transform:scale(1.05); }
 
 .cell.valid{
-  box-shadow:inset 0 0 12px #22c55e,0 0 8px rgba(34,197,94,0.5);
+  background:linear-gradient(145deg,#0d8060,#024134);
+  box-shadow:inset 0 0 0 2px rgba(94,228,109,0.9),0 0 13px rgba(34,197,94,0.48);
+}
+
+.cell.valid::after{
+  content:"";
+  width:30%;
+  height:30%;
+  border-radius:50%;
+  background:rgba(94,228,109,0.36);
+  box-shadow:0 0 14px rgba(94,228,109,0.52);
+}
+
+.cell.valid.drag-over{
+  transform:scale(1.06);
+  border-color:rgba(94,228,109,0.9);
 }
 
 .disk{
@@ -227,6 +255,24 @@ button:hover{ filter:brightness(1.08); }
 
 .black{ background:radial-gradient(circle at 30% 30%,#555,#000); }
 .white{ background:radial-gradient(circle at 30% 30%,#fff,#bbb); }
+
+.move-disk{
+  width:58px;
+  height:58px;
+  margin:12px auto 0;
+  border-radius:50%;
+  display:none;
+  cursor:grab;
+  box-shadow:inset -4px -4px 8px rgba(0,0,0,0.5), inset 4px 4px 8px rgba(255,255,255,0.1), 0 8px 18px rgba(0,0,0,0.34);
+}
+
+.move-disk.ready{
+  animation:moveDiskPulse 1.4s ease-in-out infinite;
+}
+
+.move-disk:active{
+  cursor:grabbing;
+}
 
 .disk.flip{ animation:flip3d 0.35s ease; }
 
@@ -328,6 +374,17 @@ button:hover{ filter:brightness(1.08); }
   font-size:20px;
 }
 
+.final-score{
+  position:relative;
+  margin:-8px 0 12px;
+  padding:8px 12px;
+  border-radius:8px;
+  background:rgba(255,247,245,0.08);
+  border:1px solid rgba(255,247,245,0.14);
+  color:var(--shell-text);
+  font-weight:900;
+}
+
 .end-actions{
   display:flex;
   gap:10px;
@@ -352,6 +409,11 @@ button:hover{ filter:brightness(1.08); }
 @keyframes resultPop{
   from{opacity:0; transform:translateY(24px) scale(.92);}
   to{opacity:1; transform:translateY(0) scale(1);}
+}
+
+@keyframes moveDiskPulse{
+  0%,100%{transform:translateY(0); box-shadow:inset -4px -4px 8px rgba(0,0,0,0.5), inset 4px 4px 8px rgba(255,255,255,0.1), 0 8px 18px rgba(0,0,0,0.34);}
+  50%{transform:translateY(-3px); box-shadow:inset -4px -4px 8px rgba(0,0,0,0.5), inset 4px 4px 8px rgba(255,255,255,0.1), 0 14px 24px rgba(94,228,109,0.22);}
 }
 
 @media (max-width:880px){

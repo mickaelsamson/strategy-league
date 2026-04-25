@@ -23,6 +23,7 @@ let selected = null;
 let gameOver = false;
 let timerInterval = null;
 let renderedScoreKey = "";
+let scoringToken = 0;
 
 function escapeHtml(text){
   return String(text || "")
@@ -164,7 +165,7 @@ function renderBoard(player){
   const isMine = player.seat === state.mySeat;
   const active = player.seat === state.turnSeat;
   return `
-    <article class="player-board ${isMine ? "mine" : ""} ${active ? "active" : ""} ${player.active === false ? "eliminated" : ""}">
+    <article class="player-board ${isMine ? "mine" : ""} ${active ? "active" : ""} ${player.active === false ? "eliminated" : ""}" data-seat="${player.seat}">
       <header>
         <div>
           <span>${player.active === false ? "Eliminated" : isMine ? "You" : "Opponent"}</span>
@@ -188,7 +189,7 @@ function renderBoard(player){
       <div class="floor-line ${isMine && selected ? "can-place" : ""}" ${isMine ? `onclick="submitMove(-1)"` : ""}>
         <span>Floor</span>
         ${FLOOR_PENALTIES.map((penalty, i) => `
-          <span class="floor-slot" data-penalty="${penalty}">
+          <span class="floor-slot ${player.floor[i] ? "has-tile" : ""}" data-penalty="${penalty}">
             ${player.floor[i] ? tileMarkup(player.floor[i]) : `<b>${penalty}</b>`}
           </span>
         `).join("")}
@@ -273,32 +274,90 @@ function scorePopup(target, text, positive = true){
   setTimeout(() => popup.remove(), 1300);
 }
 
-function showRoundScorePopups(){
+function delay(ms){
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function getScoringCells(player, placement){
+  const cells = new Map();
+  const add = (row, col) => {
+    if(player.wall?.[row]?.[col]) cells.set(`${row}-${col}`, { row, col });
+  };
+
+  let horizontal = 1;
+  for(let col = placement.col - 1; col >= 0 && player.wall[placement.row][col]; col -= 1){
+    horizontal += 1;
+    add(placement.row, col);
+  }
+  for(let col = placement.col + 1; col < 5 && player.wall[placement.row][col]; col += 1){
+    horizontal += 1;
+    add(placement.row, col);
+  }
+
+  let vertical = 1;
+  for(let row = placement.row - 1; row >= 0 && player.wall[row][placement.col]; row -= 1){
+    vertical += 1;
+    add(row, placement.col);
+  }
+  for(let row = placement.row + 1; row < 5 && player.wall[row][placement.col]; row += 1){
+    vertical += 1;
+    add(row, placement.col);
+  }
+
+  if(horizontal > 1 || vertical > 1) add(placement.row, placement.col);
+  if(!cells.size) add(placement.row, placement.col);
+  return [...cells.values()];
+}
+
+function setScoringHighlight(player, cells, active){
+  cells.forEach(cell => {
+    const target = document.querySelector(`.wall-cell[data-seat="${player.seat}"][data-row="${cell.row}"][data-col="${cell.col}"]`);
+    if(target) target.classList.toggle("scoring", active);
+  });
+}
+
+async function showRoundScorePopups(){
   if(!state?.lastRound) return;
   const key = `${state.gameId}-${state.round}-${JSON.stringify(state.lastRound)}`;
   if(key === renderedScoreKey) return;
   renderedScoreKey = key;
+  const token = ++scoringToken;
 
-  requestAnimationFrame(() => {
-    (state.players || []).forEach(player => {
+  requestAnimationFrame(async () => {
+    for(const player of (state.players || [])){
       const summary = state.lastRound[player.username];
-      if(!summary) return;
+      if(!summary) continue;
 
-      (summary.placements || []).forEach(placement => {
+      for(const placement of (summary.placements || [])){
+        if(token !== scoringToken) return;
         const target = document.querySelector(`.wall-cell[data-seat="${player.seat}"][data-row="${placement.row}"][data-col="${placement.col}"]`);
+        const cells = getScoringCells(player, placement);
+        setScoringHighlight(player, cells, true);
         scorePopup(target, `+${placement.points}`, true);
-      });
+        await delay(950);
+        setScoringHighlight(player, cells, false);
+        await delay(260);
+      }
 
       if(summary.floorPenalty){
+        if(token !== scoringToken) return;
         const target = document.querySelector(`.score-pop-anchor[data-seat="${player.seat}"]`);
+        document.querySelectorAll(`.player-board[data-seat="${player.seat}"] .floor-slot.has-tile`).forEach(slot => slot.classList.add("scoring"));
         scorePopup(target, String(summary.floorPenalty), false);
+        await delay(950);
+        document.querySelectorAll(`.player-board[data-seat="${player.seat}"] .floor-slot.scoring`).forEach(slot => slot.classList.remove("scoring"));
+        await delay(260);
       }
 
       if(summary.bonus){
+        if(token !== scoringToken) return;
         const target = document.querySelector(`.score-pop-anchor[data-seat="${player.seat}"]`);
+        document.querySelectorAll(`.player-board[data-seat="${player.seat}"] .wall-cell.placed`).forEach(cell => cell.classList.add("scoring"));
         scorePopup(target, `+${summary.bonus}`, true);
+        await delay(1100);
+        document.querySelectorAll(`.player-board[data-seat="${player.seat}"] .wall-cell.scoring`).forEach(cell => cell.classList.remove("scoring"));
       }
-    });
+    }
   });
 }
 
@@ -333,6 +392,7 @@ socket.on("online_users", users => {
 });
 
 socket.on("azul_state", data => {
+  if(!data.lastRound) scoringToken += 1;
   state = {
     ...data,
     localTurnDeadlineAt: Date.now() + (Number.isFinite(data.turnRemainingMs) ? data.turnRemainingMs : data.turnTimeMs || 60000)
@@ -352,6 +412,10 @@ socket.on("azul_end", data => {
   el.className = `end-screen show ${result === "win" ? "victory" : result === "loss" ? "defeat" : "draw"}`;
   document.getElementById("winnerText").innerText = result === "win" ? "Victory" : result === "loss" ? "Defeat" : "Draw";
   document.getElementById("endMessage").innerText = data.message || "";
+  const scores = data.scores || Object.fromEntries((state?.players || []).map(player => [player.username, player.score]));
+  document.getElementById("finalScores").innerHTML = Object.entries(scores)
+    .map(([name, score]) => `<span>${escapeHtml(name)} <strong>${score}</strong></span>`)
+    .join("");
   document.getElementById("xpReward").innerText = `+${xpChange} XP`;
   document.getElementById("rematchStatus").innerText = "";
   updateStoredXp(xpChange);
@@ -373,4 +437,5 @@ socket.on("azul_rematch_start", () => {
   gameOver = false;
   document.getElementById("endScreen").className = "end-screen";
   document.getElementById("rematchStatus").innerText = "";
+  document.getElementById("finalScores").innerHTML = "";
 });

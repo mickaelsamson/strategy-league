@@ -259,7 +259,7 @@ function publicPlayer(player){
   };
 }
 
-function createAzulModule({ io, socket, state, updatePresence, applyAzulResult }){
+function createAzulModule({ io, socket, state, updatePresence, applyAzulResult, isGameAllowed }){
   function clearTurnTimer(game){
     if(game?.turnTimer){
       clearTimeout(game.turnTimer);
@@ -372,6 +372,7 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult }
 
   function register(){
     socket.on('create_azul_lobby', ({ name, maxPlayers } = {})=>{
+      if(isGameAllowed && !isGameAllowed()) return;
       const existing = Object.values(state.azulLobbies).find(l =>
         l.players.some(p => p.username === socket.username)
       );
@@ -390,6 +391,7 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult }
     });
 
     socket.on('join_azul_lobby', id => {
+      if(isGameAllowed && !isGameAllowed()) return;
       const lobby = state.azulLobbies[id];
       if(!lobby || lobby.players.length >= (lobby.maxPlayers || MIN_PLAYERS)) return;
 
@@ -403,6 +405,7 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult }
     });
 
     socket.on('toggle_azul_ready', id => {
+      if(isGameAllowed && !isGameAllowed()) return;
       const lobby = state.azulLobbies[id];
       if(!lobby) return;
 
@@ -550,7 +553,8 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult }
           winner: winner.username,
           reason: 'resign',
           message: `${quitter.username} resigned.`,
-          rewards: result?.players || {}
+          rewards: result?.players || {},
+          scores: game.players.reduce((acc, p) => ({ ...acc, [p.username]: p.score }), {})
         }))
         .catch(err => {
           console.error('Azul points update error:', err);
@@ -558,7 +562,8 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult }
             winner: winner.username,
             reason: 'resign',
             message: `${quitter.username} resigned.`,
-            rewards: {}
+            rewards: {},
+            scores: game.players.reduce((acc, p) => ({ ...acc, [p.username]: p.score }), {})
           });
         })
         .finally(()=>updatePresence());
