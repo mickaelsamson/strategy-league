@@ -7,13 +7,18 @@ if(!user){
 socket.emit("register_online",user.username);
 
 socket.on("othello_lobbies_update",lobbies=>{
- document.getElementById("lobbies").innerHTML=Object.values(lobbies).map(l=>{
+ const list=Object.values(lobbies);
+ if(!list.length){
+  document.getElementById("lobbies").innerHTML=`<div class="empty-state">No lobby for now. Be the first 👑</div>`;
+  return;
+ }
+ document.getElementById("lobbies").innerHTML=list.map(l=>{
   const me=l.players.find(p=>p.username===user.username);
-  return `<div class="card">
+  return `<div class="card lobby-item">
   <strong>${l.name}</strong>
-  ${l.players.map(p=>p.username+" "+(p.ready?"✔":"✖")).join(", ")}
+  <div class="lobby-players">${l.players.map(p=>`${p.username} ${p.ready?"✅":"⌛"}`).join(" · ")}</div>
   ${!me?`<button onclick="join('${l.id}')">Join</button>`:
-  `<button onclick="ready('${l.id}')">Ready</button>`}
+  `<button onclick="ready('${l.id}')">Ready / Not ready</button>`}
   </div>`;
  }).join("");
 });
