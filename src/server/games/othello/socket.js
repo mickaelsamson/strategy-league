@@ -205,7 +205,7 @@ function createOthelloModule({ io, socket, state, updatePresence, applyOthelloRe
         if(score.black > score.white) winnerColor = 'black';
         if(score.white > score.black) winnerColor = 'white';
 
-        applyOthelloResult(game, winnerColor)
+        applyOthelloResult(game, winnerColor, winnerColor ? 'game_end' : 'draw')
           .catch(err => console.error('Othello points update error:', err))
           .finally(()=>{
             const winnerPlayer = winnerColor ? game.players.find(p => p.color === winnerColor) : null;
@@ -236,7 +236,7 @@ function createOthelloModule({ io, socket, state, updatePresence, applyOthelloRe
 
       game.ended = true;
 
-      applyOthelloResult(game, winner.color)
+      applyOthelloResult(game, winner.color, 'resign')
         .catch(err => console.error('Othello points update error:', err))
         .finally(()=>{
           game.players.forEach(p => {

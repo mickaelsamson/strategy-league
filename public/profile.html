@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<link rel="stylesheet" href="/assets/styles/theme.css">
+<link rel="stylesheet" href="/assets/style/theme.css">
 <script defer src="/assets/scripts/site-shell.js"></script>
 <title>Profile</title>
 
@@ -38,6 +38,15 @@ body{
   align-items:center;
   justify-content:center;
   font-size:30px;
+  overflow:hidden;
+  border:2px solid #334155;
+  flex:0 0 auto;
+}
+
+.avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
 }
 
 .username{
@@ -45,13 +54,59 @@ body{
   font-weight:bold;
 }
 
+.elo-list{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  color:#cbd5e1;
+  margin-top:6px;
+}
+
+.elo-list span{
+  white-space:nowrap;
+}
+
 /* CARD */
 .card{
   background:#111827;
   padding:20px;
-  border-radius:15px;
+  border-radius:8px;
   margin-bottom:20px;
   box-shadow:0 0 10px rgba(0,0,0,0.4);
+}
+
+.avatar-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(64px, 1fr));
+  gap:10px;
+  margin-top:12px;
+}
+
+.avatar-option{
+  width:64px;
+  height:64px;
+  border:2px solid #334155;
+  border-radius:50%;
+  padding:0;
+  background:#0f172a;
+  cursor:pointer;
+  overflow:hidden;
+}
+
+.avatar-option img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.avatar-option.selected{
+  border-color:#22c55e;
+  box-shadow:0 0 0 3px rgba(34,197,94,0.2);
+}
+
+.avatar-empty{
+  color:#94a3b8;
+  margin:0;
 }
 
 /* XP BAR */
@@ -83,13 +138,49 @@ body{
 .match{
   display:flex;
   justify-content:space-between;
-  padding:8px 0;
+  gap:14px;
+  padding:12px 0;
   border-bottom:1px solid #1f2937;
+  align-items:flex-start;
+}
+
+.match-main{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.match-title{
+  font-weight:bold;
+}
+
+.match-meta{
+  color:#94a3b8;
+  font-size:13px;
+}
+
+.match-xp{
+  font-weight:bold;
+  white-space:nowrap;
 }
 
 .win{color:#22c55e;}
 .loss{color:#ef4444;}
 .draw{color:#facc15;}
+
+@media (max-width:620px){
+  .header{
+    align-items:flex-start;
+  }
+
+  .stats{
+    gap:10px;
+  }
+
+  .match{
+    flex-direction:column;
+  }
+}
 </style>
 </head>
 
@@ -101,11 +192,21 @@ body{
 
 <!-- HEADER -->
 <div class="header">
-  <div class="avatar">♟️</div>
+  <div class="avatar" id="avatarPreview">♟️</div>
   <div>
     <div class="username" id="username">Player</div>
-    <div>ELO: <span id="elo">1000</span></div>
+    <div class="elo-list">
+      <span>ELO Chess: <strong id="chessElo">1000</strong></span>
+      <span>ELO Othello: <strong id="othelloElo">1000</strong></span>
+      <span>ELO Strategy: <strong id="strategyElo">1000</strong></span>
+    </div>
   </div>
+</div>
+
+<!-- AVATAR PICKER -->
+<div class="card" id="avatarCard" hidden>
+  <h3>Avatar</h3>
+  <div id="avatarGrid" class="avatar-grid"></div>
 </div>
 
 <!-- LEVEL -->
@@ -152,10 +253,103 @@ if(!user){
 const params = new URLSearchParams(window.location.search);
 const requestedUsername = params.get("username");
 const profileUsername = requestedUsername || user.username;
+const isOwnProfile = profileUsername === user.username;
+let availableAvatars = [];
+
+function escapeHtml(text){
+  return String(text || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function renderAvatar(avatar){
+  const preview = document.getElementById("avatarPreview");
+  preview.innerHTML = avatar
+    ? `<img src="${escapeHtml(avatar)}" alt="Avatar">`
+    : "♟️";
+}
+
+function resultLabel(match){
+  const result = match.result || "draw";
+  const reason = match.reason || "game_end";
+
+  if(reason === "resign") return result === "loss" ? "Abandon" : "Victoire (abandon)";
+  if(reason === "disconnect") return result === "loss" ? "Déconnexion" : "Victoire (déconnexion)";
+  if(reason === "timeout") return result === "loss" ? "Temps écoulé" : "Victoire au temps";
+  if(result === "win") return "Victoire";
+  if(result === "loss") return "Défaite";
+  return "Match nul";
+}
+
+function formatPlayedAt(value){
+  if(!value) return "";
+  const date = new Date(value);
+  if(Number.isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+}
+
+function renderAvatarGrid(selectedAvatar){
+  const card = document.getElementById("avatarCard");
+  const grid = document.getElementById("avatarGrid");
+  if(!isOwnProfile) return;
+
+  card.hidden = false;
+  if(!availableAvatars.length){
+    grid.innerHTML = "<p class=\"avatar-empty\">Ajoute des images dans public/avatars pour les voir ici.</p>";
+    return;
+  }
+
+  grid.innerHTML = availableAvatars.map(avatar=>`
+    <button class="avatar-option ${avatar === selectedAvatar ? "selected" : ""}" type="button" data-avatar="${escapeHtml(avatar)}" title="Choisir cet avatar">
+      <img src="${escapeHtml(avatar)}" alt="Avatar">
+    </button>
+  `).join("");
+
+  grid.querySelectorAll(".avatar-option").forEach(button=>{
+    button.addEventListener("click", async ()=>{
+      const avatar = button.dataset.avatar;
+      await saveAvatar(avatar);
+      renderAvatar(avatar);
+      renderAvatarGrid(avatar);
+    });
+  });
+}
+
+async function saveAvatar(avatar){
+  const response = await fetch(`/api/profile/${encodeURIComponent(user.username)}/avatar`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ avatar })
+  });
+
+  if(!response.ok){
+    throw new Error("Avatar unavailable");
+  }
+
+  const updated = await response.json();
+  localStorage.setItem("user", JSON.stringify({
+    ...JSON.parse(localStorage.getItem("user")),
+    avatar: updated.avatar || ""
+  }));
+}
   
 function renderProfile(profile){
   document.getElementById("username").innerText = profile.username || profileUsername;
-  document.getElementById("elo").innerText = profile.elo ?? 1000;
+  document.getElementById("chessElo").innerText = profile.chessElo ?? profile.elo ?? 1000;
+  document.getElementById("othelloElo").innerText = profile.othelloElo ?? 1000;
+  document.getElementById("strategyElo").innerText = profile.strategyElo ?? 1000;
+  renderAvatar(profile.avatar || "");
+  renderAvatarGrid(profile.avatar || "");
 
   const wins = profile?.stats?.wins || 0;
   const losses = profile?.stats?.losses || 0;
@@ -176,24 +370,43 @@ function renderProfile(profile){
   document.getElementById("xpNext").innerText = nextXp;
   document.getElementById("xpFill").style.width = `${progress}%`;
 
-  const matches = Array.isArray(profile.matchHistory) ? profile.matchHistory : [];
+  const matches = Array.isArray(profile.matchHistory) ? profile.matchHistory.slice(0, 5) : [];
   document.getElementById("matches").innerHTML = matches.length
     ? matches.map(m=>{
         const result = m.result || "draw";
         const xpChange = Number.isFinite(m.xpChange) ? m.xpChange : 0;
         const sign = xpChange >= 0 ? "+" : "";
+        const eloChange = Number.isFinite(m.eloChange) ? m.eloChange : 0;
+        const eloText = eloChange ? ` · ELO ${eloChange > 0 ? "+" : ""}${eloChange}` : "";
+        const playedAt = formatPlayedAt(m.playedAt);
+        const score = m.scoreFinal ? ` · Score ${escapeHtml(m.scoreFinal)}` : "";
         return `
           <div class="match ${result}">
-            <span>${result.toUpperCase()} vs ${m.opponent || "Unknown"}</span>
-            <span>${sign}${xpChange} XP</span>
+            <div class="match-main">
+              <span class="match-title">${escapeHtml(resultLabel(m))} · ${escapeHtml(m.gameName || "Game")} vs ${escapeHtml(m.opponent || "Unknown")}</span>
+              <span class="match-meta">${escapeHtml(playedAt)}${score}${eloText}</span>
+            </div>
+            <span class="match-xp">${sign}${xpChange} XP</span>
           </div>
         `;
       }).join("")
     : "<div class=\"match\"><span>No match history yet.</span><span>—</span></div>";
 }
 
+async function loadAvatars(){
+  try{
+    const response = await fetch("/api/avatars");
+    if(!response.ok) return;
+    const data = await response.json();
+    availableAvatars = Array.isArray(data.avatars) ? data.avatars : [];
+  }catch(err){
+    console.error(err);
+  }
+}
+
 async function loadProfile(){
   try{
+    await loadAvatars();
     const response = await fetch(`/api/profile/${encodeURIComponent(profileUsername)}`);
     if(!response.ok){
       throw new Error("Profile unavailable");
@@ -203,7 +416,11 @@ async function loadProfile(){
     if(profile.username === user.username){
       localStorage.setItem("user", JSON.stringify({
         ...user,
-        elo: profile.elo,
+        avatar: profile.avatar,
+        elo: profile.chessElo || profile.elo,
+        chessElo: profile.chessElo,
+        othelloElo: profile.othelloElo,
+        strategyElo: profile.strategyElo,
         xp: profile.xp
       }));
     }
@@ -214,6 +431,10 @@ async function loadProfile(){
     renderProfile({
       username: profileUsername,
       elo: user.elo || 1000,
+      chessElo: user.chessElo || user.elo || 1000,
+      othelloElo: user.othelloElo || 1000,
+      strategyElo: user.strategyElo || 1000,
+      avatar: user.avatar || "",
       xp: user.xp || 0,
       stats: { wins: 0, losses: 0, winrate: 0 },
       matchHistory: []

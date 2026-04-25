@@ -1,5 +1,26 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const { getLeaderboard } = require('../services/user-service');
+
+const AVATAR_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg']);
+
+function listAvailableAvatars(){
+  const avatarsDir = path.join(process.cwd(), 'public', 'avatars');
+  if(!fs.existsSync(avatarsDir)) return [];
+
+  return fs.readdirSync(avatarsDir)
+    .filter(file => AVATAR_EXTENSIONS.has(path.extname(file).toLowerCase()))
+    .sort((a, b) => a.localeCompare(b))
+    .map(file => `/avatars/${encodeURIComponent(file)}`);
+}
+
+function getLeaderboardValue(user, type){
+  if(type === 'chess') return user.chessElo || user.elo || 1000;
+  if(type === 'strategy') return user.strategyElo || user.strategyPoints || 1000;
+  if(type === 'othello') return user.othelloElo || user.othelloPoints || 1000;
+  return user.xp || 0;
+}
 
 function createApiRouter({ User, state, isGameAllowed }){
   const router = express.Router();
@@ -12,7 +33,7 @@ function createApiRouter({ User, state, isGameAllowed }){
         return res.status(400).json({ error: 'User already exists' });
       }
 
-      const user = new User({ username, email, password, elo: 1000, xp: 0, isAdmin: false });
+      const user = new User({ username, email, password, elo: 1000, chessElo: 1000, othelloElo: 1000, strategyElo: 1000, xp: 0, isAdmin: false });
       await user.save();
       res.json({ success: true });
     }catch(err){
@@ -36,7 +57,11 @@ function createApiRouter({ User, state, isGameAllowed }){
       res.json({
         username: user.username,
         email: user.email,
-        elo: user.elo,
+        avatar: user.avatar || '',
+        elo: user.chessElo || user.elo,
+        chessElo: user.chessElo || user.elo || 1000,
+        othelloElo: user.othelloElo || user.othelloPoints || 1000,
+        strategyElo: user.strategyElo || user.strategyPoints || 1000,
         xp: user.xp,
         isAdmin: user.isAdmin
       });
@@ -70,9 +95,8 @@ function createApiRouter({ User, state, isGameAllowed }){
     try{
       const { type, username } = req.params;
       const users = await getLeaderboard(User, type);
-      const valueKey = type === 'chess' ? 'elo' : (type === 'strategy' ? 'strategyPoints' : (type === 'othello' ? 'othelloPoints' : 'xp'));
 
-      const list = users.map((u, index) => ({ username: u.username, value: u[valueKey] || 0, rank: index + 1 }));
+      const list = users.map((u, index) => ({ username: u.username, value: getLeaderboardValue(u, type), rank: index + 1 }));
       const me = list.find(u => u.username === username) || null;
       const top = list.slice(0, 10).map(({ username: entryUsername, value }) => ({ username: entryUsername, value }));
 
@@ -99,15 +123,50 @@ function createApiRouter({ User, state, isGameAllowed }){
 
       res.json({
         username: user.username,
-        elo: user.elo || 1000,
+        avatar: user.avatar || '',
+        elo: user.chessElo || user.elo || 1000,
+        chessElo: user.chessElo || user.elo || 1000,
+        othelloElo: user.othelloElo || user.othelloPoints || 1000,
+        strategyElo: user.strategyElo || user.strategyPoints || 1000,
         xp: user.xp || 0,
         level: Math.floor((user.xp || 0) / 100) + 1,
         stats: { wins, losses, draws, total, winrate },
-        matchHistory: (user.matchHistory || []).slice(0, 10)
+        matchHistory: (user.matchHistory || []).slice(0, 5)
       });
     }catch(err){
       console.error('Profile error:', err);
       res.status(500).json({ error: 'Profile unavailable' });
+    }
+  });
+
+  router.get('/avatars', (req, res)=>{
+    res.json({ avatars: listAvailableAvatars() });
+  });
+
+  router.post('/profile/:username/avatar', async (req, res)=>{
+    try{
+      const { username } = req.params;
+      const { avatar } = req.body;
+      const availableAvatars = listAvailableAvatars();
+
+      if(avatar && !availableAvatars.includes(avatar)){
+        return res.status(400).json({ error: 'Avatar unavailable' });
+      }
+
+      const user = await User.findOneAndUpdate(
+        { username },
+        { avatar: avatar || '' },
+        { new: true }
+      ).lean();
+
+      if(!user){
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      res.json({ success: true, avatar: user.avatar || '' });
+    }catch(err){
+      console.error('Avatar update error:', err);
+      res.status(500).json({ error: 'Avatar update unavailable' });
     }
   });
 

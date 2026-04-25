@@ -139,7 +139,12 @@ document.getElementById("loginBtn").onclick = async ()=>{
   localStorage.setItem("user", JSON.stringify({
     username: data.username,
     email: data.email,
+    avatar: data.avatar,
     elo: data.elo,
+    chessElo: data.chessElo,
+    othelloElo: data.othelloElo,
+    strategyElo: data.strategyElo,
+    xp: data.xp,
     isAdmin: data.isAdmin
   }));
 

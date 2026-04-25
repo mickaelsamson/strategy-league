@@ -330,7 +330,7 @@ function checkTimeout(){
 socket.on("online_users", users=>{
   document.getElementById("players").innerHTML =
     Object.entries(users).map(([name,data])=>`
-      <div class="player" data-profile-username="${name}">${name} (${data.elo})</div>
+      <div class="player" data-profile-username="${name}">${name} (ELO Chess ${data.chessElo || data.elo})</div>
       `).join("");
 });
 

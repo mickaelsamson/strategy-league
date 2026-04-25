@@ -146,14 +146,18 @@ function escapeHtml(text){
 function renderTooltipContent(profile){
   const wins = profile?.stats?.wins || 0;
   const losses = profile?.stats?.losses || 0;
-  const elo = profile?.elo ?? 1000;
+  const chessElo = profile?.chessElo ?? profile?.elo ?? 1000;
+  const othelloElo = profile?.othelloElo ?? 1000;
+  const strategyElo = profile?.strategyElo ?? 1000;
   const xp = profile?.xp ?? 0;
 
   return `
     <div><strong>${escapeHtml(profile?.username || "Unknown")}</strong></div>
     <div>Wins: ${wins}</div>
     <div>Losses: ${losses}</div>
-    <div>ELO: ${elo}</div>
+    <div>ELO Chess: ${chessElo}</div>
+    <div>ELO Othello: ${othelloElo}</div>
+    <div>ELO Strategy: ${strategyElo}</div>
     <div>XP: ${xp}</div>
   `;
 }

@@ -9,7 +9,12 @@ function registerSockets({ io, User, state, applyRankedResult, applyOthelloResul
     for(const id in state.onlineUsers){
       const username = state.onlineUsers[id];
       const user = await User.findOne({ username });
-      users[username] = { elo: user?.elo || 1000 };
+      users[username] = {
+        elo: user?.chessElo || user?.elo || 1000,
+        chessElo: user?.chessElo || user?.elo || 1000,
+        othelloElo: user?.othelloElo || user?.othelloPoints || 1000,
+        strategyElo: user?.strategyElo || user?.strategyPoints || 1000
+      };
     }
 
     io.emit('online_users', users);
@@ -37,7 +42,7 @@ function registerSockets({ io, User, state, applyRankedResult, applyOthelloResul
       socket,
       state,
       updatePresence,
-      applyOthelloResult: (game, winnerColor) => applyOthelloResult(User, game, winnerColor)
+      applyOthelloResult: (game, winnerColor, reason) => applyOthelloResult(User, game, winnerColor, reason)
     });
 
     socket.on('register_online', username => {
