@@ -146,7 +146,7 @@ function resign(){
 
 socket.on("online_users",users=>{
  document.getElementById("players").innerHTML=
-  Object.entries(users).map(([name,data])=>`<div class="player">${name} (${data.elo})</div>`).join("");
+ Object.entries(users).map(([name,data])=>`<div class="player" data-profile-username="${name}">${name} (${data.elo})</div>`).join("");
 });
 
 socket.on("othello_state",data=>{
