@@ -67,6 +67,38 @@ button:hover{background:#3b82f6;}
   font-size:20px;
   margin-right:6px;
 }
+.username-link{
+  color:#e2e8f0;
+  cursor:pointer;
+  text-decoration:none;
+  border-bottom:1px dashed transparent;
+}
+
+.username-link:hover{
+  color:#93c5fd;
+  border-bottom-color:#93c5fd;
+}
+
+.profile-tooltip{
+  position:fixed;
+  z-index:1000;
+  min-width:170px;
+  text-align:left;
+  background:#0f172a;
+  border:1px solid #334155;
+  border-radius:10px;
+  padding:10px;
+  box-shadow:0 10px 24px rgba(0,0,0,0.45);
+  font-size:13px;
+  line-height:1.5;
+  pointer-events:none;
+}
+
+.profile-tooltip strong{
+  color:#93c5fd;
+}
+
+.hidden{display:none;}
 </style>
 </head>
 
@@ -121,24 +153,109 @@ fetch("/components/navbar.html")
 <div class="tabs">
   <button onclick="load('global')">Global</button>
   <button onclick="load('chess')">Chess</button>
-    <button onclick="load('othello')">Othello</button>
+  <button onclick="load('othello')">Othello</button>
   <button onclick="load('strategy')">Strategy</button>
 </div>
 
 <div id="table" class="table"></div>
 <div id="me"></div>
-
+<div id="profileTooltip" class="profile-tooltip hidden"></div>
+  
 <script>
 
 const user = JSON.parse(localStorage.getItem("user"));
-
+const profileCache = new Map();
+const tooltip = document.getElementById("profileTooltip");
+  
 function getBadge(i){
   if(i===0) return "🥇";
   if(i===1) return "🥈";
   if(i===2) return "🥉";
   return "#" + (i+1);
 }
+function escapeHtml(text){
+  return String(text || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
 
+function renderTooltipContent(profile){
+  const wins = profile?.stats?.wins || 0;
+  const losses = profile?.stats?.losses || 0;
+  const elo = profile?.elo ?? 1000;
+  const xp = profile?.xp ?? 0;
+
+  return `
+    <div><strong>${escapeHtml(profile?.username || "Unknown")}</strong></div>
+    <div>Wins: ${wins}</div>
+    <div>Losses: ${losses}</div>
+    <div>ELO: ${elo}</div>
+    <div>XP: ${xp}</div>
+  `;
+}
+
+function positionTooltip(event){
+  const margin = 14;
+  const tooltipWidth = tooltip.offsetWidth || 180;
+  const tooltipHeight = tooltip.offsetHeight || 100;
+
+  let left = event.clientX + margin;
+  let top = event.clientY + margin;
+
+  if(left + tooltipWidth > window.innerWidth - 8){
+    left = event.clientX - tooltipWidth - margin;
+  }
+
+  if(top + tooltipHeight > window.innerHeight - 8){
+    top = event.clientY - tooltipHeight - margin;
+  }
+
+  tooltip.style.left = `${Math.max(8, left)}px`;
+  tooltip.style.top = `${Math.max(8, top)}px`;
+}
+
+function hideTooltip(){
+  tooltip.classList.add("hidden");
+}
+
+async function fetchProfile(username){
+  if(profileCache.has(username)) return profileCache.get(username);
+  const response = await fetch(`/api/profile/${encodeURIComponent(username)}`);
+  if(!response.ok) throw new Error("Profile unavailable");
+  const profile = await response.json();
+  profileCache.set(username, profile);
+  return profile;
+}
+
+function bindUsernameInteractions(){
+  document.querySelectorAll(".username-link").forEach(el=>{
+    const username = el.dataset.username;
+
+    el.addEventListener("click", ()=>{
+      window.location.href = `/profile.html?username=${encodeURIComponent(username)}`;
+    });
+
+    el.addEventListener("mouseenter", async (event)=>{
+      tooltip.innerHTML = "Loading...";
+      tooltip.classList.remove("hidden");
+      positionTooltip(event);
+
+      try{
+        const profile = await fetchProfile(username);
+        tooltip.innerHTML = renderTooltipContent(profile);
+      }catch(err){
+        tooltip.innerHTML = `<div><strong>${escapeHtml(username)}</strong></div><div>Profile unavailable</div>`;
+      }
+    });
+
+    el.addEventListener("mousemove", positionTooltip);
+    el.addEventListener("mouseleave", hideTooltip);
+  });
+}
+  
 async function load(type){
 
   const table = document.getElementById("table");
@@ -161,12 +278,14 @@ async function load(type){
       <div class="row ${i<3?'top':''} ${u.username===user.username?'me':''}">
         <span>
           <span class="badge">${getBadge(i)}</span>
-          ${u.username}
-        </span>
+          <span class="username-link" data-username="${escapeHtml(u.username)}">${escapeHtml(u.username)}</span>
+          </span>
         <span>${u.value}</span>
       </div>
     `).join("");
 
+    bindUsernameInteractions();
+    
     if(data.me && data.me.rank > 10){
       meDiv.innerHTML = `
         <div class="rank">
