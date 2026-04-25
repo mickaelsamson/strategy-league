@@ -284,7 +284,7 @@ body{
 
 .game-grid{
   display:grid;
-  grid-template-columns:repeat(3, minmax(0, 1fr));
+  grid-template-columns:repeat(4, minmax(0, 1fr));
   gap:16px;
 }
 
@@ -326,6 +326,15 @@ body{
     radial-gradient(circle at 62% 40%, #111 0 31px, transparent 32px),
     radial-gradient(circle at 40% 70%, #101010 0 30px, transparent 31px),
     linear-gradient(135deg, #194537, #0c241f 54%, #3a1018);
+}
+
+.game-card.azul{
+  background:
+    radial-gradient(circle at 25% 28%, #f7f1df 0 28px, transparent 29px),
+    radial-gradient(circle at 64% 34%, #0196b3 0 14px, transparent 15px),
+    radial-gradient(circle at 72% 56%, #ff5b68 0 14px, transparent 15px),
+    radial-gradient(circle at 38% 70%, #ffc44e 0 14px, transparent 15px),
+    linear-gradient(135deg, #083044, #123d55 44%, #42111a);
 }
 
 .game-card.strategy{
@@ -432,7 +441,7 @@ body{
 
 .stat-mini-grid{
   display:grid;
-  grid-template-columns:repeat(3, 1fr);
+  grid-template-columns:repeat(4, 1fr);
   gap:10px;
   margin-top:18px;
 }
@@ -483,6 +492,7 @@ body{
 
 .popular-thumb.chess{background:url("/chess/board.png") center/cover;}
 .popular-thumb.othello{background:linear-gradient(135deg, #183f34, #faf3e7);}
+.popular-thumb.azul{background:linear-gradient(135deg, #083044, #0196b3 46%, #ffc44e);}
 .popular-thumb.strategy{background:url("/strategy/map.png") center/cover;}
 
 .popular-item b,
@@ -509,6 +519,10 @@ body{
   .game-grid,
   .popular-list{
     grid-template-columns:1fr;
+  }
+
+  .stat-mini-grid{
+    grid-template-columns:repeat(2, 1fr);
   }
 
   .hero-card h1{
@@ -572,6 +586,12 @@ body{
             <p>Reversi Board Game</p>
             <span class="live-dot"><b data-playing="othello">0</b> playing</span>
           </a>
+          <a class="game-card azul" href="/azul/index.html">
+            <span class="new-pill">New</span>
+            <h3>AZUL ARENA</h3>
+            <p>Tile Drafting</p>
+            <span class="live-dot"><b data-playing="azul">0</b> playing</span>
+          </a>
           <a class="game-card strategy" href="/strategy/index.html">
             <span class="new-pill">New</span>
             <h3>STRATEGY ARENA</h3>
@@ -592,6 +612,11 @@ body{
         <a class="quick-game" href="/othello/index.html">
           <span class="quick-icon">O</span>
           <span><b>Othello</b><small>Classic</small></span>
+          <em>›</em>
+        </a>
+        <a class="quick-game" href="/azul/index.html">
+          <span class="quick-icon">A</span>
+          <span><b>Azul Arena</b><small>Tile Drafting</small></span>
           <em>›</em>
         </a>
         <a class="quick-game" href="/strategy/index.html">
@@ -618,6 +643,7 @@ body{
         </div>
         <div class="stat-mini-grid">
           <div class="stat-mini"><span>ELO Chess</span><b id="chessElo">1000</b></div>
+          <div class="stat-mini"><span>ELO Azul</span><b id="azulElo">1000</b></div>
           <div class="stat-mini"><span>Level</span><b id="level">1</b></div>
           <div class="stat-mini"><span>XP</span><b id="xp">0</b></div>
         </div>
@@ -633,8 +659,8 @@ body{
     <div class="popular-list">
       <div class="popular-item"><span class="popular-thumb chess"></span><span><b>Chess</b><span><strong data-playing="chess">0</strong> playing</span></span></div>
       <div class="popular-item"><span class="popular-thumb othello"></span><span><b>Othello</b><span><strong data-playing="othello">0</strong> playing</span></span></div>
+      <div class="popular-item"><span class="popular-thumb azul"></span><span><b>Azul Arena</b><span><strong data-playing="azul">0</strong> playing</span></span></div>
       <div class="popular-item"><span class="popular-thumb strategy"></span><span><b>Strategy Arena</b><span><strong data-playing="strategy">0</strong> playing</span></span></div>
-      <div class="popular-item"><span class="popular-thumb"></span><span><b>Ranked XP</b><span>Live progression</span></span></div>
     </div>
   </section>
 </main>
@@ -671,6 +697,7 @@ function updateLocalProfile(profile){
   document.getElementById("totalGames").textContent = total;
   document.getElementById("winrate").textContent = `${winrate}%`;
   document.getElementById("chessElo").textContent = profile.chessElo || profile.elo || 1000;
+  document.getElementById("azulElo").textContent = profile.azulElo || 1000;
   document.getElementById("level").textContent = level;
   document.getElementById("xp").textContent = xp;
   document.getElementById("statRing").style.setProperty("--win-rate", `${Math.max(2, winrate)}%`);
@@ -682,6 +709,7 @@ function updateLocalProfile(profile){
     elo: profile.chessElo || profile.elo,
     chessElo: profile.chessElo,
     othelloElo: profile.othelloElo,
+    azulElo: profile.azulElo,
     strategyElo: profile.strategyElo,
     xp: profile.xp
   }));
@@ -699,6 +727,7 @@ async function loadProfile(){
       avatar: user.avatar,
       xp: user.xp || 0,
       chessElo: user.chessElo || user.elo || 1000,
+      azulElo: user.azulElo || 1000,
       stats: { wins: 0, losses: 0, total: 0, winrate: 0 }
     });
   }
@@ -710,7 +739,7 @@ async function loadPlayingCounts(){
     if(!response.ok) throw new Error("Playing counts unavailable");
     const counts = await response.json();
 
-    ["chess", "othello", "strategy"].forEach(key => {
+    ["chess", "othello", "azul", "strategy"].forEach(key => {
       document.querySelectorAll(`[data-playing="${key}"]`).forEach(el => {
         el.textContent = counts[key] ?? 0;
       });
@@ -728,6 +757,7 @@ document.getElementById("homeSearch").addEventListener("keydown", event => {
   if(!value) return;
   if(value.includes("chess")) window.location.href = "/chess/index.html";
   else if(value.includes("othello")) window.location.href = "/othello/index.html";
+  else if(value.includes("azul")) window.location.href = "/azul/index.html";
   else if(value.includes("strategy")) window.location.href = "/strategy/index.html";
   else window.location.href = `/profile.html?username=${encodeURIComponent(value)}`;
 });

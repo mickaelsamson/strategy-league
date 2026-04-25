@@ -223,16 +223,11 @@
     }
 
     list.innerHTML = entries.map(player => {
-      const wins = player.wins || 0;
-      const losses = player.losses || 0;
-      const total = wins + losses + (player.draws || 0);
-      const winrate = total ? Math.round((wins / total) * 100) : 0;
       return `
         <button class="online-player" type="button" data-profile-username="${escapeHtml(player.username)}" data-player='${escapeHtml(JSON.stringify(player))}'>
           ${avatarMarkup(player, 'online-avatar')}
           <span class="online-player-copy">
             <strong>${escapeHtml(player.username)}</strong>
-            <small>XP ${player.xp || 0} · ${winrate}% WR</small>
           </span>
           <i></i>
         </button>

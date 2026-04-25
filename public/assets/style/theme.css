@@ -32,7 +32,7 @@ body{
 }
 
 body.app-shell-active{
-  padding:32px 336px 32px 168px !important;
+  padding:32px 238px 32px 168px !important;
   display:block !important;
 }
 
@@ -144,12 +144,12 @@ body.app-shell-active.with-navbar{
 
 .app-sidebar-right{
   right:18px;
-  width:292px;
+  width:194px;
 }
 
 .online-panel{
   height:100%;
-  padding:22px 16px;
+  padding:16px 10px;
   background:linear-gradient(180deg, rgba(65,18,25,0.88), rgba(31,8,13,0.86));
   border:1px solid var(--shell-line);
   border-radius:8px;
@@ -162,11 +162,11 @@ body.app-shell-active.with-navbar{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  margin-bottom:18px;
+  margin-bottom:12px;
 }
 
 .online-head strong{
-  font-size:18px;
+  font-size:15px;
 }
 
 .online-head span{
@@ -186,7 +186,7 @@ body.app-shell-active.with-navbar{
 }
 
 .online-list{
-  height:calc(100% - 44px);
+  height:calc(100% - 36px);
   overflow:auto;
   padding-right:4px;
 }
@@ -206,10 +206,10 @@ body.app-shell-active.with-navbar{
   background:transparent;
   color:var(--shell-text);
   display:grid;
-  grid-template-columns:46px 1fr 10px;
-  gap:12px;
+  grid-template-columns:38px minmax(0, 1fr);
+  gap:9px;
   align-items:center;
-  padding:10px 6px;
+  padding:8px 6px;
   border-radius:8px;
   cursor:pointer;
   text-align:left;
@@ -220,7 +220,7 @@ body.app-shell-active.with-navbar{
 .online-player:focus-visible{
   outline:0;
   background:rgba(255,82,104,0.12);
-  transform:translateX(-3px);
+  transform:translateX(-2px);
 }
 
 .online-avatar,
@@ -236,28 +236,29 @@ body.app-shell-active.with-navbar{
 }
 
 .online-avatar{
-  width:46px;
-  height:46px;
+  width:38px;
+  height:38px;
   border:2px solid rgba(255,255,255,0.18);
 }
 
 .online-player-copy{
   min-width:0;
-  display:flex;
-  flex-direction:column;
-  gap:3px;
+  display:block;
 }
 
-.online-player-copy strong,
-.online-player-copy small{
+.online-player-copy strong{
+  display:block;
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;
 }
 
 .online-player-copy small{
-  color:var(--shell-soft);
-  font-size:12px;
+  display:none;
+}
+
+.online-player i{
+  display:none;
 }
 
 .online-empty{
