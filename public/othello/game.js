@@ -29,19 +29,85 @@ function spawnParticles(x,y){
 }
 
 function draw(){
- const el=document.getElementById("board");el.innerHTML="";
+  const el=document.getElementById("board");
+ el.innerHTML="";
+ const validMoves=getValidMoves(color);
  for(let y=0;y<8;y++){
   for(let x=0;x<8;x++){
    const cell=document.createElement("div");
-@@ -51,33 +53,61 @@ function draw(){
- if(turn===color){turnEl.className="your-turn";turnEl.innerText="Your turn";}
- else{turnEl.className="opponent-turn";turnEl.innerText="Opponent";}
+ cell.className="cell";
+ 
+   const key=`${x}-${y}`;
+   if(validMoves.has(key)){
+    cell.classList.add("valid");
+   }
+ 
+   const value=board?.[y]?.[x];
+   if(value){
+    const disk=document.createElement("div");
+    disk.className=`disk ${value}`;
+    cell.appendChild(disk);
+   }
+ 
+   cell.onclick=()=>play(x,y);
+   el.appendChild(cell);
+  }
+ }
+
+ const score=count();
+ document.getElementById("score").innerText=`⚫ ${score.b} - ${score.w} ⚪`;
+
+ const turnEl=document.getElementById("turn");
+ if(turn===color){
+  turnEl.className="your-turn";
+  turnEl.innerText="Your turn";
+ }else{
+  turnEl.className="opponent-turn";
+  turnEl.innerText="Opponent";
+ }
 }
 
 function count(){
  let b=0,w=0;
  board.forEach(r=>r.forEach(c=>{if(c=="black")b++;if(c=="white")w++;}));
  return{b,w};
+}
+
+function inBounds(x,y){
+ return x>=0 && y>=0 && x<8 && y<8;
+}
+
+function isValidMove(x,y,playerColor){
+ if(!board || board[y][x]) return false;
+ const directions=[[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]];
+ const enemy=playerColor==="black"?"white":"black";
+
+ for(const [dx,dy] of directions){
+  let cx=x+dx, cy=y+dy;
+  let foundEnemy=false;
+  while(inBounds(cx,cy) && board[cy][cx]===enemy){
+   foundEnemy=true;
+   cx+=dx;
+   cy+=dy;
+  }
+  if(foundEnemy && inBounds(cx,cy) && board[cy][cx]===playerColor){
+   return true;
+  }
+ }
+ return false;
+}
+
+function getValidMoves(playerColor){
+ const moves=new Set();
+ if(!board || !playerColor) return moves;
+ for(let y=0;y<8;y++){
+  for(let x=0;x<8;x++){
+   if(isValidMove(x,y,playerColor)){
+    moves.add(`${x}-${y}`);
+   }
+  }
+ }
+ return moves;
 }
 
 function play(x,y){
