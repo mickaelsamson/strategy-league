@@ -10,6 +10,12 @@ function registerSockets({ io, User, state, applyRankedResult, applyOthelloResul
       const username = state.onlineUsers[id];
       const user = await User.findOne({ username });
       users[username] = {
+        username,
+        avatar: user?.avatar || '',
+        xp: user?.xp || 0,
+        wins: user?.wins || 0,
+        losses: user?.losses || 0,
+        draws: user?.draws || 0,
         elo: user?.chessElo || user?.elo || 1000,
         chessElo: user?.chessElo || user?.elo || 1000,
         othelloElo: user?.othelloElo || user?.othelloPoints || 1000,

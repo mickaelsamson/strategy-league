@@ -172,12 +172,16 @@ async function checkGamesAccess(){
   let socket;
   if(typeof io !== "undefined"){
     socket = io();
+    window.StrategyLeagueSocket = socket;
   }else{
     console.error("Socket.io not loaded");
     return;
   }
 
   socket.emit("register_online", user.username);
+  socket.on("online_users", users=>{
+    window.dispatchEvent(new CustomEvent("site-shell-online-users", { detail: users }));
+  });
   const modeLabels = {
     120: "Bullet (2 min)",
     300: "Blitz (5 min)",

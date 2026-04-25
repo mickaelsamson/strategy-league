@@ -1,10 +1,14 @@
 const socket=io();
+window.StrategyLeagueSocket=socket;
 const user=JSON.parse(localStorage.getItem("user"));
 if(!user){
  window.location="/login.html";
 }
 
 socket.emit("register_online",user.username);
+socket.on("online_users",users=>{
+ window.dispatchEvent(new CustomEvent("site-shell-online-users",{detail:users}));
+});
 
 socket.on("othello_lobbies_update",lobbies=>{
  const list=Object.values(lobbies);

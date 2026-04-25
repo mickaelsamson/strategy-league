@@ -210,6 +210,7 @@ button{
 <script>
 
 const socket = io();
+window.StrategyLeagueSocket = socket;
 const user = JSON.parse(localStorage.getItem("user"));
 
 if(!user){
@@ -328,6 +329,7 @@ function checkTimeout(){
 /* SOCKET */
 
 socket.on("online_users", users=>{
+  window.dispatchEvent(new CustomEvent("site-shell-online-users", { detail: users }));
   document.getElementById("players").innerHTML =
     Object.entries(users).map(([name,data])=>`
       <div class="player" data-profile-username="${name}">${name} (ELO Chess ${data.chessElo || data.elo})</div>

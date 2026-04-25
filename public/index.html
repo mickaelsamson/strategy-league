@@ -3,201 +3,725 @@
 <head>
 <link rel="stylesheet" href="/assets/styles/theme.css">
 <script defer src="/assets/scripts/site-shell.js"></script>
-<title>Strategy Hub</title>
+<title>Strategy League</title>
 
 <style>
 body{
   margin:0;
-  background:#020617;
-  color:white;
-  font-family:Arial;
-  display:flex;
-  justify-content:center;
-  padding-top:80px; /* 🔥 navbar fix */
 }
 
-.container{
+.home-dashboard{
   width:100%;
-  max-width:800px;
-  padding:20px;
-  text-align:center;
+  max-width:1160px;
+  margin:0 auto;
+  animation:homeIn .45s ease both;
 }
 
-/* TITLE */
-h1{
-  margin-bottom:20px;
+@keyframes homeIn{
+  from{opacity:0; transform:translateY(14px);}
+  to{opacity:1; transform:translateY(0);}
 }
 
-/* CARDS */
-.card{
-  background:#111827;
-  padding:20px;
-  border-radius:15px;
-  margin-bottom:20px;
-  box-shadow:0 0 10px rgba(0,0,0,0.4);
+.home-topbar{
+  display:grid;
+  grid-template-columns:1fr minmax(260px, 420px) auto;
+  gap:24px;
+  align-items:center;
+  margin-bottom:26px;
 }
 
-/* BUTTONS */
-button{
-  padding:12px 20px;
-  margin:10px;
-  border:none;
-  border-radius:10px;
+.home-kicker{
+  color:var(--shell-red);
+  font-size:22px;
+  font-weight:900;
+}
+
+.home-kicker strong{
+  color:var(--shell-text);
+}
+
+.home-subtitle{
+  margin:7px 0 0;
+  color:var(--shell-soft);
+}
+
+.home-search{
+  height:50px;
+  border:1px solid var(--shell-line-strong);
+  border-radius:22px;
+  background:rgba(42,12,17,0.68);
+  color:var(--shell-text);
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:0 18px;
+}
+
+.home-search svg{
+  width:22px;
+  height:22px;
+  stroke:var(--shell-red);
+  fill:none;
+  stroke-width:2;
+}
+
+.home-search input{
+  width:100%;
+  border:0;
+  outline:0;
+  background:transparent;
+  color:var(--shell-text);
+  font-size:14px;
+}
+
+.home-profile-chip{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.home-profile-chip img,
+.home-profile-fallback{
+  width:52px;
+  height:52px;
+  border-radius:50%;
+  border:2px solid rgba(255,255,255,0.18);
+  object-fit:cover;
+}
+
+.home-profile-fallback{
+  display:grid;
+  place-items:center;
+  background:linear-gradient(135deg, var(--shell-red), #711d2a);
+  font-weight:900;
+}
+
+.home-layout{
+  display:grid;
+  grid-template-columns:minmax(0, 1.45fr) minmax(320px, .95fr);
+  gap:20px;
+}
+
+.hero-card{
+  min-height:318px;
+  position:relative;
+  overflow:hidden;
+  padding:34px;
+  background:
+    linear-gradient(90deg, rgba(22,7,11,0.95) 0%, rgba(48,10,17,0.82) 43%, rgba(48,10,17,0.24) 100%),
+    url("/chess/board.png") center/cover;
+}
+
+.hero-card::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    linear-gradient(135deg, transparent 56%, rgba(255,82,104,0.55)),
+    radial-gradient(circle at 76% 40%, rgba(255,82,104,0.36), transparent 17rem);
+  pointer-events:none;
+}
+
+.hero-content{
+  position:relative;
+  z-index:1;
+  max-width:430px;
+}
+
+.pill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  width:max-content;
+  padding:8px 12px;
+  border-radius:999px;
+  background:rgba(255,82,104,0.22);
+  color:#fff2f0;
+  font-size:13px;
+  border:1px solid rgba(255,82,104,0.26);
+}
+
+.hero-card h1{
+  font-size:56px;
+  line-height:.95;
+  margin:22px 0 16px;
+  letter-spacing:0;
+}
+
+.hero-card p{
+  color:#f1d2ce;
+  line-height:1.55;
+  margin:0 0 26px;
+}
+
+.hero-actions{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex-wrap:wrap;
+}
+
+.primary-action,
+.text-link{
+  border:0;
   cursor:pointer;
-  font-size:16px;
-  background:#3b82f6;
+}
+
+.primary-action{
+  min-height:48px;
+  padding:0 22px;
+  border-radius:8px;
   color:white;
-  transition:0.2s;
+  background:linear-gradient(135deg, var(--shell-red), var(--shell-red-dark));
+  font-weight:900;
+  box-shadow:0 14px 36px rgba(255,82,104,0.24);
 }
 
-button:hover{
-  background:#2563eb;
+.text-link{
+  background:transparent;
+  color:#ffd5d0;
+  font-weight:800;
 }
 
-.secondary{
-  background:#1f2937;
+.hero-online{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color:#ead0cb;
+  margin-top:18px;
 }
 
-.secondary:hover{
-  background:#374151;
+.mini-stack{
+  display:flex;
 }
 
-/* PROFILE */
-.profile{
+.mini-stack span{
+  width:28px;
+  height:28px;
+  margin-left:-8px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:linear-gradient(135deg, #ff5268, #51212a);
+  border:2px solid rgba(255,255,255,0.5);
+  font-size:12px;
+  font-weight:900;
+}
+
+.mini-stack span:first-child{
+  margin-left:0;
+}
+
+.quick-games{
+  display:grid;
+  gap:12px;
+}
+
+.quick-game{
+  min-height:88px;
+  display:grid;
+  grid-template-columns:62px 1fr 22px;
+  gap:14px;
+  align-items:center;
+  padding:14px;
+  color:var(--shell-text);
+  background:linear-gradient(135deg, rgba(96,29,37,0.7), rgba(52,14,20,0.66));
+  border:1px solid var(--shell-line);
+  border-radius:8px;
+  text-decoration:none;
+  transition:transform .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.quick-game:hover{
+  transform:translateX(4px);
+  border-color:var(--shell-line-strong);
+  background:linear-gradient(135deg, rgba(125,35,45,0.82), rgba(52,14,20,0.76));
+}
+
+.quick-icon{
+  width:62px;
+  height:62px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  color:white;
+  font-weight:900;
+  font-size:22px;
+  background:linear-gradient(135deg, var(--shell-red), #3d1118);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.12);
+}
+
+.quick-game small{
+  color:var(--shell-soft);
+}
+
+.quick-game b{
+  display:block;
+  margin-bottom:4px;
+}
+
+.quick-game em{
+  font-style:normal;
+  color:#ffc0ba;
+  font-size:28px;
+}
+
+.section-card{
+  padding:20px;
+}
+
+.section-title{
   display:flex;
   justify-content:space-between;
   align-items:center;
+  margin-bottom:18px;
 }
 
-.profile-left{
-  text-align:left;
+.section-title h2{
+  margin:0;
+  font-size:20px;
 }
 
-.badge{
-  padding:6px 12px;
-  border-radius:20px;
-  background:#374151;
+.game-grid{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:16px;
 }
 
-/* LEADERBOARD */
-.leaderboard{
-  text-align:left;
+.game-card{
+  min-height:260px;
+  overflow:hidden;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  padding:16px;
+  border-radius:8px;
+  color:white;
+  text-decoration:none;
+  background:#2b1015;
+  border:1px solid rgba(255,255,255,0.08);
+  transition:transform .18s ease, border-color .18s ease;
 }
 
-.row{
+.game-card:hover{
+  transform:translateY(-4px);
+  border-color:rgba(255,82,104,0.48);
+}
+
+.game-card::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg, rgba(0,0,0,0.08), rgba(10,3,6,0.92));
+}
+
+.game-card.chess{
+  background:url("/chess/board.png") center/cover;
+}
+
+.game-card.othello{
+  background:
+    radial-gradient(circle at 28% 28%, #f8f0e8 0 28px, transparent 29px),
+    radial-gradient(circle at 62% 40%, #111 0 31px, transparent 32px),
+    radial-gradient(circle at 40% 70%, #101010 0 30px, transparent 31px),
+    linear-gradient(135deg, #194537, #0c241f 54%, #3a1018);
+}
+
+.game-card.strategy{
+  background:url("/strategy/map.png") center/cover;
+}
+
+.game-card > *{
+  position:relative;
+  z-index:1;
+}
+
+.new-pill{
+  position:absolute;
+  top:14px;
+  right:14px;
+  z-index:1;
+  padding:6px 9px;
+  border-radius:999px;
+  background:linear-gradient(135deg, #8c4cff, #ff5268);
+  font-size:12px;
+  font-weight:900;
+}
+
+.game-card h3{
+  margin:0 0 4px;
+  font-size:22px;
+}
+
+.game-card p{
+  margin:0 0 12px;
+  color:#ead0cb;
+}
+
+.live-dot{
+  color:var(--shell-green);
+  font-size:13px;
+}
+
+.stats-card{
+  padding:28px;
+}
+
+.stats-main{
+  display:grid;
+  grid-template-columns:190px 1fr;
+  gap:24px;
+  align-items:center;
+}
+
+.stat-ring{
+  width:180px;
+  height:180px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:
+    radial-gradient(circle at center, #2a0d13 0 58%, transparent 59%),
+    conic-gradient(var(--shell-red) 0 var(--win-rate, 60%), var(--shell-purple) var(--win-rate, 60%) 75%, rgba(255,255,255,0.1) 75% 100%);
+}
+
+.stat-ring span{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+  color:var(--shell-soft);
+  font-size:13px;
+}
+
+.stat-ring b{
+  color:var(--shell-text);
+  font-size:44px;
+}
+
+.stat-list{
+  display:grid;
+  gap:10px;
+}
+
+.stat-row{
+  padding:12px 14px;
+  border-radius:8px;
+  background:rgba(28,8,12,0.42);
+  border:1px solid rgba(255,255,255,0.04);
   display:flex;
   justify-content:space-between;
-  padding:8px 0;
-  border-bottom:1px solid #1f2937;
 }
 
-.top1{color:gold;}
-.top2{color:silver;}
-.top3{color:#cd7f32;}
+.stat-row span{
+  color:var(--shell-soft);
+}
 
-/* ADMIN */
-#adminBtn{
-  display:none;
-  background:#f59e0b;
+.stat-row strong{
+  font-size:24px;
+}
+
+.stat-row.win strong{color:var(--shell-green);}
+.stat-row.loss strong{color:var(--shell-red);}
+.stat-row.rate strong{color:var(--shell-purple);}
+
+.stat-mini-grid{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:10px;
+  margin-top:18px;
+}
+
+.stat-mini{
+  padding:14px;
+  border-radius:8px;
+  text-align:center;
+  background:rgba(255,82,104,0.08);
+  border:1px solid rgba(255,82,104,0.18);
+}
+
+.stat-mini span{
+  display:block;
+  color:var(--shell-soft);
+  font-size:13px;
+  margin-bottom:5px;
+}
+
+.stat-mini b{
+  font-size:22px;
+}
+
+.popular-strip{
+  margin-top:20px;
+  padding:18px;
+}
+
+.popular-list{
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+  gap:14px;
+}
+
+.popular-item{
+  display:grid;
+  grid-template-columns:56px 1fr;
+  gap:12px;
+  align-items:center;
+}
+
+.popular-thumb{
+  width:56px;
+  height:56px;
+  border-radius:8px;
+  background:linear-gradient(135deg, var(--shell-red), #311016);
+}
+
+.popular-thumb.chess{background:url("/chess/board.png") center/cover;}
+.popular-thumb.othello{background:linear-gradient(135deg, #183f34, #faf3e7);}
+.popular-thumb.strategy{background:url("/strategy/map.png") center/cover;}
+
+.popular-item b,
+.popular-item span{
+  display:block;
+}
+
+.popular-item span{
+  color:var(--shell-soft);
+  font-size:13px;
+}
+
+@media (max-width:980px){
+  .home-topbar,
+  .home-layout,
+  .stats-main{
+    grid-template-columns:1fr;
+  }
+
+  .home-profile-chip{
+    display:none;
+  }
+
+  .game-grid,
+  .popular-list{
+    grid-template-columns:1fr;
+  }
+
+  .hero-card h1{
+    font-size:42px;
+  }
 }
 </style>
 </head>
 
 <body class="with-navbar">
-  
-<!-- 🔥 NAVBAR -->
 <div id="navbar-container"></div>
 
-<div class="container">
+<main class="home-dashboard">
+  <header class="home-topbar">
+    <div>
+      <div class="home-kicker">Good evening, <strong id="heroUsername">Player</strong></div>
+      <p class="home-subtitle">Ready for some epic games?</p>
+    </div>
+    <label class="home-search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+      <input id="homeSearch" type="search" placeholder="Search games, players...">
+    </label>
+    <button class="home-profile-chip" type="button" onclick="window.location.href='/profile.html'">
+      <span id="homeAvatar" class="home-profile-fallback">P</span>
+    </button>
+  </header>
 
-<h1>🎮 Strategy Hub</h1>
+  <section class="home-layout">
+    <div>
+      <article class="hero-card shell-surface">
+        <div class="hero-content">
+          <span class="pill">Popular on Strategy League</span>
+          <h1>CHESS</h1>
+          <p>Classic strategy with ranked ELO, XP progression, rematches and fast lobbies. Build your rating one clean move at a time.</p>
+          <div class="hero-actions">
+            <button class="primary-action" type="button" onclick="window.location.href='/chess/index.html'">Play Now</button>
+            <button class="text-link" type="button" onclick="window.location.href='/games.html'">All Games</button>
+          </div>
+          <div class="hero-online">
+            <div class="mini-stack" id="heroMiniPlayers"><span>S</span><span>L</span><span>G</span></div>
+            <span id="heroOnlineText">Players online</span>
+          </div>
+        </div>
+      </article>
 
-<!-- ACTIONS -->
-<div class="card">
-  <button onclick="goGames()">▶ Play</button>
-  <button class="secondary" onclick="goLeaderboard()">🏆 Leaderboard</button>
-  <br>
-  <button id="adminBtn" onclick="goAdmin()">👑 Admin</button>
-</div>
+      <section class="section-card shell-surface" style="margin-top:20px;">
+        <div class="section-title">
+          <h2>New Games</h2>
+          <button class="text-link" type="button" onclick="window.location.href='/games.html'">See All</button>
+        </div>
+        <div class="game-grid">
+          <a class="game-card chess" href="/chess/index.html">
+            <span class="new-pill">New</span>
+            <h3>CHESS</h3>
+            <p>Classic Strategy</p>
+            <span class="live-dot">1.2K playing</span>
+          </a>
+          <a class="game-card othello" href="/othello/index.html">
+            <span class="new-pill">New</span>
+            <h3>OTHELLO</h3>
+            <p>Reversi Board Game</p>
+            <span class="live-dot">856 playing</span>
+          </a>
+          <a class="game-card strategy" href="/strategy/index.html">
+            <span class="new-pill">New</span>
+            <h3>STRATEGY ARENA</h3>
+            <p>Turn-based Strategy</p>
+            <span class="live-dot">643 playing</span>
+          </a>
+        </div>
+      </section>
+    </div>
 
-<!-- PROFILE -->
-<div class="card profile">
-  <div class="profile-left">
-    <div><strong id="username"></strong></div>
-    <div>ELO Chess: <span id="elo">1000</span></div>
-    <div>XP: <span id="xp">0</span></div>
-  </div>
-  <div id="badge" class="badge">Bronze</div>
-</div>
+    <aside>
+      <div class="quick-games">
+        <a class="quick-game" href="/chess/index.html">
+          <span class="quick-icon">C</span>
+          <span><b>Chess</b><small>Most Popular</small></span>
+          <em>›</em>
+        </a>
+        <a class="quick-game" href="/othello/index.html">
+          <span class="quick-icon">O</span>
+          <span><b>Othello</b><small>Classic</small></span>
+          <em>›</em>
+        </a>
+        <a class="quick-game" href="/strategy/index.html">
+          <span class="quick-icon">S</span>
+          <span><b>Strategy Games</b><small>Tactical</small></span>
+          <em>›</em>
+        </a>
+      </div>
 
-<!-- TOP 3 -->
-<div class="card leaderboard">
-  <h3>👑 Top Players</h3>
-  <div id="top3"></div>
-</div>
+      <section class="stats-card shell-surface" style="margin-top:20px;">
+        <div class="section-title">
+          <h2>Your Statistics</h2>
+          <span style="color:var(--shell-soft);">This Month</span>
+        </div>
+        <div class="stats-main">
+          <div class="stat-ring" id="statRing">
+            <span>Total Games <b id="totalGames">0</b></span>
+          </div>
+          <div class="stat-list">
+            <div class="stat-row win"><span>Wins</span><strong id="wins">0</strong></div>
+            <div class="stat-row loss"><span>Losses</span><strong id="losses">0</strong></div>
+            <div class="stat-row rate"><span>Win Rate</span><strong id="winrate">0%</strong></div>
+          </div>
+        </div>
+        <div class="stat-mini-grid">
+          <div class="stat-mini"><span>ELO Chess</span><b id="chessElo">1000</b></div>
+          <div class="stat-mini"><span>Level</span><b id="level">1</b></div>
+          <div class="stat-mini"><span>XP</span><b id="xp">0</b></div>
+        </div>
+      </section>
+    </aside>
+  </section>
 
-</div>
+  <section class="popular-strip shell-surface">
+    <div class="section-title">
+      <h2>Popular Right Now</h2>
+      <button class="text-link" type="button" onclick="window.location.href='/leaderboard.html'">Leaderboard</button>
+    </div>
+    <div class="popular-list">
+      <div class="popular-item"><span class="popular-thumb chess"></span><span><b>Chess</b><span>1.2K playing</span></span></div>
+      <div class="popular-item"><span class="popular-thumb othello"></span><span><b>Othello</b><span>856 playing</span></span></div>
+      <div class="popular-item"><span class="popular-thumb strategy"></span><span><b>Strategy Arena</b><span>643 playing</span></span></div>
+      <div class="popular-item"><span class="popular-thumb"></span><span><b>Ranked XP</b><span>Live progression</span></span></div>
+    </div>
+  </section>
+</main>
 
 <script>
-
 const user = JSON.parse(localStorage.getItem("user"));
 
 if(!user){
   window.location.href = "/login.html";
 }
 
-/* ADMIN */
-if(user.isAdmin){
-  document.getElementById("adminBtn").style.display = "inline-block";
+function renderAvatar(avatar){
+  const target = document.getElementById("homeAvatar");
+  if(!target) return;
+  if(avatar){
+    target.outerHTML = `<img id="homeAvatar" src="${avatar}" alt="">`;
+    return;
+  }
+  target.textContent = (user.username || "P").slice(0, 1).toUpperCase();
 }
 
-/* PROFILE */
-document.getElementById("username").innerText = user.username;
-const chessElo = user.chessElo || user.elo || 1000;
-document.getElementById("elo").innerText = chessElo;
-document.getElementById("xp").innerText = user.xp || 0;
+function updateLocalProfile(profile){
+  const xp = profile.xp || 0;
+  const stats = profile.stats || {};
+  const wins = stats.wins || 0;
+  const losses = stats.losses || 0;
+  const total = stats.total || wins + losses + (stats.draws || 0);
+  const winrate = stats.winrate || 0;
+  const level = profile.level || Math.floor(xp / 100) + 1;
 
-/* BADGE SYSTEM */
-function getBadge(elo){
-  if(elo >= 1400) return "🥇 Gold";
-  if(elo >= 1200) return "🥈 Silver";
-  return "🥉 Bronze";
+  document.getElementById("heroUsername").textContent = profile.username || user.username;
+  document.getElementById("wins").textContent = wins;
+  document.getElementById("losses").textContent = losses;
+  document.getElementById("totalGames").textContent = total;
+  document.getElementById("winrate").textContent = `${winrate}%`;
+  document.getElementById("chessElo").textContent = profile.chessElo || profile.elo || 1000;
+  document.getElementById("level").textContent = level;
+  document.getElementById("xp").textContent = xp;
+  document.getElementById("statRing").style.setProperty("--win-rate", `${Math.max(2, winrate)}%`);
+  renderAvatar(profile.avatar || user.avatar || "");
+
+  localStorage.setItem("user", JSON.stringify({
+    ...user,
+    avatar: profile.avatar,
+    elo: profile.chessElo || profile.elo,
+    chessElo: profile.chessElo,
+    othelloElo: profile.othelloElo,
+    strategyElo: profile.strategyElo,
+    xp: profile.xp
+  }));
 }
 
-document.getElementById("badge").innerText = getBadge(chessElo);
-
-/* LEADERBOARD */
-async function loadLeaderboard(){
-
-  const res = await fetch("/api/leaderboard/global/"+user.username);
-  const data = await res.json();
-
-  const top3 = data.top.slice(0,3);
-
-  document.getElementById("top3").innerHTML = top3.map((u,i)=>`
-    <div class="row top${i+1}">
-      <span data-profile-username="${u.username}">${i===0?'🥇':i===1?'🥈':'🥉'} ${u.username}</span>
-      <span>${u.value}</span>
-    </div>
-  `).join("");
+async function loadProfile(){
+  try{
+    const response = await fetch(`/api/profile/${encodeURIComponent(user.username)}`);
+    if(!response.ok) throw new Error("Profile unavailable");
+    updateLocalProfile(await response.json());
+  }catch(err){
+    console.error(err);
+    updateLocalProfile({
+      username: user.username,
+      avatar: user.avatar,
+      xp: user.xp || 0,
+      chessElo: user.chessElo || user.elo || 1000,
+      stats: { wins: 0, losses: 0, total: 0, winrate: 0 }
+    });
+  }
 }
 
-loadLeaderboard();
+document.getElementById("homeSearch").addEventListener("keydown", event => {
+  if(event.key !== "Enter") return;
+  const value = event.currentTarget.value.trim().toLowerCase();
+  if(!value) return;
+  if(value.includes("chess")) window.location.href = "/chess/index.html";
+  else if(value.includes("othello")) window.location.href = "/othello/index.html";
+  else if(value.includes("strategy")) window.location.href = "/strategy/index.html";
+  else window.location.href = `/profile.html?username=${encodeURIComponent(value)}`;
+});
 
-/* NAV (garde ton système existant intact) */
-function goGames(){
-  window.location.href = "/games.html";
-}
+window.addEventListener("load", ()=>{
+  const onlineCount = document.getElementById("onlineCount");
+  const updateHeroOnline = () => {
+    if(onlineCount){
+      document.getElementById("heroOnlineText").textContent = `${onlineCount.textContent} players online`;
+    }
+  };
+  updateHeroOnline();
+  setInterval(updateHeroOnline, 1500);
+});
 
-function goLeaderboard(){
-  window.location.href = "/leaderboard.html";
-}
-
-function goAdmin(){
-  window.location.href = "/admin.html";
-}
-
+loadProfile();
 </script>
-
 </body>
 </html>

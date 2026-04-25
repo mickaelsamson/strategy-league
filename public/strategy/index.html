@@ -65,6 +65,14 @@ body{
 
 <script>
 const socket = io();
+window.StrategyLeagueSocket = socket;
+const currentUser = JSON.parse(localStorage.getItem("user") || "null");
+if(currentUser){
+  socket.emit("register_online", currentUser.username);
+  socket.on("online_users", users=>{
+    window.dispatchEvent(new CustomEvent("site-shell-online-users", { detail: users }));
+  });
+}
 let selected = null;
 
 const territories = [

@@ -7,65 +7,187 @@
 
 <style>
 body{
-  background:#020617;
-  color:white;
-  font-family:Arial;
-  text-align:center;
-  padding-top:80px; /* 🔥 navbar fix */
   margin:0;
 }
 
-button{
-  padding:15px;
-  margin:10px;
-  border:none;
-  border-radius:10px;
+.games-page{
+  max-width:1120px;
+  margin:0 auto;
+}
+
+.games-header{
+  margin-bottom:24px;
+}
+
+.games-header h1{
+  margin:0 0 8px;
+  font-size:42px;
+}
+
+.games-header p{
+  margin:0;
+  color:var(--shell-soft);
+}
+
+.games-grid{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:20px;
+}
+
+.game-tile{
+  min-height:430px;
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  padding:24px;
+  color:white;
+  text-decoration:none;
+  border-radius:8px;
+  border:1px solid var(--shell-line);
+  background:#2b1015;
+  transition:transform .2s ease, border-color .2s ease;
+}
+
+.game-tile:hover{
+  transform:translateY(-6px);
+  border-color:var(--shell-line-strong);
+}
+
+.game-tile::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg, rgba(0,0,0,0.05), rgba(14,4,7,0.94));
+}
+
+.game-tile.chess{
+  background:url("/chess/board.png") center/cover;
+}
+
+.game-tile.othello{
+  background:
+    radial-gradient(circle at 28% 28%, #f7efe8 0 42px, transparent 43px),
+    radial-gradient(circle at 68% 42%, #111 0 46px, transparent 47px),
+    radial-gradient(circle at 42% 72%, #121212 0 44px, transparent 45px),
+    linear-gradient(135deg, #163d32, #0b211d 52%, #3a1018);
+}
+
+.game-tile.strategy{
+  background:url("/strategy/map.png") center/cover;
+}
+
+.game-tile > *{
+  position:relative;
+  z-index:1;
+}
+
+.game-tag{
+  position:absolute;
+  top:18px;
+  left:18px;
+  z-index:1;
+  padding:8px 12px;
+  border-radius:999px;
+  background:rgba(255,82,104,0.22);
+  border:1px solid rgba(255,82,104,0.28);
+  color:#ffe2de;
+  font-weight:800;
+  font-size:13px;
+}
+
+.game-tile h2{
+  margin:0 0 8px;
+  font-size:32px;
+}
+
+.game-tile p{
+  margin:0 0 18px;
+  color:#edd3cf;
+  line-height:1.45;
+}
+
+.play-button{
+  width:max-content;
+  min-height:46px;
+  padding:0 20px;
+  border-radius:8px;
+  display:inline-flex;
+  align-items:center;
+  background:linear-gradient(135deg, var(--shell-red), var(--shell-red-dark));
+  font-weight:900;
+}
+
+#adminBtn{
+  margin-top:22px;
+  min-height:44px;
+  padding:0 18px;
+  border:1px solid rgba(255,82,104,0.25);
+  border-radius:8px;
+  background:rgba(255,82,104,0.12);
+  color:#fff;
   cursor:pointer;
-  font-size:16px;
+}
+
+@media (max-width:900px){
+  .games-grid{
+    grid-template-columns:1fr;
+  }
+
+  .game-tile{
+    min-height:310px;
+  }
 }
 </style>
 </head>
 
 <body class="with-navbar">
-  
-<!-- 🔥 NAVBAR -->
 <div id="navbar-container"></div>
 
-<h1>🎮 Games Hub</h1>
+<main class="games-page">
+  <header class="games-header">
+    <h1>Games Hub</h1>
+    <p>Choose a ranked arena, create a lobby, and start climbing.</p>
+  </header>
 
-<button onclick="goChess()">♟️ Chess</button>
-<button onclick="goOthello()">⚫ Othello</button>
-<button id="adminBtn" style="display:none;" onclick="goAdmin()">👑 Admin</button>
+  <section class="games-grid">
+    <a class="game-tile chess" href="/chess/index.html">
+      <span class="game-tag">Ranked ELO Chess</span>
+      <h2>Chess</h2>
+      <p>Fast lobbies, time controls, XP gains, rematches and full match history.</p>
+      <span class="play-button">Play Now</span>
+    </a>
+
+    <a class="game-tile othello" href="/othello/index.html">
+      <span class="game-tag">Classic Board</span>
+      <h2>Othello</h2>
+      <p>Flip the board, build your Othello ELO, and track every XP gain.</p>
+      <span class="play-button">Play Now</span>
+    </a>
+
+    <a class="game-tile strategy" href="/strategy/index.html">
+      <span class="game-tag">Tactical Arena</span>
+      <h2>Strategy Arena</h2>
+      <p>Map control, territory pressure, and a dedicated Strategy ELO ready for future ranked rules.</p>
+      <span class="play-button">Play Now</span>
+    </a>
+  </section>
+
+  <button id="adminBtn" style="display:none;" onclick="window.location.href='/admin.html'">Admin Panel</button>
+</main>
 
 <script>
-
 const user = JSON.parse(localStorage.getItem("user"));
 
 if(!user){
   window.location.href = "/login.html";
 }
 
-/* ADMIN BUTTON */
 if(user && user.isAdmin){
   document.getElementById("adminBtn").style.display = "inline-block";
 }
-
-function goChess(){
-  window.location.href = "/chess/index.html";
-}
-function goWarStrategy(){
-  window.location.href = "/strategy/index.html";
-}  
-  
-function goOthello(){
-  window.location.href = "/othello/index.html";
-}
-
-function goAdmin(){
-  window.location.href = "/admin.html";
-}
-
 </script>
-
 </body>
 </html>
