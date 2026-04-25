@@ -21,6 +21,8 @@ const FLOOR_PENALTIES = [-1, -1, -2, -2, -2, -3, -3];
 let state = null;
 let selected = null;
 let gameOver = false;
+let timerInterval = null;
+let renderedScoreKey = "";
 
 function escapeHtml(text){
   return String(text || "")
@@ -104,7 +106,7 @@ function renderFactories(){
       </button>`;
     }).join("");
 
-    return `<div class="factory ${factory.length ? "" : "empty"}">
+    return `<div class="factory factory-${index} ${factory.length ? "" : "empty"}">
       <div class="plate-ring"></div>
       <div class="factory-tiles">${groups}</div>
     </div>`;
@@ -145,7 +147,7 @@ function wallMarkup(player){
     <div class="wall-row">
       ${row.map((color, x) => {
         const placed = player.wall[y][x];
-        return `<span class="wall-cell ${placed ? "placed" : ""} ${color}">
+        return `<span class="wall-cell ${placed ? "placed" : ""} ${color}" data-seat="${player.seat}" data-row="${y}" data-col="${x}">
           ${placed ? tileMarkup(placed) : ""}
         </span>`;
       }).join("")}
@@ -186,6 +188,7 @@ function renderBoard(player){
           </span>
         `).join("")}
       </div>
+      <div class="score-pop-anchor" data-seat="${player.seat}"></div>
     </article>
   `;
 }
@@ -203,6 +206,8 @@ function renderPlayers(){
 
 function renderStatus(){
   const turnPlayer = state.players.find(p => p.seat === state.turnSeat);
+  const turnCard = document.querySelector(".turn-card");
+  if(turnCard) turnCard.classList.toggle("your-turn", isMyTurn());
   document.getElementById("roundLabel").innerText = `Round ${state.round}`;
   document.getElementById("turnLabel").innerText = isMyTurn() ? "Your turn" : `${turnPlayer?.username || "Opponent"} to play`;
 
@@ -222,6 +227,74 @@ function render(){
   renderFactories();
   renderCenter();
   renderPlayers();
+  renderTimer();
+  showRoundScorePopups();
+}
+
+function formatTime(ms){
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function renderTimer(){
+  const text = document.getElementById("timerText");
+  const fill = document.getElementById("timerFill");
+  if(!text || !fill || !state?.localTurnDeadlineAt){
+    if(text) text.innerText = "01:00";
+    if(fill) fill.style.width = "100%";
+    return;
+  }
+
+  const remaining = state.localTurnDeadlineAt - Date.now();
+  const percent = Math.max(0, Math.min(100, (remaining / (state.turnTimeMs || 60000)) * 100));
+  text.innerText = formatTime(remaining);
+  fill.style.width = `${percent}%`;
+  fill.classList.toggle("danger", remaining <= 10000);
+}
+
+function startTimerLoop(){
+  if(timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(renderTimer, 250);
+}
+
+function scorePopup(target, text, positive = true){
+  if(!target) return;
+  const popup = document.createElement("span");
+  popup.className = `score-popup ${positive ? "positive" : "negative"}`;
+  popup.textContent = text;
+  target.appendChild(popup);
+  setTimeout(() => popup.remove(), 1300);
+}
+
+function showRoundScorePopups(){
+  if(!state?.lastRound) return;
+  const key = `${state.gameId}-${state.round}-${JSON.stringify(state.lastRound)}`;
+  if(key === renderedScoreKey) return;
+  renderedScoreKey = key;
+
+  requestAnimationFrame(() => {
+    (state.players || []).forEach(player => {
+      const summary = state.lastRound[player.username];
+      if(!summary) return;
+
+      (summary.placements || []).forEach(placement => {
+        const target = document.querySelector(`.wall-cell[data-seat="${player.seat}"][data-row="${placement.row}"][data-col="${placement.col}"]`);
+        scorePopup(target, `+${placement.points}`, true);
+      });
+
+      if(summary.floorPenalty){
+        const target = document.querySelector(`.score-pop-anchor[data-seat="${player.seat}"]`);
+        scorePopup(target, String(summary.floorPenalty), false);
+      }
+
+      if(summary.bonus){
+        const target = document.querySelector(`.score-pop-anchor[data-seat="${player.seat}"]`);
+        scorePopup(target, `+${summary.bonus}`, true);
+      }
+    });
+  });
 }
 
 function resign(){
@@ -255,10 +328,14 @@ socket.on("online_users", users => {
 });
 
 socket.on("azul_state", data => {
-  state = data;
+  state = {
+    ...data,
+    localTurnDeadlineAt: Date.now() + (Number.isFinite(data.turnRemainingMs) ? data.turnRemainingMs : data.turnTimeMs || 60000)
+  };
   gameOver = Boolean(data.ended);
   selected = null;
   render();
+  startTimerLoop();
 });
 
 socket.on("azul_end", data => {
