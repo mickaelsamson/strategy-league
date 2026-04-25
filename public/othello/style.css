@@ -3,8 +3,18 @@ body{
   background:#020617;
   color:white;
   font-family:Arial;
-    display:flex;
 }
+
+body.game-page{
+  display:flex;
+}
+
+body.lobby-page{
+  min-height:100vh;
+  display:block;
+  background:radial-gradient(circle at top,#0b1225,#020617 55%);
+}
+
 #main{
   flex:1;
   text-align:center;
@@ -25,7 +35,7 @@ body{
 .container{
   max-width:800px;
   margin:auto;
-  padding:20px;
+  padding:32px 20px;
 }
 
 .card{
@@ -33,6 +43,48 @@ body{
   padding:20px;
   border-radius:15px;
   margin-bottom:20px;
+}
+.lobby-subtitle{
+  margin-top:-8px;
+  color:#94a3b8;
+}
+
+.lobby-create{
+  display:flex;
+  gap:10px;
+}
+
+.lobby-create input{
+  flex:1;
+  border:1px solid #334155;
+  border-radius:10px;
+  background:#0b1220;
+  color:#e2e8f0;
+  padding:10px 12px;
+  font-size:14px;
+}
+
+.lobby-item{
+  text-align:left;
+  border:1px solid #1f2937;
+}
+
+.lobby-players{
+  margin:8px 0 10px;
+  color:#cbd5e1;
+  font-size:14px;
+}
+
+.empty-state{
+  background:#0f172a;
+  border:1px dashed #334155;
+  color:#cbd5e1;
+  border-radius:12px;
+  padding:14px;
+}
+
+.back-btn{
+  background:#1f2937;
 }
 
 .player-card{
