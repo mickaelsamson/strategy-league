@@ -9,6 +9,7 @@ socket.emit("register_online",user.username);
 let board,turn,color;
 let myName=user.username;
 let opponentName="";
+let gameOver=false;
 
 function playSound(){
  const s=document.getElementById("flipSound");
@@ -112,6 +113,7 @@ function getValidMoves(playerColor){
 }
 
 function play(x,y){
+ if(gameOver)return;
  if(turn!==color)return;
  socket.emit("othello_move",{x,y});
  playSound();
@@ -144,7 +146,14 @@ function applyPlayers(players=[]){
 }
 
 function resign(){
+ if(gameOver)return;
  socket.emit("othello_resign");
+}
+
+function rematch(){
+ if(!gameOver)return;
+ socket.emit("othello_rematch");
+ document.getElementById("rematchStatus").innerText="Rematch requested. Waiting for opponent...";
 }
 
 socket.on("online_users",users=>{
@@ -154,12 +163,14 @@ socket.on("online_users",users=>{
 });
 
 socket.on("othello_state",data=>{
+ gameOver=false;
  board=data.board;turn=data.turn;color=data.color;
  if(Array.isArray(data.players)) applyPlayers(data.players);
  draw();
 });
 
 socket.on("othello_end",data=>{
+ gameOver=true;
  const reward=data.rewards?.[myName]||{};
  const result=reward.result||(data.winner==="Draw"?"draw":data.winner===myName?"win":"loss");
  const xpChange=Number.isFinite(reward.xpChange)?reward.xpChange:0;
@@ -169,7 +180,24 @@ socket.on("othello_end",data=>{
  document.getElementById("winnerText").innerText=result==="win"?"Victory":result==="loss"?"Defeat":"Draw";
  document.getElementById("endMessage").innerText=message;
  document.getElementById("xpReward").innerText=`+${xpChange} XP`;
+ document.getElementById("rematchStatus").innerText="";
  updateStoredXp(xpChange);
+});
+
+socket.on("othello_rematch_status",data=>{
+ if(!gameOver)return;
+ const requestedBy=data.requestedBy||[];
+ document.getElementById("rematchStatus").innerText=requestedBy.length<2
+  ?"Rematch requested. Waiting for opponent..."
+  :"Starting rematch...";
+});
+
+socket.on("othello_rematch_start",()=>{
+ gameOver=false;
+ const el=document.getElementById("endScreen");
+ el.className="end-screen";
+ document.getElementById("rematchStatus").innerText="";
+ document.getElementById("status").innerText="";
 });
 
 function updateStoredXp(xpChange){

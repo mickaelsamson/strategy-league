@@ -15,7 +15,7 @@ body{
 
 .container{
   width:100%;
-  max-width:880px;
+  max-width:980px;
   margin:0 auto;
   text-align:center;
 }
@@ -23,6 +23,33 @@ body{
 h1{
   margin:0 0 20px;
   font-size:42px;
+}
+
+.lobby-subtitle{
+  margin:-10px 0 24px;
+  color:var(--shell-soft);
+}
+
+.lobby-layout{
+  display:grid;
+  grid-template-columns:minmax(280px, 360px) 1fr;
+  gap:18px;
+  align-items:start;
+}
+
+.lobby-create{
+  display:grid;
+  gap:12px;
+  text-align:left;
+}
+
+.lobby-create h2{
+  margin:0;
+}
+
+.game-kicker{
+  color:var(--shell-red);
+  font-weight:900;
 }
 
 .card{
@@ -36,8 +63,7 @@ h1{
   
 .rules{
   text-align:left;
-  max-width:520px;
-  margin:10px auto 0;
+  margin:4px 0 0;
   color:var(--shell-soft);
   font-size:14px;
   line-height:1.5;
@@ -72,11 +98,11 @@ input, select{
 }
 
 .lobby{
-  background:rgba(28,8,12,0.58);
+  background:linear-gradient(135deg, rgba(96,29,37,0.64), rgba(33,9,14,0.66));
   border:1px solid rgba(255,91,105,0.16);
-  padding:14px;
+  padding:16px;
   border-radius:8px;
-  margin-top:10px;
+  margin-top:12px;
   text-align:left;
 }
 
@@ -84,6 +110,14 @@ input, select{
   margin-top:5px;
   font-size:14px;
   color:var(--shell-soft);
+}
+
+.empty-state{
+  background:rgba(28,8,12,0.58);
+  border:1px dashed var(--shell-line);
+  color:var(--shell-soft);
+  border-radius:8px;
+  padding:14px;
 }
 
 .ready{ color:#22c55e; }
@@ -99,6 +133,12 @@ input, select{
   justify-content:center;
   align-items:center;
   flex-direction:column;
+}
+
+@media (max-width:880px){
+  .lobby-layout{
+    grid-template-columns:1fr;
+  }
 }
 </style>
 </head>
@@ -118,28 +158,32 @@ input, select{
 <div class="container">
 
 <h1>Chess Lobby</h1>
+<p class="lobby-subtitle">Create a ranked room, choose your clock, and start the duel.</p>
 
-<div class="card">
-  <input id="name" placeholder="Lobby name">
-  <select id="mode">
-    <option value="120">Bullet (2 min)</option>
-    <option value="300">Blitz (5 min)</option>
-    <option value="600">Fast (10 min)</option>
-    <option value="1800">Slow (30 min)</option>
-  </select>
-  <br>
-  <button onclick="createLobby()">Create Lobby</button>
-  <button class="secondary" onclick="goBack()">Back</button>
-  <div class="rules">
-    <strong>Time controls:</strong> Bullet 2 min, Blitz 5 min, Fast 10 min, Slow 30 min.<br>
-    <strong>Rules:</strong> timer at 0 = loss, and a disconnection longer than 1 minute = forfeit.
+<section class="lobby-layout">
+  <div class="card lobby-create">
+    <span class="game-kicker">New Match</span>
+    <h2>Create Room</h2>
+    <input id="name" placeholder="Lobby name">
+    <select id="mode">
+      <option value="120">Bullet (2 min)</option>
+      <option value="300">Blitz (5 min)</option>
+      <option value="600">Fast (10 min)</option>
+      <option value="1800">Slow (30 min)</option>
+    </select>
+    <button onclick="createLobby()">Create Lobby</button>
+    <button class="secondary" onclick="goBack()">Back</button>
+    <div class="rules">
+      <strong>Time controls:</strong> Bullet 2 min, Blitz 5 min, Fast 10 min, Slow 30 min.<br>
+      <strong>Rules:</strong> timer at 0 = loss, and a disconnection longer than 1 minute = forfeit.
+    </div>
   </div>
-</div>
 
-<div class="card">
-  <h3>Available Lobbies</h3>
-  <div id="lobbies"></div>
-</div>
+  <div class="card">
+    <h3>Available Lobbies</h3>
+    <div id="lobbies"></div>
+  </div>
+</section>
 
 </div>
 
@@ -197,9 +241,14 @@ async function checkGamesAccess(){
   
   socket.on("lobbies_update", lobbies=>{
 
-    const list = Object.values(lobbies);
+      const list = Object.values(lobbies);
 
-    document.getElementById("lobbies").innerHTML =
+      if(!list.length){
+        document.getElementById("lobbies").innerHTML = "<div class='empty-state'>No lobby yet. Create the first room.</div>";
+        return;
+      }
+
+      document.getElementById("lobbies").innerHTML =
       list.map(l=>{
 
         const me = l.players.find(p=>p.username===user.username);

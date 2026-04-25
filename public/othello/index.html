@@ -11,22 +11,23 @@
   
 <div class="container">
 
-<h1>⚫ Othello Lobby</h1>
-<p class="lobby-subtitle">Create lobby or join.</p>
-  
-<div class="card lobby-create">
-  <input id="name" placeholder="Lobby name">
-  <button onclick="createLobby()">Create lobby</button>
+<h1>Othello Lobby</h1>
+<p class="lobby-subtitle">Create a room, ready up, and flip the board.</p>
 
-</div>
+<section class="lobby-layout">
+  <div class="card lobby-create">
+    <span class="game-kicker">New Match</span>
+    <h2>Create Room</h2>
+    <input id="name" placeholder="Lobby name">
+    <button onclick="createLobby()">Create Lobby</button>
+    <button class="back-btn" onclick="window.location.href='/games.html'">Back to Games</button>
+  </div>
 
-<div class="card">
-  <h3>Lobbies open</h3>
-  <div id="lobbies"></div>
-
-</div>
-  
-<button class="back-btn" onclick="window.location.href='/games.html'">Back to Games</button>
+  <div class="card">
+    <h3>Open Lobbies</h3>
+    <div id="lobbies"></div>
+  </div>
+</section>
 
 </div>
 

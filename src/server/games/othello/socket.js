@@ -284,6 +284,43 @@ function createOthelloModule({ io, socket, state, updatePresence, applyOthelloRe
         })
         .finally(()=>updatePresence());
     });
+
+    socket.on('othello_rematch', ()=>{
+      const gameId = findGameIdForSocket();
+      if(!gameId) return;
+
+      const game = state.othelloGames[gameId];
+      if(!game || !game.ended) return;
+
+      if(!state.rematchRequests[gameId]) state.rematchRequests[gameId] = {};
+      state.rematchRequests[gameId][socket.username] = true;
+
+      const requestedBy = Object.keys(state.rematchRequests[gameId]);
+      game.players.forEach(player => {
+        const s = io.sockets.sockets.get(player.id);
+        if(s) s.emit('othello_rematch_status', { requestedBy });
+      });
+
+      const allReady = game.players.every(player => state.rematchRequests[gameId][player.username]);
+      if(!allReady) return;
+
+      game.players.forEach(player => {
+        player.color = player.color === 'black' ? 'white' : 'black';
+      });
+
+      game.board = createInitialOthelloBoard();
+      game.turn = 'black';
+      game.ended = false;
+      game.rated = false;
+      game.result = null;
+      state.rematchRequests[gameId] = {};
+
+      emitState(game);
+      game.players.forEach(player => {
+        const s = io.sockets.sockets.get(player.id);
+        if(s) s.emit('othello_rematch_start');
+      });
+    });
   }
 
   return {

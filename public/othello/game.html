@@ -10,25 +10,43 @@
 <body class="game-page">
   
 <div id="main">
-  <h1>⚫ Othello</h1>
-    <div class="player-card you">
-    <div id="youName">You</div>
-    <div id="youColor"></div>
-  </div>
+  <header class="game-hero">
+    <div>
+      <span class="game-kicker">Ranked Othello</span>
+      <h1>Othello Arena</h1>
+    </div>
+    <button class="ghost-btn" onclick="goBack()">Exit</button>
+  </header>
 
-  <div id="turn"></div>
-  <div id="score"></div>
-  <div id="board"></div>
-  <div id="status"></div>
+  <section class="othello-arena">
+    <div class="match-panel">
+      <div class="player-card you">
+        <div>
+          <span>You</span>
+          <strong id="youName">You</strong>
+        </div>
+        <div id="youColor"></div>
+      </div>
 
-  <div class="player-card opponent">
-    <div id="opponentName">Opponent</div>
-    <div id="opponentColor"></div>
-  </div>
+      <div id="turn"></div>
+      <div id="score"></div>
 
-  <div>
-    <button id="resignBtn" onclick="resign()">Resign</button>
-  </div>
+      <div class="player-card opponent">
+        <div>
+          <span>Opponent</span>
+          <strong id="opponentName">Opponent</strong>
+        </div>
+        <div id="opponentColor"></div>
+      </div>
+
+      <button id="resignBtn" onclick="resign()">Resign</button>
+      <div id="status"></div>
+    </div>
+
+    <div class="board-shell">
+      <div id="board"></div>
+    </div>
+  </section>
 </div>
 
 <div id="sidebar">
@@ -41,7 +59,11 @@
   <h1 id="winnerText"></h1>
   <p id="endMessage"></p>
   <div id="xpReward" class="xp-reward">+0 XP</div>
-  <button onclick="goBack()">Back</button>
+  <div class="end-actions">
+    <button id="rematchBtn" onclick="rematch()">Rematch</button>
+    <button onclick="goBack()">Back</button>
+  </div>
+  <p id="rematchStatus" class="rematch-status"></p>
 </div>
 
 <audio id="flipSound" src="https://assets.mixkit.co/sfx/preview/mixkit-game-click-1114.mp3"></audio>

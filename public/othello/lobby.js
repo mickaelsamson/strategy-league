@@ -18,11 +18,11 @@ socket.on("othello_lobbies_update",lobbies=>{
  }
  document.getElementById("lobbies").innerHTML=list.map(l=>{
   const me=l.players.find(p=>p.username===user.username);
-  return `<div class="card lobby-item">
+ return `<div class="card lobby-item">
   <strong>${l.name}</strong>
   <div class="lobby-players">${l.players.map(p=>`${p.username} ${p.ready?"✅":"⌛"}`).join(" · ")}</div>
   ${!me?`<button onclick="join('${l.id}')">Join</button>`:
-  `<button onclick="ready('${l.id}')">Ready / Not ready</button>`}
+  `<button onclick="ready('${l.id}')">${me.ready?"Cancel Ready":"Ready Up"}</button>`}
   </div>`;
  }).join("");
 });
