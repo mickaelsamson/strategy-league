@@ -145,9 +145,12 @@ const user = JSON.parse(localStorage.getItem("user"));
 if(!user){
   window.location.href = "/login.html";
 }
-
+const params = new URLSearchParams(window.location.search);
+const requestedUsername = params.get("username");
+const profileUsername = requestedUsername || user.username;
+  
 function renderProfile(profile){
-  document.getElementById("username").innerText = profile.username || user.username;
+  document.getElementById("username").innerText = profile.username || profileUsername;
   document.getElementById("elo").innerText = profile.elo ?? 1000;
 
   const wins = profile?.stats?.wins || 0;
@@ -187,22 +190,25 @@ function renderProfile(profile){
 
 async function loadProfile(){
   try{
-    const response = await fetch(`/api/profile/${encodeURIComponent(user.username)}`);
+    const response = await fetch(`/api/profile/${encodeURIComponent(profileUsername)}`);
     if(!response.ok){
       throw new Error("Profile unavailable");
     }
 
     const profile = await response.json();
-    localStorage.setItem("user", JSON.stringify({
-      ...user,
-      elo: profile.elo,
-      xp: profile.xp
-    }));
+    if(profile.username === user.username){
+      localStorage.setItem("user", JSON.stringify({
+        ...user,
+        elo: profile.elo,
+        xp: profile.xp
+      }));
+    }
+
     renderProfile(profile);
   }catch(err){
     console.error(err);
     renderProfile({
-      username: user.username,
+      username: profileUsername,
       elo: user.elo || 1000,
       xp: user.xp || 0,
       stats: { wins: 0, losses: 0, winrate: 0 },
