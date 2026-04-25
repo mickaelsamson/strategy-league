@@ -1,6 +1,6 @@
 (function(){
   const PUBLIC_PATHS = ['/login.html', '/register.html'];
-  const GAME_LINKS = new Set(['home', 'games', 'leaderboard', 'strategy', 'profile', 'admin', 'logout']);
+  const GAME_LINKS = new Set(['home', 'games', 'leaderboard', 'profile', 'admin', 'logout']);
   let onlineSocket = null;
 
   function getUser(){
@@ -30,7 +30,6 @@
     if(link === 'home') window.location.href = '/';
     if(link === 'games') window.location.href = '/games.html';
     if(link === 'leaderboard') window.location.href = '/leaderboard.html';
-    if(link === 'strategy') window.location.href = '/strategy/index.html';
     if(link === 'profile') window.location.href = '/profile.html';
     if(link === 'admin') window.location.href = '/admin.html';
 
@@ -45,7 +44,6 @@
       home: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10.5V20h5v-6h4v6h5v-9.5"/>',
       games: '<path d="M6 12h4"/><path d="M8 10v4"/><path d="M15 11h.01"/><path d="M18 13h.01"/><path d="M8.5 7h7c3 0 5.5 2.4 5.5 5.4 0 3.5-1.5 5.6-3.4 5.6-1.2 0-2-1-2.8-2H9.2c-.8 1-1.6 2-2.8 2C4.5 18 3 15.9 3 12.4 3 9.4 5.5 7 8.5 7Z"/>',
       leaderboard: '<path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v4a5 5 0 0 1-10 0V4Z"/><path d="M17 5h3v2a4 4 0 0 1-4 4"/><path d="M7 5H4v2a4 4 0 0 0 4 4"/>',
-      strategy: '<path d="M5 4h10a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4V4Z"/><path d="M9 8h6"/><path d="M9 12h6"/>',
       profile: '<path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/>',
       admin: '<path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3Z"/><path d="M9 12l2 2 4-5"/>',
       logout: '<path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M21 19V5a2 2 0 0 0-2-2h-5"/>',
@@ -60,7 +58,7 @@
     if(path === '/' || path.endsWith('/index.html')) return 'home';
     if(path.includes('/chess') || path.includes('/othello') || path.endsWith('/games.html')) return 'games';
     if(path.includes('/leaderboard')) return 'leaderboard';
-    if(path.includes('/strategy')) return 'strategy';
+    if(path.includes('/strategy')) return 'games';
     if(path.includes('/profile')) return 'profile';
     if(path.includes('/admin')) return 'admin';
     return 'home';
@@ -105,7 +103,6 @@
           ${navItem('home', 'Home', active)}
           ${navItem('games', 'Games', active)}
           ${navItem('leaderboard', 'Leaderboard', active)}
-          ${navItem('strategy', 'Strategy', active)}
           ${navItem('profile', 'Profile', active)}
           ${navItem('admin', 'Admin', active, !user.isAdmin)}
         </nav>

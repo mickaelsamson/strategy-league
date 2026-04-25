@@ -1,8 +1,6 @@
 body{
   margin:0;
-  background:#020617;
   color:white;
-  font-family:Arial;
 }
 
 body.game-page{
@@ -12,7 +10,6 @@ body.game-page{
 body.lobby-page{
   min-height:100vh;
   display:block;
-  background:radial-gradient(circle at top,#0b1225,#020617 55%);
 }
 
 #main{
@@ -22,14 +19,14 @@ body.lobby-page{
 
 #sidebar{
   width:260px;
-  background:#111827;
+  background:var(--shell-card);
   padding:15px;
-  border-left:1px solid #1f2937;
+  border-left:1px solid var(--shell-line);
 }
 
 .player{
   padding:6px;
-  border-bottom:1px solid #1f2937;
+  border-bottom:1px solid rgba(255,91,105,0.14);
 }
 
 .container{
@@ -39,14 +36,16 @@ body.lobby-page{
 }
 
 .card{
-  background:#111827;
+  background:var(--shell-card);
+  border:1px solid var(--shell-line);
   padding:20px;
-  border-radius:15px;
+  border-radius:8px;
   margin-bottom:20px;
+  box-shadow:0 18px 70px rgba(0,0,0,0.22);
 }
 .lobby-subtitle{
   margin-top:-8px;
-  color:#94a3b8;
+  color:var(--shell-soft);
 }
 
 .lobby-create{
@@ -56,39 +55,40 @@ body.lobby-page{
 
 .lobby-create input{
   flex:1;
-  border:1px solid #334155;
-  border-radius:10px;
-  background:#0b1220;
-  color:#e2e8f0;
+  border:1px solid var(--shell-line);
+  border-radius:8px;
+  background:rgba(28,8,12,0.68);
+  color:var(--shell-text);
   padding:10px 12px;
   font-size:14px;
 }
 
 .lobby-item{
   text-align:left;
-  border:1px solid #1f2937;
+  border:1px solid rgba(255,91,105,0.16);
 }
 
 .lobby-players{
   margin:8px 0 10px;
-  color:#cbd5e1;
+  color:var(--shell-soft);
   font-size:14px;
 }
 
 .empty-state{
-  background:#0f172a;
-  border:1px dashed #334155;
-  color:#cbd5e1;
-  border-radius:12px;
+  background:rgba(28,8,12,0.58);
+  border:1px dashed var(--shell-line);
+  color:var(--shell-soft);
+  border-radius:8px;
   padding:14px;
 }
 
 .back-btn{
-  background:#1f2937;
+  background:rgba(255,82,104,0.1);
 }
 
 .player-card{
-  background:#1f2937;
+  background:var(--shell-card);
+  border:1px solid var(--shell-line);
   padding:10px;
   border-radius:10px;
   margin:10px auto;
@@ -101,17 +101,18 @@ body.lobby-page{
 .opponent{border-left:4px solid #ef4444;}
 
 button{
-  padding:10px 15px;
+  min-height:42px;
+  padding:0 15px;
   margin:5px;
-  border:none;
-  border-radius:10px;
+  border:1px solid var(--shell-line);
+  border-radius:8px;
   cursor:pointer;
-  background:#3b82f6;
+  background:linear-gradient(135deg, var(--shell-red), var(--shell-red-dark));
   color:white;
   transition:0.2s;
 }
 
-button:hover{ transform:scale(1.05); }
+button:hover{ filter:brightness(1.08); }
 
 #resignBtn{background:#ef4444;}
 #resignBtn:hover{background:#dc2626;}
@@ -171,8 +172,9 @@ button:hover{ transform:scale(1.05); }
   font-size:18px;
   margin-top:10px;
   padding:10px;
-  background:#111827;
-  border-radius:10px;
+  background:var(--shell-card);
+  border:1px solid var(--shell-line);
+  border-radius:8px;
   display:inline-block;
 }
 

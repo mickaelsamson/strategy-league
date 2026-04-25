@@ -22,6 +22,19 @@ function getLeaderboardValue(user, type){
   return user.xp || 0;
 }
 
+function countUniquePlayers(entries){
+  const usernames = new Set();
+
+  entries.forEach(entry => {
+    const players = Array.isArray(entry?.players) ? entry.players : [];
+    players.forEach(player => {
+      if(player?.username) usernames.add(player.username);
+    });
+  });
+
+  return usernames.size;
+}
+
 function createApiRouter({ User, state, isGameAllowed }){
   const router = express.Router();
 
@@ -73,6 +86,27 @@ function createApiRouter({ User, state, isGameAllowed }){
 
   router.get('/games/status', (req, res)=>{
     res.json({ enabled: isGameAllowed() });
+  });
+
+  router.get('/games/playing', (req, res)=>{
+    const chess = countUniquePlayers([
+      ...Object.values(state.lobbies || {}),
+      ...Object.values(state.chessGames || {}).filter(game => !game?.ended)
+    ]);
+
+    const othello = countUniquePlayers([
+      ...Object.values(state.othelloLobbies || {}),
+      ...Object.values(state.othelloGames || {}).filter(game => !game?.ended)
+    ]);
+
+    const strategy = 0;
+
+    res.json({
+      chess,
+      othello,
+      strategy,
+      total: chess + othello + strategy
+    });
   });
 
   router.post('/admin/override', async (req, res)=>{

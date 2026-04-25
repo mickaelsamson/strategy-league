@@ -11,64 +11,71 @@
 <style>
 body{
   margin:0;
-  background:#020617;
-  color:white;
-  font-family:Arial;
-  display:flex;
-  justify-content:center;
-  padding-top:80px;
 }
 
 .container{
   width:100%;
-  max-width:800px;
-  padding:20px;
+  max-width:880px;
+  margin:0 auto;
   text-align:center;
 }
 
-h1{margin-bottom:20px;}
+h1{
+  margin:0 0 20px;
+  font-size:42px;
+}
 
 .card{
-  background:#111827;
-  padding:20px;
-  border-radius:15px;
+  background:var(--shell-card);
+  border:1px solid var(--shell-line);
+  padding:24px;
+  border-radius:8px;
   margin-bottom:20px;
+  box-shadow:0 18px 70px rgba(0,0,0,0.22);
 }
   
 .rules{
   text-align:left;
   max-width:520px;
   margin:10px auto 0;
-  color:#cbd5e1;
+  color:var(--shell-soft);
   font-size:14px;
   line-height:1.5;
 }
 
 button{
-  padding:10px 15px;
+  min-height:44px;
+  padding:0 16px;
   margin:5px;
-  border:none;
-  border-radius:10px;
+  border:1px solid var(--shell-line);
+  border-radius:8px;
   cursor:pointer;
-  background:#3b82f6;
+  background:linear-gradient(135deg, var(--shell-red), var(--shell-red-dark));
   color:white;
 }
 
-button:hover{background:#2563eb;}
+button:hover{
+  filter:brightness(1.08);
+}
 
-.secondary{background:#1f2937;}
+.secondary{
+  background:rgba(255,82,104,0.1);
+}
 
 input, select{
   padding:10px;
   margin:5px;
   border-radius:8px;
-  border:none;
+  border:1px solid var(--shell-line);
+  background:rgba(28,8,12,0.68);
+  color:var(--shell-text);
 }
 
 .lobby{
-  background:#1f2937;
-  padding:10px;
-  border-radius:10px;
+  background:rgba(28,8,12,0.58);
+  border:1px solid rgba(255,91,105,0.16);
+  padding:14px;
+  border-radius:8px;
   margin-top:10px;
   text-align:left;
 }
@@ -76,7 +83,7 @@ input, select{
 .players{
   margin-top:5px;
   font-size:14px;
-  color:#9ca3af;
+  color:var(--shell-soft);
 }
 
 .ready{ color:#22c55e; }
@@ -86,7 +93,7 @@ input, select{
   display:none;
   position:fixed;
   inset:0;
-  background:#020617;
+  background:rgba(9,3,5,0.96);
   color:white;
   z-index:9999;
   justify-content:center;
@@ -98,20 +105,19 @@ input, select{
 
 <body class="with-navbar">
   
-<!-- NAVBAR -->
 <div id="navbar-container"></div>
 
 
 <!-- BLOCK SCREEN -->
 <div id="blockedScreen">
-  <h1>⛔ Games Disabled</h1>
-  <p>Come back later 👋</p>
-  <button onclick="goBack()">⬅ Back</button>
+  <h1>Games Disabled</h1>
+  <p>Come back later.</p>
+  <button onclick="goBack()">Back</button>
 </div>
 
 <div class="container">
 
-<h1>♟️ Chess Lobby</h1>
+<h1>Chess Lobby</h1>
 
 <div class="card">
   <input id="name" placeholder="Lobby name">
@@ -123,7 +129,7 @@ input, select{
   </select>
   <br>
   <button onclick="createLobby()">Create Lobby</button>
-  <button class="secondary" onclick="goBack()">⬅ Back</button>
+  <button class="secondary" onclick="goBack()">Back</button>
   <div class="rules">
     <strong>Time controls:</strong> Bullet 2 min, Blitz 5 min, Fast 10 min, Slow 30 min.<br>
     <strong>Rules:</strong> timer at 0 = loss, and a disconnection longer than 1 minute = forfeit.

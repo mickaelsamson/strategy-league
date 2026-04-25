@@ -8,39 +8,61 @@
 <style>
 body{
   margin:0;
-  background: radial-gradient(circle at top,#0f172a,#020617);
-  color:white;
-  font-family:Arial;
   text-align:center;
-  padding-top:80px; /* 🔥 navbar fix */
 }
 
-.tabs{margin:20px;}
+h2{
+  margin:0 0 20px;
+  font-size:42px;
+}
+
+.leaderboard-page{
+  max-width:780px;
+  margin:0 auto;
+}
+
+.tabs{
+  margin:0 0 22px;
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
 
 button{
-  padding:10px 14px;
-  margin:5px;
+  min-height:42px;
+  padding:0 16px;
   border-radius:8px;
-  border:none;
+  border:1px solid var(--shell-line);
   cursor:pointer;
-  background:#1f2937;
+  background:rgba(255,82,104,0.1);
   color:white;
-  transition:0.2s;
+  transition:0.18s;
 }
 
-button:hover{background:#3b82f6;}
+button:hover{
+  background:rgba(255,82,104,0.24);
+  border-color:var(--shell-line-strong);
+}
 
 .table{
-  width:420px;
+  width:100%;
   margin:auto;
   text-align:left;
+  padding:12px;
+  background:var(--shell-card);
+  border:1px solid var(--shell-line);
+  border-radius:8px;
+  box-shadow:0 18px 70px rgba(0,0,0,0.22);
 }
 
 .row{
   display:flex;
   justify-content:space-between;
-  padding:10px;
-  border-bottom:1px solid #333;
+  align-items:center;
+  padding:14px 16px;
+  border-bottom:1px solid rgba(255,91,105,0.14);
+  border-radius:8px;
 }
 
 .top{
@@ -48,20 +70,19 @@ button:hover{background:#3b82f6;}
 }
 
 .me{
-  background:#1e293b;
-  border:1px solid #3b82f6;
-  border-radius:6px;
+  background:rgba(255,82,104,0.16);
+  border:1px solid var(--shell-line-strong);
 }
 
 .rank{
   margin-top:20px;
   font-size:18px;
-  color:#38bdf8;
+  color:var(--shell-red);
 }
 
 .loading{
   margin-top:20px;
-  color:#94a3b8;
+  color:var(--shell-soft);
 }
 
 /* BADGES */
@@ -70,15 +91,15 @@ button:hover{background:#3b82f6;}
   margin-right:6px;
 }
 .username-link{
-  color:#e2e8f0;
+  color:var(--shell-text);
   cursor:pointer;
   text-decoration:none;
   border-bottom:1px dashed transparent;
 }
 
 .username-link:hover{
-  color:#93c5fd;
-  border-bottom-color:#93c5fd;
+  color:#ffd1cc;
+  border-bottom-color:#ffd1cc;
 }
 
 .profile-tooltip{
@@ -86,9 +107,9 @@ button:hover{background:#3b82f6;}
   z-index:1000;
   min-width:170px;
   text-align:left;
-  background:#0f172a;
-  border:1px solid #334155;
-  border-radius:10px;
+  background:linear-gradient(145deg, rgba(76,20,27,0.98), rgba(25,7,11,0.96));
+  border:1px solid var(--shell-line-strong);
+  border-radius:8px;
   padding:10px;
   box-shadow:0 10px 24px rgba(0,0,0,0.45);
   font-size:13px;
@@ -97,7 +118,7 @@ button:hover{background:#3b82f6;}
 }
 
 .profile-tooltip strong{
-  color:#93c5fd;
+  color:#ffd1cc;
 }
 
 .hidden{display:none;}
@@ -106,20 +127,21 @@ button:hover{background:#3b82f6;}
 
 <body class="with-navbar">
   
-<!-- 🔥 NAVBAR -->
 <div id="navbar-container"></div>
 
-<h2>🏆 Leaderboard</h2>
+<main class="leaderboard-page">
+  <h2>Leaderboard</h2>
 
-<div class="tabs">
-  <button onclick="load('global')">Global</button>
-  <button onclick="load('chess')">Chess</button>
-  <button onclick="load('othello')">Othello</button>
-  <button onclick="load('strategy')">Strategy</button>
-</div>
+  <div class="tabs">
+    <button onclick="load('global')">Global XP</button>
+    <button onclick="load('chess')">ELO Chess</button>
+    <button onclick="load('othello')">ELO Othello</button>
+    <button onclick="load('strategy')">ELO Strategy</button>
+  </div>
 
-<div id="table" class="table"></div>
-<div id="me"></div>
+  <div id="table" class="table"></div>
+  <div id="me"></div>
+</main>
 <div id="profileTooltip" class="profile-tooltip hidden"></div>
   
 <script>

@@ -364,6 +364,10 @@ body{
   font-size:13px;
 }
 
+[data-playing]{
+  color:var(--shell-green);
+}
+
 .stats-card{
   padding:28px;
 }
@@ -560,19 +564,19 @@ body{
             <span class="new-pill">New</span>
             <h3>CHESS</h3>
             <p>Classic Strategy</p>
-            <span class="live-dot">1.2K playing</span>
+            <span class="live-dot"><b data-playing="chess">0</b> playing</span>
           </a>
           <a class="game-card othello" href="/othello/index.html">
             <span class="new-pill">New</span>
             <h3>OTHELLO</h3>
             <p>Reversi Board Game</p>
-            <span class="live-dot">856 playing</span>
+            <span class="live-dot"><b data-playing="othello">0</b> playing</span>
           </a>
           <a class="game-card strategy" href="/strategy/index.html">
             <span class="new-pill">New</span>
             <h3>STRATEGY ARENA</h3>
             <p>Turn-based Strategy</p>
-            <span class="live-dot">643 playing</span>
+            <span class="live-dot"><b data-playing="strategy">0</b> playing</span>
           </a>
         </div>
       </section>
@@ -627,9 +631,9 @@ body{
       <button class="text-link" type="button" onclick="window.location.href='/leaderboard.html'">Leaderboard</button>
     </div>
     <div class="popular-list">
-      <div class="popular-item"><span class="popular-thumb chess"></span><span><b>Chess</b><span>1.2K playing</span></span></div>
-      <div class="popular-item"><span class="popular-thumb othello"></span><span><b>Othello</b><span>856 playing</span></span></div>
-      <div class="popular-item"><span class="popular-thumb strategy"></span><span><b>Strategy Arena</b><span>643 playing</span></span></div>
+      <div class="popular-item"><span class="popular-thumb chess"></span><span><b>Chess</b><span><strong data-playing="chess">0</strong> playing</span></span></div>
+      <div class="popular-item"><span class="popular-thumb othello"></span><span><b>Othello</b><span><strong data-playing="othello">0</strong> playing</span></span></div>
+      <div class="popular-item"><span class="popular-thumb strategy"></span><span><b>Strategy Arena</b><span><strong data-playing="strategy">0</strong> playing</span></span></div>
       <div class="popular-item"><span class="popular-thumb"></span><span><b>Ranked XP</b><span>Live progression</span></span></div>
     </div>
   </section>
@@ -700,6 +704,24 @@ async function loadProfile(){
   }
 }
 
+async function loadPlayingCounts(){
+  try{
+    const response = await fetch("/api/games/playing");
+    if(!response.ok) throw new Error("Playing counts unavailable");
+    const counts = await response.json();
+
+    ["chess", "othello", "strategy"].forEach(key => {
+      document.querySelectorAll(`[data-playing="${key}"]`).forEach(el => {
+        el.textContent = counts[key] ?? 0;
+      });
+    });
+
+    document.getElementById("heroOnlineText").textContent = `${counts.total || 0} players playing`;
+  }catch(err){
+    console.error(err);
+  }
+}
+
 document.getElementById("homeSearch").addEventListener("keydown", event => {
   if(event.key !== "Enter") return;
   const value = event.currentTarget.value.trim().toLowerCase();
@@ -710,18 +732,9 @@ document.getElementById("homeSearch").addEventListener("keydown", event => {
   else window.location.href = `/profile.html?username=${encodeURIComponent(value)}`;
 });
 
-window.addEventListener("load", ()=>{
-  const onlineCount = document.getElementById("onlineCount");
-  const updateHeroOnline = () => {
-    if(onlineCount){
-      document.getElementById("heroOnlineText").textContent = `${onlineCount.textContent} players online`;
-    }
-  };
-  updateHeroOnline();
-  setInterval(updateHeroOnline, 1500);
-});
-
 loadProfile();
+loadPlayingCounts();
+setInterval(loadPlayingCounts, 10000);
 </script>
 </body>
 </html>
