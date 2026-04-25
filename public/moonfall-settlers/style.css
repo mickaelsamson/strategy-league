@@ -459,11 +459,22 @@ h2{
 .dev-card-row{
   padding:8px;
   display:grid;
-  gap:4px;
+  grid-template-columns:42px 1fr;
+  gap:4px 8px;
+  align-items:center;
 }
 
 .dev-card-row strong{
   color:white;
+}
+
+.dev-card-row img{
+  width:38px;
+  height:52px;
+  object-fit:cover;
+  border:1px solid rgba(174,119,58,.5);
+  border-radius:4px;
+  grid-row:1 / span 2;
 }
 
 .dev-card-row span{
@@ -1052,4 +1063,192 @@ body.app-shell-active.moonsettlers-page .command-grid button.active{
     grid-template-columns:repeat(2, minmax(0, 1fr));
     height:auto;
   }
+}
+
+/* Moonfall generated-art skin */
+body.moonsettlers-page{
+  background:#02070b url("/moonfall-settlers/assets/generated/moonfall-bg.png") center/cover fixed;
+  color:#ead7ad;
+  font-family:Georgia, "Times New Roman", serif;
+}
+
+.topbar{
+  background:linear-gradient(180deg, rgba(5,8,11,.88), rgba(5,8,11,.58));
+  color:#ead7ad;
+  border-bottom:1px solid rgba(170,120,58,.34);
+  box-shadow:0 8px 32px rgba(0,0,0,.38);
+}
+
+.topbar strong{
+  color:#f0c06d;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+}
+
+.topbar .eyebrow{
+  color:#bfa36c;
+}
+
+.status-strip span,
+.top-actions button{
+  border:1px solid rgba(174,119,58,.48);
+  background:linear-gradient(180deg, rgba(14,18,22,.92), rgba(6,9,12,.92));
+  color:#e4c48a;
+  box-shadow:inset 0 0 0 1px rgba(255,225,153,.08), 0 8px 18px rgba(0,0,0,.26);
+}
+
+.top-actions button:hover,
+.command-grid button:hover,
+.tool-icon:hover{
+  border-color:#d6a85f;
+}
+
+.tool-rail{
+  background:linear-gradient(180deg, rgba(3,7,10,.72), rgba(3,7,10,.34));
+}
+
+.tool-icon{
+  border-radius:4px;
+  clip-path:polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  border:1px solid rgba(185,133,68,.64);
+  background:linear-gradient(180deg, rgba(19,25,29,.94), rgba(5,8,11,.94));
+  color:#ddb46b;
+  box-shadow:0 10px 26px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,229,168,.06);
+  font-family:"Trebuchet MS", sans-serif;
+}
+
+.tool-icon{
+  line-height:1;
+}
+
+.tool-icon > *,
+.tool-icon{
+  text-transform:uppercase;
+}
+
+.board-frame{
+  background:#02070b;
+  box-shadow:inset 0 0 0 1px rgba(212,163,88,.24), 0 16px 50px rgba(0,0,0,.42);
+}
+
+.intel-panel section,
+.bottom-dock > *,
+.dock-drawer{
+  background:linear-gradient(180deg, rgba(7,12,15,.88), rgba(3,7,10,.9));
+  border:1px solid rgba(174,119,58,.42);
+  color:#e7d4ad;
+  box-shadow:inset 0 0 0 1px rgba(255,225,153,.05), 0 12px 34px rgba(0,0,0,.42);
+}
+
+.intel-panel h2,
+.dock-drawer summary{
+  color:#b99358;
+  font-variant:small-caps;
+  letter-spacing:.04em;
+}
+
+.resource-row{
+  border:1px solid rgba(174,119,58,.44);
+  background:radial-gradient(circle at 50% 28%, rgba(255,226,165,.1), transparent 48%), linear-gradient(180deg, rgba(13,18,21,.95), rgba(4,8,11,.95));
+  color:#e7d4ad;
+  box-shadow:inset 0 0 0 1px rgba(255,230,177,.04);
+}
+
+.resource-row img{
+  width:54px;
+  height:54px;
+  object-fit:contain;
+  filter:drop-shadow(0 8px 10px rgba(0,0,0,.5));
+}
+
+.resource-row b{
+  margin-top:-8px;
+  margin-left:0;
+  background:transparent;
+  color:#e7b967;
+  font-size:18px;
+  box-shadow:none;
+}
+
+.command-grid button{
+  border:1px solid rgba(174,119,58,.44);
+  background:linear-gradient(180deg, rgba(14,20,23,.96), rgba(5,8,11,.96));
+  color:#d7b06b;
+  box-shadow:inset 0 0 0 1px rgba(255,230,177,.05);
+  font-family:Georgia, "Times New Roman", serif;
+}
+
+.command-grid button.active{
+  background:linear-gradient(180deg, rgba(77,51,26,.96), rgba(22,13,8,.96));
+  color:#ffd68b;
+}
+
+.cost-chip{
+  border-color:rgba(174,119,58,.34);
+  background:rgba(0,0,0,.24);
+  color:#cdb98e;
+}
+
+.dev-card-row,
+.player-row,
+.board-stat,
+.log-entry{
+  border-color:rgba(174,119,58,.38);
+  background:linear-gradient(180deg, rgba(11,17,20,.84), rgba(5,8,11,.84));
+  color:#e7d4ad;
+}
+
+.dev-card-row span,
+.player-row span,
+.board-stat span,
+.log-entry{
+  color:#d8c8a9;
+}
+
+.player-row.active{
+  background:linear-gradient(180deg, rgba(34,24,19,.92), rgba(9,11,12,.9));
+}
+
+.player-row::before{
+  background:radial-gradient(circle, currentColor 0 24%, transparent 25%), #070b0e;
+  box-shadow:0 0 18px currentColor;
+}
+
+.oni-stat img{
+  border-radius:8px;
+  filter:drop-shadow(0 0 10px rgba(194,30,44,.55));
+}
+
+.notice{
+  background:linear-gradient(180deg, rgba(10,13,15,.96), rgba(4,7,9,.96));
+  color:#f1d49a;
+  border:1px solid rgba(174,119,58,.52);
+  box-shadow:0 14px 36px rgba(0,0,0,.45);
+}
+
+.dock-drawer[open] .dev-panel,
+.dock-drawer[open] .trade-panel{
+  background:linear-gradient(180deg, rgba(8,12,15,.98), rgba(4,7,9,.98));
+  border-color:rgba(174,119,58,.52);
+}
+
+.trade-panel label{
+  color:#cdb98e;
+}
+
+.trade-panel input,
+.trade-panel select{
+  background:#080d10;
+  border-color:rgba(174,119,58,.42);
+  color:#f1d49a;
+}
+
+body.app-shell-active.moonsettlers-page button:not(.shell-nav-item):not(.shell-brand):not(.online-player){
+  border-color:rgba(174,119,58,.5) !important;
+  background:linear-gradient(180deg, rgba(14,20,23,.96), rgba(5,8,11,.96)) !important;
+  color:#d7b06b !important;
+}
+
+body.app-shell-active.moonsettlers-page .command-grid button.active{
+  background:linear-gradient(180deg, rgba(77,51,26,.96), rgba(22,13,8,.96)) !important;
 }

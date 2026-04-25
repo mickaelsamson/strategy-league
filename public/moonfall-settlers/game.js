@@ -1,11 +1,31 @@
 (() => {
   const RESOURCE_KEYS = ['cedar', 'clay', 'rice', 'wisteria', 'sunsteel'];
   const RESOURCES = {
-    cedar: { name: 'Cedre', short: 'Ce', color: '#78d6a7', tile: '#1fa45e', dark: '#116543', icon: '/moonfall-settlers/assets/cedar.svg' },
-    clay: { name: 'Argile', short: 'Ar', color: '#e08a58', tile: '#ef7645', dark: '#9a3c2a', icon: '/moonfall-settlers/assets/clay.svg' },
-    rice: { name: 'Riz', short: 'Ri', color: '#f1d274', tile: '#f2c238', dark: '#a87b20', icon: '/moonfall-settlers/assets/rice.svg' },
-    wisteria: { name: 'Glycine', short: 'Gl', color: '#b99bff', tile: '#99c823', dark: '#5d861c', icon: '/moonfall-settlers/assets/wisteria.svg' },
-    sunsteel: { name: 'Acier', short: 'Ac', color: '#c7d2d9', tile: '#b9c8c7', dark: '#71817f', icon: '/moonfall-settlers/assets/sunsteel.svg' }
+    cedar: { name: 'Bois', short: 'Bo', color: '#78d6a7', tile: '#1f6b40', dark: '#0b251d', icon: '/moonfall-settlers/assets/generated/res-wood-512.png', texture: '/moonfall-settlers/assets/generated/tile-forest.png' },
+    clay: { name: 'Brique', short: 'Br', color: '#e08a58', tile: '#8a3f2c', dark: '#26100d', icon: '/moonfall-settlers/assets/generated/res-brick-512.png', texture: '/moonfall-settlers/assets/generated/tile-brick.png' },
+    rice: { name: 'Ble', short: 'Bl', color: '#f1d274', tile: '#a37b24', dark: '#2d210b', icon: '/moonfall-settlers/assets/generated/res-wheat-512.png', texture: '/moonfall-settlers/assets/generated/tile-wheat.png' },
+    wisteria: { name: 'Mouton', short: 'Mo', color: '#9bc66b', tile: '#415e2a', dark: '#17210e', icon: '/moonfall-settlers/assets/generated/res-sheep-512.png', texture: '/moonfall-settlers/assets/generated/tile-pasture.png' },
+    sunsteel: { name: 'Pierre', short: 'Pi', color: '#c7d2d9', tile: '#677173', dark: '#1d2427', icon: '/moonfall-settlers/assets/generated/res-stone-512.png', texture: '/moonfall-settlers/assets/generated/tile-mountain.png' }
+  };
+
+  const ASSETS = {
+    background: '/moonfall-settlers/assets/generated/moonfall-bg.png',
+    crater: '/moonfall-settlers/assets/generated/tile-crater.png',
+    ship: '/moonfall-settlers/assets/generated/port-ship-cutout.png',
+    token: '/moonfall-settlers/assets/generated/token-number-cutout.png',
+    oni: '/moonfall-settlers/assets/generated/token-oni-medallion.png',
+    cardBack: '/moonfall-settlers/assets/generated/card-back-512.png',
+    cardKnight: '/moonfall-settlers/assets/generated/card-knight-512.png',
+    pieceRoad: '/moonfall-settlers/assets/generated/piece-road-cutout.png',
+    pieceSettlement: '/moonfall-settlers/assets/generated/piece-settlement-cutout.png',
+    pieceCity: '/moonfall-settlers/assets/generated/piece-city-cutout.png',
+    pieceDev: '/moonfall-settlers/assets/generated/piece-dev-card-cutout.png',
+    crests: [
+      '/moonfall-settlers/assets/generated/crest-red-cutout.png',
+      '/moonfall-settlers/assets/generated/crest-blue-cutout.png',
+      '/moonfall-settlers/assets/generated/crest-green-cutout.png',
+      '/moonfall-settlers/assets/generated/crest-gold-cutout.png'
+    ]
   };
 
   const TILE_BAG = [
@@ -46,10 +66,10 @@
   ];
 
   const PLAYER_PRESETS = [
-    { name: 'Clan Aube', color: '#f05a5f', accent: '#ffd36b' },
-    { name: 'Clan Givre', color: '#58b7ff', accent: '#ccecff' },
-    { name: 'Clan Braise', color: '#f29b46', accent: '#ffe2b5' },
-    { name: 'Clan Onde', color: '#52cfae', accent: '#c9fff0' }
+    { name: 'The Emperor', color: '#f05a5f', accent: '#ffd36b', crest: ASSETS.crests[0] },
+    { name: 'Clan du Nord', color: '#58b7ff', accent: '#ccecff', crest: ASSETS.crests[1] },
+    { name: "Clan de l'Ouest", color: '#8dcf58', accent: '#ddffd0', crest: ASSETS.crests[2] },
+    { name: 'Clan du Sud', color: '#f2c44d', accent: '#fff1b3', crest: ASSETS.crests[3] }
   ];
 
   const PIP_WEIGHT = { 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1 };
@@ -94,6 +114,7 @@
   };
 
   const ctx = dom.canvas.getContext('2d');
+  const images = {};
   let state = null;
   let renderQueued = false;
   let noticeTimer = null;
@@ -102,6 +123,27 @@
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const randomInt = max => Math.floor(Math.random() * max);
   const sumResources = resources => RESOURCE_KEYS.reduce((total, key) => total + (resources[key] || 0), 0);
+
+  function loadImage(name, src){
+    const image = new Image();
+    image.src = src;
+    image.onload = queueRender;
+    images[name] = image;
+  }
+
+  function bootImages(){
+    loadImage('background', ASSETS.background);
+    loadImage('crater', ASSETS.crater);
+    loadImage('ship', ASSETS.ship);
+    loadImage('token', ASSETS.token);
+    loadImage('oni', ASSETS.oni);
+    loadImage('cardBack', ASSETS.cardBack);
+    loadImage('cardKnight', ASSETS.cardKnight);
+    RESOURCE_KEYS.forEach(key => {
+      loadImage(`tile-${key}`, RESOURCES[key].texture);
+      loadImage(`icon-${key}`, RESOURCES[key].icon);
+    });
+  }
 
   function shuffle(list){
     const array = list.slice();
@@ -440,15 +482,8 @@
   function drawScene(){
     const { width, height } = state.view;
     ctx.clearRect(0, 0, width, height);
-    const bg = ctx.createLinearGradient(0, 0, width, height);
-    bg.addColorStop(0, '#0b75ad');
-    bg.addColorStop(.52, '#0c6da4');
-    bg.addColorStop(1, '#075a8d');
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, width, height);
-    drawOceanTexture(width, height);
-    drawMoon(width, height);
-    drawCoastLayers();
+    drawBackground(width, height);
+    drawSeaVeil(width, height);
     state.board.tiles
       .slice()
       .sort((a, b) => a.center.y - b.center.y)
@@ -461,52 +496,30 @@
     drawHover();
   }
 
-  function drawOceanTexture(width, height){
-    ctx.save();
-    ctx.globalAlpha = .2;
-    ctx.strokeStyle = '#58b6d8';
-    ctx.lineWidth = 2;
-    for(let y = 28; y < height; y += 58){
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      for(let x = 0; x <= width + 40; x += 40){
-        ctx.quadraticCurveTo(x + 20, y - 10, x + 40, y);
-      }
-      ctx.stroke();
+  function drawBackground(width, height){
+    const image = images.background;
+    if(image?.complete && image.naturalWidth){
+      const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
+      const drawWidth = image.naturalWidth * scale;
+      const drawHeight = image.naturalHeight * scale;
+      ctx.drawImage(image, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
+    }else{
+      const bg = ctx.createLinearGradient(0, 0, width, height);
+      bg.addColorStop(0, '#06111a');
+      bg.addColorStop(1, '#101820');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, width, height);
     }
-    ctx.restore();
   }
 
-  function drawMoon(width){
+  function drawSeaVeil(width, height){
     ctx.save();
-    ctx.translate(width - 92, 86);
-    ctx.fillStyle = 'rgba(246, 231, 188, .9)';
-    ctx.beginPath();
-    ctx.arc(0, 0, 40, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#0b75ad';
-    ctx.beginPath();
-    ctx.arc(-20, -8, 38, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function drawCoastLayers(){
-    const layers = [
-      { radius: 1.2, fill: '#87d9e8', alpha: .82 },
-      { radius: 1.12, fill: '#dff0d2', alpha: .95 },
-      { radius: 1.06, fill: '#f2df9b', alpha: 1 }
-    ];
-
-    ctx.save();
-    layers.forEach(layer => {
-      ctx.globalAlpha = layer.alpha;
-      ctx.fillStyle = layer.fill;
-      state.board.tiles.forEach(tile => {
-        drawHexPath(screenPoint(tile.center), state.view.scale * layer.radius);
-        ctx.fill();
-      });
-    });
+    const veil = ctx.createRadialGradient(width * .5, height * .48, 80, width * .5, height * .5, Math.max(width, height) * .62);
+    veil.addColorStop(0, 'rgba(0,0,0,.05)');
+    veil.addColorStop(.5, 'rgba(0,0,0,.12)');
+    veil.addColorStop(1, 'rgba(0,0,0,.58)');
+    ctx.fillStyle = veil;
+    ctx.fillRect(0, 0, width, height);
     ctx.restore();
   }
 
@@ -540,6 +553,7 @@
     const corners = getTileCorners(tile);
     const hot = [6, 8].includes(tile.number);
     const resource = RESOURCES[tile.type];
+    const tileImage = tile.type === 'crater' ? images.crater : images[`tile-${tile.type}`];
 
     ctx.save();
     ctx.beginPath();
@@ -551,31 +565,28 @@
     ctx.shadowColor = 'rgba(0,0,0,.22)';
     ctx.shadowBlur = 8;
     ctx.shadowOffsetY = 5;
-    const fill = ctx.createLinearGradient(center.x - state.view.scale, center.y - state.view.scale, center.x + state.view.scale, center.y + state.view.scale);
-    if(tile.type === 'crater'){
-      fill.addColorStop(0, '#efe4a9');
-      fill.addColorStop(1, '#bdb777');
-    }else{
-      fill.addColorStop(0, resource.tile);
-      fill.addColorStop(1, resource.dark);
-    }
-    ctx.fillStyle = fill;
+    ctx.fillStyle = tile.type === 'crater' ? '#151010' : resource.tile;
     ctx.fill();
     ctx.shadowColor = 'transparent';
     ctx.clip();
-    drawTilePattern(tile, center);
-    drawTileIcon(tile, center);
+    if(tileImage?.complete && tileImage.naturalWidth){
+      const drawSize = state.view.scale * 2.34;
+      ctx.drawImage(tileImage, center.x - drawSize / 2, center.y - drawSize / 2, drawSize, drawSize);
+    }else{
+      drawTilePattern(tile, center);
+      drawTileIcon(tile, center);
+    }
     ctx.restore();
 
     ctx.save();
     ctx.beginPath();
     corners.forEach((point, index) => index === 0 ? ctx.moveTo(point.x, point.y) : ctx.lineTo(point.x, point.y));
     ctx.closePath();
-    ctx.lineWidth = state.hover?.tileId === tile.id ? 5 : 3;
-    ctx.strokeStyle = state.hover?.tileId === tile.id ? '#fff27d' : 'rgba(92,77,30,.52)';
+    ctx.lineWidth = state.hover?.tileId === tile.id ? 5 : 2;
+    ctx.strokeStyle = state.hover?.tileId === tile.id ? '#f4c66e' : 'rgba(187,143,73,.72)';
     ctx.stroke();
     ctx.lineWidth = 1.5;
-    ctx.strokeStyle = 'rgba(255,255,255,.38)';
+    ctx.strokeStyle = 'rgba(255,237,182,.42)';
     ctx.stroke();
     ctx.restore();
 
@@ -745,26 +756,30 @@
 
   function drawNumberToken(center, number, hot){
     ctx.save();
-    const x = center.x - 25;
-    const y = center.y + state.view.scale * .08;
-    roundedRect(x, y, 50, 42, 7);
-    ctx.fillStyle = hot ? '#fff3e8' : '#f8f7ee';
-    ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = hot ? '#d73b3e' : 'rgba(79,84,54,.42)';
-    ctx.stroke();
-    ctx.fillStyle = hot ? '#d90914' : '#055316';
+    const size = 58;
+    const y = center.y + state.view.scale * .1;
+    if(images.token?.complete && images.token.naturalWidth){
+      ctx.drawImage(images.token, center.x - size / 2, y - size / 2, size, size);
+    }else{
+      ctx.beginPath();
+      ctx.arc(center.x, y, size / 2, 0, Math.PI * 2);
+      ctx.fillStyle = '#d9c18b';
+      ctx.fill();
+      ctx.strokeStyle = '#5d4523';
+      ctx.stroke();
+    }
+    ctx.fillStyle = hot ? '#9e1e1e' : '#151515';
     ctx.font = '900 28px Trebuchet MS, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(String(number), center.x, y + 18);
+    ctx.fillText(String(number), center.x, y - 2);
 
     const pips = PIP_WEIGHT[number] || 0;
-    ctx.fillStyle = hot ? '#d90914' : '#055316';
+    ctx.fillStyle = hot ? '#9e1e1e' : '#151515';
     const start = center.x - (pips - 1) * 3.5;
     for(let i = 0; i < pips; i += 1){
       ctx.beginPath();
-      ctx.arc(start + i * 7, y + 33, 2.3, 0, Math.PI * 2);
+      ctx.arc(start + i * 7, y + 16, 2.2, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();
@@ -798,47 +813,38 @@
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(rotation);
-    ctx.fillStyle = '#b66f28';
-    ctx.strokeStyle = '#704116';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(-24, 12);
-    ctx.quadraticCurveTo(0, 28, 24, 12);
-    ctx.lineTo(17, 26);
-    ctx.lineTo(-17, 26);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#fffdf4';
-    ctx.strokeStyle = '#b9a781';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(-14, -26);
-    ctx.lineTo(14, -20);
-    ctx.lineTo(8, 8);
-    ctx.lineTo(-12, 6);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    ctx.strokeStyle = '#704116';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(0, -30);
-    ctx.lineTo(0, 14);
-    ctx.stroke();
-
-    if(port !== 'generic'){
-      ctx.fillStyle = RESOURCES[port].dark;
-      ctx.beginPath();
-      ctx.arc(0, -8, 5, 0, Math.PI * 2);
-      ctx.fill();
+    if(images.ship?.complete && images.ship.naturalWidth){
+      ctx.drawImage(images.ship, -32, -38, 64, 64);
     }else{
-      ctx.fillStyle = '#55606a';
-      ctx.font = '900 15px Trebuchet MS, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('?', 0, -7);
+      ctx.fillStyle = '#b66f28';
+      ctx.strokeStyle = '#704116';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-24, 12);
+      ctx.quadraticCurveTo(0, 28, 24, 12);
+      ctx.lineTo(17, 26);
+      ctx.lineTo(-17, 26);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#fffdf4';
+      ctx.strokeStyle = '#b9a781';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-14, -26);
+      ctx.lineTo(14, -20);
+      ctx.lineTo(8, 8);
+      ctx.lineTo(-12, 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.strokeStyle = '#704116';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, -30);
+      ctx.lineTo(0, 14);
+      ctx.stroke();
     }
 
     ctx.restore();
@@ -987,6 +993,15 @@
   function drawRobber(){
     const tile = state.board.tiles[state.board.robberTile];
     const center = screenPoint(tile.center);
+    if(images.oni?.complete && images.oni.naturalWidth){
+      const size = state.view.scale * .86;
+      ctx.save();
+      ctx.shadowColor = 'rgba(220, 24, 42, .75)';
+      ctx.shadowBlur = 18;
+      ctx.drawImage(images.oni, center.x - size / 2, center.y - size / 2, size, size);
+      ctx.restore();
+      return;
+    }
     ctx.save();
     ctx.translate(center.x, center.y - 42);
     ctx.fillStyle = 'rgba(5,8,12,.84)';
@@ -2015,6 +2030,7 @@
     dom.devPanel.innerHTML = `
       ${Object.keys(DEV_CARDS).map(type => `
         <div class="dev-card-row">
+          <img src="${type === 'knight' ? ASSETS.cardKnight : ASSETS.cardBack}" alt="">
           <strong>${DEV_CARDS[type].name} x${counts[type] || 0}</strong>
           <span>${DEV_CARDS[type].detail}</span>
         </div>
@@ -2061,7 +2077,7 @@
     const robberTile = state.board.tiles[state.board.robberTile];
     const selected = describeSelected();
     dom.boardPanel.innerHTML = `
-      <div class="board-stat oni-stat"><img src="/moonfall-settlers/assets/oni.svg" alt=""><span><strong>Oni</strong>${tileLabel(robberTile)}</span></div>
+      <div class="board-stat oni-stat"><img src="${ASSETS.oni}" alt=""><span><strong>Oni</strong>${tileLabel(robberTile)}</span></div>
       <div class="board-stat"><strong>Paquet</strong><span>${state.devDeck.length} cartes restantes</span></div>
       <div class="board-stat"><strong>Selection</strong><span>${selected}</span></div>
     `;
@@ -2120,6 +2136,7 @@
   });
   window.addEventListener('resize', resizeCanvas);
 
+  bootImages();
   renderSlots();
   renderTradePanel();
 })();

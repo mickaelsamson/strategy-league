@@ -1,130 +1,75 @@
-body.moonfall-page{
+body.moonfall-rts-page{
   margin:0;
-  padding:0;
   overflow:hidden;
   background:
-    radial-gradient(circle at 18% 12%, rgba(97,215,178,.22), transparent 28rem),
-    radial-gradient(circle at 88% 20%, rgba(255,189,99,.13), transparent 24rem),
-    linear-gradient(135deg, #123d3c, #1b1117 58%, #10070d);
+    radial-gradient(circle at 20% 14%, rgba(43,145,255,.18), transparent 28rem),
+    radial-gradient(circle at 80% 18%, rgba(138,77,255,.18), transparent 26rem),
+    linear-gradient(135deg, #0a1119, #120a18 58%, #08060d);
 }
 
-body.moonfall-page [hidden],
-.is-hidden{
+.is-hidden,
+body.moonfall-rts-page [hidden]{
   display:none !important;
 }
 
-.moonfall-app{
-  width:100%;
+.rts-app{
   min-height:calc(100vh - 64px);
 }
 
-.setup-view{
+.home-screen{
   min-height:calc(100vh - 64px);
+  max-width:1180px;
+  margin:0 auto;
   display:grid;
-  grid-template-columns:minmax(320px, .9fr) minmax(620px, 1.1fr);
+  grid-template-columns:minmax(280px, .95fr) minmax(440px, 1.05fr);
   gap:28px;
   align-items:center;
-  max-width:1320px;
-  margin:0 auto;
 }
 
-.setup-copy h1{
-  margin:10px 0 14px;
+.home-copy h1{
+  margin:8px 0 14px;
   font-size:72px;
   line-height:.92;
 }
 
-.setup-copy p{
+.home-copy p{
   max-width:560px;
   margin:0;
-  color:#ead3ce;
+  color:#c9d4e6;
   font-size:18px;
   line-height:1.55;
 }
 
 .eyebrow{
   display:block;
-  color:#ffbf63;
+  color:#83c7ff;
   font-size:12px;
   font-weight:900;
   letter-spacing:0;
   text-transform:uppercase;
 }
 
-.setup-card,
-.topbar,
-.side-panel,
-.intel-panel{
-  border:2px solid rgba(35,21,27,.72);
+.faction-panel,
+.hud-top,
+.command-panel{
+  border:1px solid rgba(132,165,255,.22);
   border-radius:8px;
-  background:#2b160f;
-  box-shadow:0 18px 0 rgba(0,0,0,.12), 0 24px 70px rgba(0,0,0,.34), inset 0 2px 0 rgba(255,244,197,.12);
+  background:linear-gradient(180deg, rgba(18,27,42,.94), rgba(12,14,24,.96));
+  box-shadow:0 24px 70px rgba(0,0,0,.36), inset 0 1px 0 rgba(255,255,255,.06);
 }
 
-.setup-card{
+.faction-panel{
   padding:18px;
 }
 
-.setup-top{
+.faction-panel h2{
+  margin:0 0 14px;
+}
+
+.faction-grid{
   display:grid;
-  grid-template-columns:repeat(3, minmax(0, 1fr));
+  grid-template-columns:1fr 1fr;
   gap:12px;
-  margin-bottom:14px;
-}
-
-label{
-  display:flex;
-  flex-direction:column;
-  gap:7px;
-  color:#d8b9b2;
-  font-size:13px;
-  font-weight:900;
-}
-
-input,
-select{
-  min-height:42px;
-  border:1px solid rgba(255,100,112,.24);
-  border-radius:8px;
-  background:#100508;
-  color:white;
-  padding:0 10px;
-  font:inherit;
-}
-
-.slots{
-  display:grid;
-  gap:10px;
-  max-height:58vh;
-  overflow:auto;
-  padding-right:4px;
-}
-
-.slot{
-  display:grid;
-  grid-template-columns:34px 1fr 138px 84px 96px;
-  gap:8px;
-  align-items:end;
-  padding:10px;
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:8px;
-  background:rgba(255,255,255,.045);
-}
-
-.slot-number{
-  height:42px;
-  display:grid;
-  place-items:center;
-  border-radius:8px;
-  background:rgba(255,255,255,.08);
-  font-weight:900;
-}
-
-.setup-actions{
-  display:flex;
-  justify-content:flex-end;
-  gap:10px;
-  margin-top:16px;
 }
 
 button{
@@ -133,293 +78,254 @@ button{
   border-radius:8px;
   color:white;
   font-weight:900;
+  background:rgba(255,255,255,.07);
   cursor:pointer;
-  transition:transform .16s ease, border-color .16s ease, background .16s ease;
-}
-
-button:hover{
-  transform:translateY(-1px);
-  border-color:rgba(255,255,255,.3);
 }
 
 button:disabled{
   opacity:.42;
   cursor:not-allowed;
-  transform:none;
 }
 
-.primary-btn{
-  padding:0 20px;
-  border-color:rgba(255,82,104,.62);
-  background:linear-gradient(135deg, #ff5268, #a7182c);
+.faction-card{
+  min-height:150px;
+  padding:18px;
+  text-align:left;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  gap:8px;
+  overflow:hidden;
+  position:relative;
 }
 
-.secondary-btn{
-  padding:0 18px;
-  background:rgba(255,255,255,.07);
+.faction-card::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  opacity:.35;
 }
 
-.game-view{
+.faction-card.watchers::before{
+  background:radial-gradient(circle at 72% 18%, #49b8ff, transparent 34%), linear-gradient(135deg, #102842, #0f1727);
+}
+
+.faction-card.shadows::before{
+  background:radial-gradient(circle at 72% 18%, #a568ff, transparent 34%), linear-gradient(135deg, #21122d, #110c1b);
+}
+
+.faction-card.selected{
+  border-color:#83c7ff;
+  box-shadow:0 0 0 2px rgba(131,199,255,.16);
+}
+
+.faction-card span,
+.faction-card small{
+  position:relative;
+}
+
+.faction-card span{
+  font-size:24px;
+}
+
+.faction-card small{
+  color:#c7d0e0;
+}
+
+.start-btn{
+  width:100%;
+  min-height:52px;
+  margin-top:14px;
+  background:linear-gradient(135deg, #248dff, #7f4dff);
+}
+
+.game-screen{
   height:calc(100vh - 64px);
-  min-height:660px;
+  min-height:680px;
   display:flex;
   flex-direction:column;
   gap:10px;
 }
 
-.topbar{
-  min-height:58px;
+.hud-top{
+  min-height:62px;
   display:grid;
-  grid-template-columns:230px 1fr 178px;
+  grid-template-columns:220px 1fr 104px;
   align-items:center;
   gap:12px;
-  padding:8px 12px;
+  padding:9px 12px;
 }
 
-.topbar strong{
+.match-title strong{
   display:block;
-  margin-top:4px;
+  margin-top:3px;
   font-size:18px;
 }
 
-.resources,
-.top-actions{
+.resource-bar{
   display:flex;
-  align-items:center;
-  gap:10px;
-}
-
-.resources{
   justify-content:center;
   flex-wrap:wrap;
-}
-
-.resources span{
-  min-height:34px;
-  padding:7px 11px;
-  border-radius:8px;
-  background:#4a2817;
-  color:#ffe7b8;
-  box-shadow:inset 0 -3px 0 rgba(0,0,0,.18);
-}
-
-.top-actions{
-  justify-content:flex-end;
-}
-
-.top-actions > span{
-  min-width:74px;
-  font-weight:900;
-  color:#ffe0a4;
-}
-
-.top-actions button{
-  width:42px;
-  background:rgba(255,255,255,.08);
-}
-
-.war-layout{
-  min-height:0;
-  flex:1;
-  display:grid;
-  grid-template-columns:210px minmax(0, 1fr) 218px;
-  grid-template-areas:"side field intel";
   gap:10px;
 }
 
-.side-panel{
-  grid-area:side;
-}
-
-.battlefield-frame{
-  grid-area:field;
-}
-
-.intel-panel{
-  grid-area:intel;
-}
-
-.side-panel,
-.intel-panel{
-  min-height:0;
-  overflow:auto;
-  padding:10px;
-}
-
-.side-panel section{
-  padding-bottom:14px;
-  margin-bottom:14px;
-  border-bottom:1px solid rgba(255,255,255,.08);
-}
-
-.side-panel section:last-child{
-  border-bottom:0;
-}
-
-h2{
-  margin:0 0 9px;
-  font-size:15px;
-}
-
-.selection-panel{
-  min-height:94px;
-  display:grid;
-  gap:7px;
-}
-
-.entity-card{
-  padding:8px;
+.resource-bar span{
+  min-height:36px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:0 12px;
   border-radius:8px;
-  background:rgba(255,255,255,.07);
-  font-size:13px;
+  background:rgba(255,255,255,.08);
+  color:#dfe9ff;
 }
 
-.entity-card strong{
-  display:block;
+.resource-bar b{
+  color:#fff;
 }
 
-.entity-card span{
-  color:#d3b4ae;
-}
-
-.command-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
+.hud-actions{
+  display:flex;
+  justify-content:flex-end;
   gap:8px;
 }
 
-.command-grid button{
-  min-height:44px;
-  padding:0 7px;
-  background:#4b171f;
-  font-size:12px;
-  box-shadow:inset 0 -3px 0 rgba(0,0,0,.2);
+.hud-actions button{
+  width:44px;
 }
 
-.battlefield-frame{
-  position:relative;
+.game-layout{
+  min-height:0;
+  flex:1;
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) 260px;
+  gap:10px;
+}
+
+.viewport-wrap{
   min-width:0;
   min-height:0;
-  border:4px solid #1f3131;
-  border-radius:8px;
+  position:relative;
   overflow:hidden;
-  background:#78b85a;
-  box-shadow:0 14px 0 rgba(0,0,0,.16), 0 24px 80px rgba(0,0,0,.36);
+  border:1px solid rgba(132,165,255,.22);
+  border-radius:8px;
+  background:#111923;
+  box-shadow:0 24px 80px rgba(0,0,0,.36);
 }
 
-#battlefield{
+#gameCanvas{
+  display:block;
   width:100%;
   height:100%;
-  display:block;
   cursor:crosshair;
-  image-rendering:pixelated;
 }
 
-.notice{
+.system-message{
   position:absolute;
   left:50%;
-  bottom:20px;
+  bottom:18px;
   transform:translateX(-50%);
-  max-width:560px;
+  max-width:580px;
   padding:10px 14px;
-  border:3px solid #1c130d;
+  border:1px solid rgba(255,255,255,.16);
   border-radius:8px;
-  background:#321b0b;
-  color:#ffeab2;
-  font-weight:900;
-  text-align:center;
-  box-shadow:0 8px 0 rgba(0,0,0,.18);
+  background:rgba(9,12,20,.88);
+  color:#fff;
   opacity:0;
   pointer-events:none;
   transition:opacity .18s ease;
 }
 
-.notice.visible{
+.system-message.visible{
   opacity:1;
+}
+
+.command-panel{
+  min-height:0;
+  padding:12px;
+  overflow:auto;
 }
 
 #minimap{
   width:100%;
-  height:160px;
-  border:3px solid #1f3131;
+  height:150px;
+  border:1px solid rgba(255,255,255,.12);
   border-radius:8px;
-  background:#76b859;
-  image-rendering:pixelated;
+  background:#101923;
 }
 
-.players-panel{
-  display:grid;
-  gap:8px;
-  margin:12px 0;
+.command-panel section{
+  padding-top:14px;
+  margin-top:14px;
+  border-top:1px solid rgba(255,255,255,.08);
 }
 
-.player-row{
-  padding:8px;
+.command-panel h2{
+  margin:0 0 8px;
+  font-size:15px;
+}
+
+.selected-info{
+  min-height:90px;
+  padding:10px;
   border-radius:8px;
-  border-left:4px solid currentColor;
-  background:#3b2117;
-  font-size:12px;
+  background:rgba(255,255,255,.06);
+  color:#d4dcec;
+  line-height:1.45;
 }
 
-.player-row strong{
+.selected-info strong{
   display:block;
   color:white;
+  margin-bottom:4px;
 }
 
-.player-row span{
-  color:#d6b8b2;
-}
-
-.help-panel{
+.action-buttons{
   display:grid;
-  gap:5px;
-  color:#d6b8b2;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+.action-buttons button{
+  min-height:48px;
+  padding:0 8px;
+  background:rgba(73,139,255,.12);
+}
+
+.help p{
+  margin:0;
+  color:#aeb9cc;
   font-size:13px;
+  line-height:1.45;
 }
 
-.help-panel strong{
-  color:white;
-}
-
-@media (max-width:1150px){
-  body.moonfall-page{
+@media (max-width:1100px){
+  body.moonfall-rts-page{
     overflow:auto;
   }
 
-  .setup-view,
-  .war-layout,
-  .topbar{
+  .home-screen,
+  .game-layout,
+  .hud-top{
     grid-template-columns:1fr;
   }
 
-  .war-layout{
-    grid-template-areas:
-      "field"
-      "side"
-      "intel";
-  }
-
-  .game-view{
+  .game-screen{
     height:auto;
     min-height:900px;
   }
 
-  .battlefield-frame{
+  .viewport-wrap{
     min-height:620px;
   }
 }
 
-@media (max-width:760px){
-  .setup-copy h1{
+@media (max-width:720px){
+  .home-copy h1{
     font-size:52px;
   }
 
-  .setup-top,
-  .slot{
+  .faction-grid{
     grid-template-columns:1fr;
-  }
-
-  .slot-number{
-    width:42px;
   }
 }
