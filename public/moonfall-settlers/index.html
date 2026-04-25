@@ -80,19 +80,40 @@
       <div class="top-actions">
         <button id="rollBtn" type="button">Des</button>
         <button id="endTurnBtn" type="button">Fin</button>
-        <button id="newGameBtn" type="button" title="Nouvelle partie">R</button>
       </div>
     </header>
 
     <div class="play-layout">
-      <aside class="side-panel">
-        <section>
-          <h2>Clan</h2>
-          <div id="resourcePanel" class="resource-panel"></div>
-        </section>
+      <nav class="tool-rail" aria-label="Outils">
+        <button id="newGameBtn" class="tool-icon" type="button" title="Nouvelle partie">↺</button>
+        <button class="tool-icon" type="button" title="Infos" data-panel-target="boardPanel">i</button>
+        <button class="tool-icon" type="button" title="Journal" data-panel-target="logPanel">≡</button>
+      </nav>
 
+      <div class="board-frame">
+        <canvas id="boardCanvas" aria-label="Plateau Moonfall Settlers"></canvas>
+        <div id="notice" class="notice" aria-live="polite"></div>
+      </div>
+
+      <aside class="intel-panel">
+        <section class="message-card">
+          <h2>Moonfall</h2>
+          <div id="boardPanel" class="board-panel"></div>
+        </section>
         <section>
-          <h2>Construction</h2>
+          <h2>Journal</h2>
+          <div id="logPanel" class="log-panel"></div>
+        </section>
+        <section>
+          <h2>Joueurs</h2>
+          <div id="playersPanel" class="players-panel"></div>
+        </section>
+      </aside>
+
+      <footer class="bottom-dock">
+        <div id="resourcePanel" class="resource-panel"></div>
+
+        <div class="build-console">
           <div class="command-grid build-grid">
             <button id="roadBtn" type="button">Route</button>
             <button id="settlementBtn" type="button">Colonie</button>
@@ -100,10 +121,15 @@
             <button id="devBtn" type="button">Carte</button>
           </div>
           <div id="costPanel" class="cost-panel"></div>
-        </section>
+        </div>
 
-        <section>
-          <h2>Echange</h2>
+        <details class="dock-drawer">
+          <summary>Cartes</summary>
+          <div id="devPanel" class="dev-panel"></div>
+        </details>
+
+        <details class="dock-drawer trade-drawer">
+          <summary>Echange</summary>
           <div class="trade-panel">
             <label>Donner
               <select id="tradeGive"></select>
@@ -125,33 +151,8 @@
               <button id="playerTradeBtn" type="button">Clans</button>
             </div>
           </div>
-        </section>
-
-        <section>
-          <h2>Cartes</h2>
-          <div id="devPanel" class="dev-panel"></div>
-        </section>
-      </aside>
-
-      <div class="board-frame">
-        <canvas id="boardCanvas" aria-label="Plateau Moonfall Settlers"></canvas>
-        <div id="notice" class="notice" aria-live="polite"></div>
-      </div>
-
-      <aside class="intel-panel">
-        <section>
-          <h2>Joueurs</h2>
-          <div id="playersPanel" class="players-panel"></div>
-        </section>
-        <section>
-          <h2>Plateau</h2>
-          <div id="boardPanel" class="board-panel"></div>
-        </section>
-        <section>
-          <h2>Journal</h2>
-          <div id="logPanel" class="log-panel"></div>
-        </section>
-      </aside>
+        </details>
+      </footer>
     </div>
   </section>
 </main>

@@ -607,3 +607,449 @@ h2{
     min-height:560px;
   }
 }
+
+/* Compact board-first interface */
+body.moonsettlers-page{
+  background:#0e6ca1;
+}
+
+.game-view{
+  height:calc(100vh - 64px);
+  min-height:720px;
+  gap:8px;
+}
+
+.topbar{
+  min-height:54px;
+  grid-template-columns:220px 1fr 132px;
+  border:0;
+  background:#fbf6ea;
+  color:#1b2024;
+  box-shadow:0 4px 0 rgba(0,0,0,.18);
+}
+
+.topbar .eyebrow{
+  color:#2b6abe;
+}
+
+.status-strip span{
+  min-height:32px;
+  background:#eef2e6;
+  color:#2b3032;
+  border:1px solid #d8d0bd;
+  box-shadow:none;
+}
+
+.top-actions button{
+  min-width:58px;
+  min-height:38px;
+  background:#2c8fd4;
+  border-color:#166695;
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.18);
+}
+
+.play-layout{
+  min-height:0;
+  flex:1;
+  display:grid;
+  grid-template-columns:58px minmax(560px, 1fr) 322px;
+  grid-template-rows:minmax(0, 1fr) 132px;
+  grid-template-areas:
+    "rail board intel"
+    "rail dock intel";
+  gap:8px;
+}
+
+.tool-rail{
+  grid-area:rail;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:12px;
+  padding:10px 6px;
+  border-radius:8px;
+  background:#0e6ca1;
+}
+
+.tool-icon{
+  width:46px;
+  min-height:46px;
+  padding:0;
+  border:2px solid rgba(255,255,255,.65);
+  border-radius:50%;
+  background:#e8f6fb;
+  color:#125174;
+  font-size:18px;
+  box-shadow:0 4px 0 rgba(0,0,0,.18);
+}
+
+.board-frame{
+  grid-area:board;
+  border:0;
+  border-radius:8px;
+  background:#0f75aa;
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.12), 0 8px 0 rgba(0,0,0,.16);
+}
+
+.intel-panel{
+  grid-area:intel;
+  border:0;
+  border-radius:8px;
+  padding:0;
+  display:grid;
+  grid-template-rows:auto minmax(180px, .9fr) minmax(220px, 1.15fr);
+  gap:8px;
+  overflow:hidden;
+  background:transparent;
+  box-shadow:none;
+}
+
+.intel-panel section{
+  margin:0;
+  padding:16px;
+  border:0;
+  border-radius:8px;
+  overflow:auto;
+  background:#f7f0e2;
+  color:#1c2126;
+  box-shadow:0 4px 0 rgba(0,0,0,.18);
+}
+
+.intel-panel h2{
+  color:#111;
+  font-size:17px;
+}
+
+.bottom-dock{
+  grid-area:dock;
+  min-width:0;
+  display:grid;
+  grid-template-columns:minmax(310px, 1fr) minmax(300px, .9fr) 126px 134px;
+  gap:8px;
+  align-items:stretch;
+}
+
+.bottom-dock > *,
+.dock-drawer{
+  min-width:0;
+  border:2px solid rgba(255,255,255,.78);
+  border-radius:8px;
+  background:#f7f0e2;
+  color:#1c2126;
+  box-shadow:0 4px 0 rgba(0,0,0,.18);
+}
+
+.resource-panel{
+  display:grid;
+  grid-template-columns:repeat(5, minmax(54px, 1fr));
+  gap:7px;
+  padding:8px;
+}
+
+.resource-row{
+  min-height:0;
+  display:grid;
+  grid-template-rows:42px 1fr;
+  grid-template-columns:1fr;
+  place-items:center;
+  gap:1px;
+  padding:6px 4px;
+  border:2px solid #ded5bf;
+  background:linear-gradient(180deg, #fffdf5, #d6edf2);
+  color:#1b2024;
+  box-shadow:inset 0 -4px 0 rgba(0,0,0,.08);
+}
+
+.resource-row img{
+  width:40px;
+  height:40px;
+  display:block;
+}
+
+.resource-row strong{
+  display:none;
+}
+
+.resource-row b{
+  min-width:30px;
+  height:24px;
+  display:grid;
+  place-items:center;
+  margin-top:-17px;
+  margin-left:32px;
+  border-radius:999px;
+  background:#246bc4;
+  color:white;
+  font-size:15px;
+  box-shadow:0 2px 0 rgba(0,0,0,.25);
+}
+
+.resource-mark{
+  display:none;
+}
+
+.build-console{
+  min-width:0;
+  padding:8px;
+}
+
+.command-grid{
+  height:72px;
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+  gap:8px;
+}
+
+.command-grid button{
+  min-height:72px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  padding:5px;
+  border:2px solid rgba(255,255,255,.78);
+  background:linear-gradient(180deg, #84d6ea, #49adca);
+  color:#143847;
+  font-size:12px;
+  box-shadow:inset 0 -4px 0 rgba(0,0,0,.16);
+}
+
+.command-grid button::before{
+  content:"";
+  width:30px;
+  height:30px;
+  display:block;
+  background:center/contain no-repeat;
+  opacity:.88;
+}
+
+#roadBtn::before{background-image:url("/moonfall-settlers/assets/road.svg");}
+#settlementBtn::before{background-image:url("/moonfall-settlers/assets/settlement.svg");}
+#cityBtn::before{background-image:url("/moonfall-settlers/assets/settlement.svg");}
+#devBtn::before{background-image:url("/moonfall-settlers/assets/dev-card.svg");}
+
+.command-grid button.active{
+  border-color:#ffd15e;
+  background:linear-gradient(180deg, #ffe184, #f6b94a);
+}
+
+.cost-panel{
+  min-height:30px;
+  margin-top:6px;
+  gap:5px;
+  overflow:hidden;
+}
+
+.cost-chip{
+  padding:5px 7px;
+  border:1px solid #ded5bf;
+  background:#fffaf0;
+  color:#4f4a41;
+  font-size:11px;
+  white-space:nowrap;
+}
+
+.dock-drawer{
+  position:relative;
+  padding:0;
+}
+
+.dock-drawer summary{
+  height:100%;
+  display:grid;
+  place-items:center;
+  color:#143847;
+  font-weight:900;
+  cursor:pointer;
+  list-style:none;
+}
+
+.dock-drawer summary::-webkit-details-marker{
+  display:none;
+}
+
+.dock-drawer[open]{
+  position:relative;
+  z-index:10;
+}
+
+.dock-drawer[open] summary{
+  height:36px;
+  border-bottom:1px solid #ddd3bf;
+}
+
+.dock-drawer[open] .dev-panel,
+.dock-drawer[open] .trade-panel{
+  position:absolute;
+  right:0;
+  bottom:100%;
+  width:min(520px, calc(100vw - 40px));
+  max-height:430px;
+  overflow:auto;
+  padding:12px;
+  border:2px solid #ded5bf;
+  border-radius:8px 8px 0 0;
+  background:#f7f0e2;
+  box-shadow:0 -12px 38px rgba(0,0,0,.28);
+}
+
+.trade-panel{
+  color:#1c2126;
+}
+
+.trade-panel label{
+  color:#333941;
+}
+
+.trade-panel input,
+.trade-panel select{
+  background:#fffaf0;
+  color:#1c2126;
+  border-color:#d2c6af;
+}
+
+.dev-card-row,
+.player-row,
+.board-stat,
+.log-entry{
+  border:1px solid #ddd3bf;
+  background:#fffaf0;
+  color:#1c2126;
+}
+
+.dev-card-row span,
+.player-row span,
+.board-stat span,
+.log-entry{
+  color:#4b4f52;
+}
+
+.player-row{
+  display:grid;
+  grid-template-columns:42px 1fr;
+  gap:8px;
+  border-left:0;
+}
+
+.player-row::before{
+  content:"";
+  width:38px;
+  height:38px;
+  border:4px solid currentColor;
+  border-radius:50%;
+  background:#fff;
+  box-shadow:inset 0 0 0 5px rgba(255,255,255,.6);
+}
+
+.player-row strong,
+.player-row span{
+  grid-column:2;
+}
+
+.player-row.active{
+  background:#e9f4fb;
+}
+
+.oni-stat{
+  display:grid;
+  grid-template-columns:40px 1fr;
+  gap:9px;
+  align-items:center;
+}
+
+.oni-stat img{
+  width:38px;
+  height:38px;
+}
+
+.oni-stat span{
+  display:grid;
+  gap:2px;
+}
+
+.log-panel{
+  max-height:none;
+}
+
+.log-entry{
+  padding:8px 9px;
+  font-size:14px;
+}
+
+.notice{
+  bottom:16px;
+  border:0;
+  background:#fffaf0;
+  color:#171b1f;
+  box-shadow:0 6px 0 rgba(0,0,0,.22), 0 18px 44px rgba(0,0,0,.2);
+}
+
+body.app-shell-active.moonsettlers-page button:not(.shell-nav-item):not(.shell-brand):not(.online-player){
+  border-color:rgba(255,255,255,.78) !important;
+  background:linear-gradient(180deg, #84d6ea, #49adca) !important;
+  color:#143847 !important;
+}
+
+body.app-shell-active.moonsettlers-page .top-actions button,
+body.app-shell-active.moonsettlers-page #rollBtn{
+  background:#2c8fd4 !important;
+  color:white !important;
+}
+
+body.app-shell-active.moonsettlers-page .command-grid button.active{
+  background:linear-gradient(180deg, #ffe184, #f6b94a) !important;
+}
+
+@media (max-width:1180px){
+  body.moonsettlers-page{
+    overflow:auto;
+  }
+
+  .game-view{
+    height:auto;
+  }
+
+  .play-layout{
+    grid-template-columns:48px minmax(0, 1fr);
+    grid-template-rows:620px auto auto;
+    grid-template-areas:
+      "rail board"
+      "rail dock"
+      "intel intel";
+  }
+
+  .bottom-dock{
+    grid-template-columns:1fr;
+  }
+
+  .intel-panel{
+    grid-template-rows:auto;
+  }
+}
+
+@media (max-width:760px){
+  .topbar{
+    grid-template-columns:1fr;
+  }
+
+  .play-layout{
+    grid-template-columns:1fr;
+    grid-template-areas:
+      "board"
+      "dock"
+      "intel";
+  }
+
+  .tool-rail{
+    display:none;
+  }
+
+  .resource-panel{
+    grid-template-columns:repeat(5, minmax(0, 1fr));
+  }
+
+  .command-grid{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    height:auto;
+  }
+}

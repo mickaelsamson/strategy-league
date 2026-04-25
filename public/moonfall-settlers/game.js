@@ -1,11 +1,11 @@
 (() => {
   const RESOURCE_KEYS = ['cedar', 'clay', 'rice', 'wisteria', 'sunsteel'];
   const RESOURCES = {
-    cedar: { name: 'Cedre', short: 'Ce', color: '#78d6a7', tile: '#245f50', dark: '#153c35' },
-    clay: { name: 'Argile', short: 'Ar', color: '#e08a58', tile: '#a84f38', dark: '#6b2d25' },
-    rice: { name: 'Riz', short: 'Ri', color: '#f1d274', tile: '#c19a42', dark: '#79622d' },
-    wisteria: { name: 'Glycine', short: 'Gl', color: '#b99bff', tile: '#6d5bb4', dark: '#43346f' },
-    sunsteel: { name: 'Acier', short: 'Ac', color: '#c7d2d9', tile: '#52636e', dark: '#2f3c45' }
+    cedar: { name: 'Cedre', short: 'Ce', color: '#78d6a7', tile: '#1fa45e', dark: '#116543', icon: '/moonfall-settlers/assets/cedar.svg' },
+    clay: { name: 'Argile', short: 'Ar', color: '#e08a58', tile: '#ef7645', dark: '#9a3c2a', icon: '/moonfall-settlers/assets/clay.svg' },
+    rice: { name: 'Riz', short: 'Ri', color: '#f1d274', tile: '#f2c238', dark: '#a87b20', icon: '/moonfall-settlers/assets/rice.svg' },
+    wisteria: { name: 'Glycine', short: 'Gl', color: '#b99bff', tile: '#99c823', dark: '#5d861c', icon: '/moonfall-settlers/assets/wisteria.svg' },
+    sunsteel: { name: 'Acier', short: 'Ac', color: '#c7d2d9', tile: '#b9c8c7', dark: '#71817f', icon: '/moonfall-settlers/assets/sunsteel.svg' }
   };
 
   const TILE_BAG = [
@@ -441,13 +441,14 @@
     const { width, height } = state.view;
     ctx.clearRect(0, 0, width, height);
     const bg = ctx.createLinearGradient(0, 0, width, height);
-    bg.addColorStop(0, '#0e2027');
-    bg.addColorStop(.55, '#172128');
-    bg.addColorStop(1, '#25151c');
+    bg.addColorStop(0, '#0b75ad');
+    bg.addColorStop(.52, '#0c6da4');
+    bg.addColorStop(1, '#075a8d');
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, width, height);
-    drawTableTexture(width, height);
+    drawOceanTexture(width, height);
     drawMoon(width, height);
+    drawCoastLayers();
     state.board.tiles
       .slice()
       .sort((a, b) => a.center.y - b.center.y)
@@ -460,15 +461,17 @@
     drawHover();
   }
 
-  function drawTableTexture(width, height){
+  function drawOceanTexture(width, height){
     ctx.save();
-    ctx.globalAlpha = .26;
-    ctx.strokeStyle = '#385157';
-    ctx.lineWidth = 1;
-    for(let x = -height; x < width + height; x += 42){
+    ctx.globalAlpha = .2;
+    ctx.strokeStyle = '#58b6d8';
+    ctx.lineWidth = 2;
+    for(let y = 28; y < height; y += 58){
       ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x + height, height);
+      ctx.moveTo(0, y);
+      for(let x = 0; x <= width + 40; x += 40){
+        ctx.quadraticCurveTo(x + 20, y - 10, x + 40, y);
+      }
       ctx.stroke();
     }
     ctx.restore();
@@ -477,16 +480,46 @@
   function drawMoon(width){
     ctx.save();
     ctx.translate(width - 92, 86);
-    ctx.fillStyle = 'rgba(246, 231, 188, .84)';
+    ctx.fillStyle = 'rgba(246, 231, 188, .9)';
     ctx.beginPath();
-    ctx.arc(0, 0, 42, 0, Math.PI * 2);
+    ctx.arc(0, 0, 40, 0, Math.PI * 2);
     ctx.fill();
-    ctx.globalCompositeOperation = 'source-atop';
-    ctx.fillStyle = '#172128';
+    ctx.fillStyle = '#0b75ad';
     ctx.beginPath();
-    ctx.arc(-18, -8, 38, 0, Math.PI * 2);
+    ctx.arc(-20, -8, 38, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
+  }
+
+  function drawCoastLayers(){
+    const layers = [
+      { radius: 1.2, fill: '#87d9e8', alpha: .82 },
+      { radius: 1.12, fill: '#dff0d2', alpha: .95 },
+      { radius: 1.06, fill: '#f2df9b', alpha: 1 }
+    ];
+
+    ctx.save();
+    layers.forEach(layer => {
+      ctx.globalAlpha = layer.alpha;
+      ctx.fillStyle = layer.fill;
+      state.board.tiles.forEach(tile => {
+        drawHexPath(screenPoint(tile.center), state.view.scale * layer.radius);
+        ctx.fill();
+      });
+    });
+    ctx.restore();
+  }
+
+  function drawHexPath(center, radius){
+    ctx.beginPath();
+    for(let corner = 0; corner < 6; corner += 1){
+      const angle = (Math.PI / 180) * (30 + corner * 60);
+      const x = center.x + Math.cos(angle) * radius;
+      const y = center.y + Math.sin(angle) * radius;
+      if(corner === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
   }
 
   function getTileCorners(tile){
@@ -515,18 +548,34 @@
       else ctx.lineTo(point.x, point.y);
     });
     ctx.closePath();
-    ctx.fillStyle = tile.type === 'crater' ? '#21151b' : resource.tile;
+    ctx.shadowColor = 'rgba(0,0,0,.22)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetY = 5;
+    const fill = ctx.createLinearGradient(center.x - state.view.scale, center.y - state.view.scale, center.x + state.view.scale, center.y + state.view.scale);
+    if(tile.type === 'crater'){
+      fill.addColorStop(0, '#efe4a9');
+      fill.addColorStop(1, '#bdb777');
+    }else{
+      fill.addColorStop(0, resource.tile);
+      fill.addColorStop(1, resource.dark);
+    }
+    ctx.fillStyle = fill;
     ctx.fill();
+    ctx.shadowColor = 'transparent';
     ctx.clip();
     drawTilePattern(tile, center);
+    drawTileIcon(tile, center);
     ctx.restore();
 
     ctx.save();
     ctx.beginPath();
     corners.forEach((point, index) => index === 0 ? ctx.moveTo(point.x, point.y) : ctx.lineTo(point.x, point.y));
     ctx.closePath();
-    ctx.lineWidth = state.hover?.tileId === tile.id ? 4 : 2;
-    ctx.strokeStyle = state.hover?.tileId === tile.id ? '#f6d37c' : 'rgba(255,244,211,.28)';
+    ctx.lineWidth = state.hover?.tileId === tile.id ? 5 : 3;
+    ctx.strokeStyle = state.hover?.tileId === tile.id ? '#fff27d' : 'rgba(92,77,30,.52)';
+    ctx.stroke();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(255,255,255,.38)';
     ctx.stroke();
     ctx.restore();
 
@@ -539,7 +588,7 @@
     const size = state.view.scale;
     if(tile.type === 'cedar'){
       for(let i = -2; i <= 2; i += 1){
-        drawTree(center.x + i * size * .22, center.y + ((i % 2) * size * .12), size * .22);
+        drawTree(center.x + i * size * .23, center.y + size * .22 + ((i % 2) * size * .1), size * .18);
       }
     }else if(tile.type === 'clay'){
       ctx.strokeStyle = 'rgba(70,31,24,.42)';
@@ -608,6 +657,80 @@
     }
   }
 
+  function drawTileIcon(tile, center){
+    const size = state.view.scale;
+    ctx.save();
+    ctx.translate(center.x, center.y - size * .34);
+    ctx.globalAlpha = .88;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    if(tile.type === 'cedar'){
+      drawTree(0, 8, size * .2);
+    }else if(tile.type === 'clay'){
+      ctx.fillStyle = 'rgba(255,235,210,.78)';
+      ctx.strokeStyle = 'rgba(109,50,33,.7)';
+      ctx.lineWidth = 3;
+      [-16, 0, 16].forEach((x, index) => {
+        roundedRect(x - 12, index === 1 ? -10 : 2, 24, 14, 3);
+        ctx.fill();
+        ctx.stroke();
+      });
+    }else if(tile.type === 'rice'){
+      ctx.strokeStyle = 'rgba(111,83,22,.78)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(0, 22);
+      ctx.lineTo(0, -22);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255,245,153,.86)';
+      for(let i = 0; i < 6; i += 1){
+        const side = i % 2 === 0 ? -1 : 1;
+        ctx.beginPath();
+        ctx.ellipse(side * 10, -16 + i * 7, 6, 13, side * .7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }else if(tile.type === 'wisteria'){
+      ctx.strokeStyle = 'rgba(55,98,30,.72)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(-20, -18);
+      ctx.quadraticCurveTo(0, -28, 20, -18);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(244,236,255,.82)';
+      for(let i = -2; i <= 2; i += 1){
+        ctx.beginPath();
+        ctx.ellipse(i * 8, 2 + Math.abs(i) * 4, 6, 14, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }else if(tile.type === 'sunsteel'){
+      ctx.fillStyle = 'rgba(255,255,255,.7)';
+      ctx.strokeStyle = 'rgba(70,80,82,.62)';
+      ctx.lineWidth = 4;
+      for(let i = -1; i <= 1; i += 1){
+        ctx.beginPath();
+        ctx.moveTo(i * 18, -22);
+        ctx.lineTo(i * 18 - 14, 18);
+        ctx.lineTo(i * 18 + 16, 18);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+    }else{
+      ctx.fillStyle = 'rgba(40,43,38,.42)';
+      ctx.beginPath();
+      ctx.arc(0, 0, size * .24, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(83,85,70,.55)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(-24, 12);
+      ctx.quadraticCurveTo(0, -18, 24, 12);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   function drawTree(x, y, size){
     ctx.fillStyle = 'rgba(14,55,43,.56)';
     ctx.beginPath();
@@ -622,18 +745,28 @@
 
   function drawNumberToken(center, number, hot){
     ctx.save();
-    ctx.beginPath();
-    ctx.arc(center.x, center.y, 21, 0, Math.PI * 2);
-    ctx.fillStyle = hot ? '#5b1d27' : '#f3e2bc';
+    const x = center.x - 25;
+    const y = center.y + state.view.scale * .08;
+    roundedRect(x, y, 50, 42, 7);
+    ctx.fillStyle = hot ? '#fff3e8' : '#f8f7ee';
     ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = hot ? '#f0b35d' : '#6a5230';
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = hot ? '#d73b3e' : 'rgba(79,84,54,.42)';
     ctx.stroke();
-    ctx.fillStyle = hot ? '#ffd46f' : '#2c2520';
-    ctx.font = '900 18px Trebuchet MS, sans-serif';
+    ctx.fillStyle = hot ? '#d90914' : '#055316';
+    ctx.font = '900 28px Trebuchet MS, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(String(number), center.x, center.y + 1);
+    ctx.fillText(String(number), center.x, y + 18);
+
+    const pips = PIP_WEIGHT[number] || 0;
+    ctx.fillStyle = hot ? '#d90914' : '#055316';
+    const start = center.x - (pips - 1) * 3.5;
+    for(let i = 0; i < pips; i += 1){
+      ctx.beginPath();
+      ctx.arc(start + i * 7, y + 33, 2.3, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.restore();
   }
 
@@ -650,25 +783,77 @@
       const label = edge.port === 'generic' ? '3:1' : `${RESOURCES[edge.port].short} 2:1`;
 
       ctx.save();
-      ctx.strokeStyle = 'rgba(242,200,109,.55)';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#b98931';
+      ctx.lineWidth = 5;
       ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
+      ctx.moveTo(mx, my);
       ctx.lineTo(px, py);
-      ctx.lineTo(b.x, b.y);
       ctx.stroke();
-      roundedRect(px - 25, py - 13, 50, 26, 8);
-      ctx.fillStyle = '#18252a';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(242,200,109,.42)';
-      ctx.stroke();
-      ctx.fillStyle = '#ffe4a6';
-      ctx.font = '900 11px Trebuchet MS, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(label, px, py + 1);
+      drawShip(px, py, angle + Math.PI / 2, label, edge.port);
       ctx.restore();
     });
+  }
+
+  function drawShip(x, y, rotation, label, port){
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rotation);
+    ctx.fillStyle = '#b66f28';
+    ctx.strokeStyle = '#704116';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-24, 12);
+    ctx.quadraticCurveTo(0, 28, 24, 12);
+    ctx.lineTo(17, 26);
+    ctx.lineTo(-17, 26);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#fffdf4';
+    ctx.strokeStyle = '#b9a781';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-14, -26);
+    ctx.lineTo(14, -20);
+    ctx.lineTo(8, 8);
+    ctx.lineTo(-12, 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = '#704116';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, -30);
+    ctx.lineTo(0, 14);
+    ctx.stroke();
+
+    if(port !== 'generic'){
+      ctx.fillStyle = RESOURCES[port].dark;
+      ctx.beginPath();
+      ctx.arc(0, -8, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }else{
+      ctx.fillStyle = '#55606a';
+      ctx.font = '900 15px Trebuchet MS, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('?', 0, -7);
+    }
+
+    ctx.restore();
+    ctx.save();
+    roundedRect(x - 19, y + 16, 38, 22, 7);
+    ctx.fillStyle = '#fffaf0';
+    ctx.fill();
+    ctx.strokeStyle = '#b9a781';
+    ctx.stroke();
+    ctx.fillStyle = '#5b4a35';
+    ctx.font = '900 12px Trebuchet MS, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, x, y + 27);
+    ctx.restore();
   }
 
   function drawPlacementHints(){
@@ -1777,6 +1962,7 @@
     const player = getInteractionPlayer() || currentPlayer();
     dom.resourcePanel.innerHTML = RESOURCE_KEYS.map(key => `
       <div class="resource-row">
+        <img src="${RESOURCES[key].icon}" alt="">
         <span class="resource-mark" style="background:${RESOURCES[key].color}">${RESOURCES[key].short}</span>
         <strong>${RESOURCES[key].name}</strong>
         <b>${player.resources[key]}</b>
@@ -1875,7 +2061,7 @@
     const robberTile = state.board.tiles[state.board.robberTile];
     const selected = describeSelected();
     dom.boardPanel.innerHTML = `
-      <div class="board-stat"><strong>Oni</strong><span>${tileLabel(robberTile)}</span></div>
+      <div class="board-stat oni-stat"><img src="/moonfall-settlers/assets/oni.svg" alt=""><span><strong>Oni</strong>${tileLabel(robberTile)}</span></div>
       <div class="board-stat"><strong>Paquet</strong><span>${state.devDeck.length} cartes restantes</span></div>
       <div class="board-stat"><strong>Selection</strong><span>${selected}</span></div>
     `;
@@ -1927,6 +2113,11 @@
   dom.devBtn.addEventListener('click', buyDevCard);
   dom.tradeBtn.addEventListener('click', bankTrade);
   dom.playerTradeBtn.addEventListener('click', playerTrade);
+  (document.querySelectorAll ? document.querySelectorAll('[data-panel-target]') : []).forEach(button => {
+    button.addEventListener('click', () => {
+      document.getElementById(button.dataset.panelTarget)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+  });
   window.addEventListener('resize', resizeCanvas);
 
   renderSlots();
