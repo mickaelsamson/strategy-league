@@ -230,6 +230,21 @@ button{
   font-size:20px;
 }
 
+.result-actions{
+  margin-top:18px;
+  display:flex;
+  justify-content:center;
+  gap:10px;
+}
+
+.show-result-btn{
+  position:fixed;
+  left:50%;
+  bottom:24px;
+  transform:translateX(-50%);
+  z-index:1000;
+}
+
 @keyframes resultPop{
   from{opacity:0; transform:translateY(24px) scale(.92);}
   to{opacity:1; transform:translateY(0) scale(1);}
@@ -285,8 +300,13 @@ button{
     <h1 id="resultTitle" class="result-title">Game Over</h1>
     <p id="resultSubtitle" class="result-subtitle"></p>
     <div id="resultXp" class="result-xp">+0 XP</div>
+    <div class="result-actions">
+      <button onclick="viewBoard()">View Board</button>
+    </div>
   </div>
 </div>
+
+<button id="showResultBtn" class="show-result-btn" onclick="showResult()" hidden>Show Result</button>
 
 <script>
 
@@ -474,11 +494,18 @@ function showResultAnimation(result, message, xpChange){
   title.textContent = result === "win" ? "Victory" : result === "loss" ? "Defeat" : "Draw";
   subtitle.textContent = message || "Game finished.";
   xp.textContent = `+${xpChange} XP`;
+  document.getElementById("showResultBtn").hidden = true;
   updateStoredXp(xpChange);
+}
 
-  setTimeout(()=>{
-    overlay.classList.remove("show");
-  }, 2600);
+function viewBoard(){
+  document.getElementById("resultOverlay").classList.remove("show");
+  document.getElementById("showResultBtn").hidden = false;
+}
+
+function showResult(){
+  document.getElementById("resultOverlay").classList.add("show");
+  document.getElementById("showResultBtn").hidden = true;
 }
 
 function updateStoredXp(xpChange){

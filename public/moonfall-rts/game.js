@@ -34,16 +34,17 @@
   };
 
   const BUILDING = {
-    hall: { hp: 820, radius: 48, pop: 12, cost: {}, trains: ['worker'] },
-    house: { hp: 220, radius: 25, pop: 8, cost: { food: 65, steel: 25 }, trains: [] },
-    barracks: { hp: 470, radius: 36, pop: 4, cost: { food: 130, steel: 95 }, trains: ['fighter', 'ranged', 'elite'] },
-    tower: { hp: 350, radius: 30, pop: 0, cost: { steel: 130, spirit: 25 }, damage: 18, range: 220, cooldown: .85, trains: [] },
-    shrine: { hp: 390, radius: 32, pop: 2, cost: { food: 90, steel: 70, spirit: 40 }, trains: [] }
+    hall: { hp: 820, radius: 70, pop: 12, cost: {}, trains: ['worker'] },
+    house: { hp: 220, radius: 36, pop: 8, cost: { food: 65, steel: 25 }, trains: [] },
+    barracks: { hp: 470, radius: 52, pop: 4, cost: { food: 130, steel: 95 }, trains: ['fighter', 'ranged', 'elite'] },
+    tower: { hp: 350, radius: 42, pop: 0, cost: { steel: 130, spirit: 25 }, damage: 18, range: 220, cooldown: .85, trains: [] },
+    shrine: { hp: 390, radius: 44, pop: 2, cost: { food: 90, steel: 70, spirit: 40 }, trains: [] }
   };
 
-  const PLAYER_COLORS = ['#5dd8ff', '#ff5d92', '#75e885', '#ffc75d', '#b98bff', '#f2f6ff', '#ff8a4d', '#60efca'];
+  const PLAYER_COLORS = ['#1f9ed6', '#d6456f', '#2fa85d', '#d3952f', '#815bd6', '#f2f6ff', '#d45a25', '#1aa98c'];
   const DEFAULT_NAMES = ['Mickael', 'Akari', 'Kuro', 'Ren', 'Sora', 'Nami', 'Kaen', 'Yoru'];
-  const RESOURCE_COLORS = { food: '#71d579', steel: '#c9d2dd', spirit: '#a978ff' };
+  const RESOURCE_COLORS = { food: '#2f8f4d', steel: '#aebcc7', spirit: '#9a66ff' };
+  const MANGA_INK = '#182c37';
 
   const dom = {
     setupView: document.getElementById('setupView'),
@@ -83,6 +84,8 @@
 
   const ctx = dom.canvas.getContext('2d');
   const mini = dom.minimap.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  mini.imageSmoothingEnabled = false;
   let state = null;
   let last = performance.now();
   let noticeTimer = null;
@@ -112,7 +115,7 @@
     dom.slots.innerHTML = '';
 
     for(let i = 0; i < count; i += 1){
-      const team = dom.matchMode.value === 'ffa' ? i + 1 : i < count / 2 ? 1 : 2;
+      const team = dom.matchMode.value === 'ffa' ? i + 1 : i < Math.ceil(count / 2) ? 1 : 2;
       const row = document.createElement('div');
       row.className = 'slot';
       row.innerHTML = `
@@ -178,13 +181,14 @@
     human.type = 'human';
     const huge = dom.mapSize.value === 'huge';
     state = {
-      width: huge ? 4600 : 3400,
-      height: huge ? 3000 : 2250,
+      width: huge ? 3800 : 2850,
+      height: huge ? 2500 : 1900,
       players,
       humanId: human.id,
       units: [],
       buildings: [],
       resources: [],
+      decor: [],
       effects: [],
       selected: [],
       camera: { x: 0, y: 0 },
@@ -195,6 +199,9 @@
       rallyMode: false,
       paused: false,
       time: 0,
+      hudTime: 0,
+      lastRender: 0,
+      needsRender: true,
       winnerTeam: null
     };
 
@@ -211,6 +218,7 @@
 
   function seedMap(){
     const spawns = createSpawnPoints(state.players.length);
+    seedDecor(spawns);
     state.players.forEach((player, index) => {
       const spawn = spawns[index];
       addBuilding(player.id, 'hall', spawn.x, spawn.y);
@@ -232,6 +240,42 @@
       const kind = i % 6 === 0 ? 'spirit' : i % 2 === 0 ? 'steel' : 'food';
       addResource(kind, random(220, state.width - 220), random(220, state.height - 220), kind === 'spirit' ? 620 : 1040);
     }
+  }
+
+  function seedDecor(spawns){
+    state.decor = [];
+    const farFromSpawn = (x, y, buffer = 190) => spawns.every(spawn => Math.hypot(spawn.x - x, spawn.y - y) > buffer);
+
+    for(let x = 90; x < state.width; x += 170){
+      state.decor.push({ type: 'cliff', x, y: 34, scale: random(.85, 1.15) });
+      state.decor.push({ type: 'cliff', x: x + 50, y: state.height - 48, scale: random(.85, 1.15) });
+    }
+    for(let y = 90; y < state.height; y += 160){
+      state.decor.push({ type: 'water', x: 32, y, scale: random(.9, 1.25) });
+      state.decor.push({ type: 'water', x: state.width - 38, y: y + 35, scale: random(.9, 1.25) });
+    }
+
+    for(let i = 0; i < 150; i += 1){
+      const x = random(90, state.width - 90);
+      const y = random(90, state.height - 90);
+      if(!farFromSpawn(x, y, 260)) continue;
+      state.decor.push({
+        type: Math.random() > .28 ? 'tree' : 'bush',
+        x,
+        y,
+        scale: random(.75, 1.25),
+        variant: Math.floor(random(0, 4))
+      });
+    }
+
+    for(let i = 0; i < 70; i += 1){
+      const x = random(100, state.width - 100);
+      const y = random(100, state.height - 100);
+      if(farFromSpawn(x, y, 180)){
+        state.decor.push({ type: 'grass', x, y, scale: random(.8, 1.4), variant: Math.floor(random(0, 4)) });
+      }
+    }
+    state.decor.sort((a, b) => a.y - b.y);
   }
 
   function createSpawnPoints(count){
@@ -266,7 +310,7 @@
       type,
       x,
       y,
-      radius: type === 'elite' ? 17 : type === 'fighter' ? 13 : type === 'ranged' ? 12 : 10,
+      radius: type === 'elite' ? 24 : type === 'fighter' ? 20 : type === 'ranged' ? 19 : 18,
       hp: spec.hp,
       maxHp: spec.hp,
       cooldown: 0,
@@ -305,7 +349,11 @@
     if(state && !state.paused){
       update(dt);
     }
-    if(state) draw();
+    if(state && (!state.paused || state.needsRender) && time - state.lastRender > 50){
+      draw();
+      state.lastRender = time;
+      state.needsRender = false;
+    }
     requestAnimationFrame(loop);
   }
 
@@ -317,7 +365,11 @@
     updateAi(dt);
     cleanup();
     updateWinner();
-    updateHud();
+    state.hudTime -= dt;
+    if(state.hudTime <= 0){
+      state.hudTime = .25;
+      updateHud();
+    }
   }
 
   function updateCamera(dt){
@@ -631,14 +683,15 @@
   }
 
   function draw(){
+    ctx.imageSmoothingEnabled = false;
+    mini.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, dom.canvas.width, dom.canvas.height);
     ctx.save();
     ctx.translate(-state.camera.x, -state.camera.y);
     drawTerrain();
     drawResources();
     drawRallyLines();
-    drawBuildings();
-    drawUnits();
+    drawWorldObjects();
     drawEffects();
     drawDragBox();
     ctx.restore();
@@ -647,50 +700,60 @@
   }
 
   function drawTerrain(){
-    const gradient = ctx.createLinearGradient(0, 0, state.width, state.height);
-    gradient.addColorStop(0, '#10272a');
-    gradient.addColorStop(.32, '#162211');
-    gradient.addColorStop(.68, '#24161b');
-    gradient.addColorStop(1, '#111225');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, state.width, state.height);
+    ctx.fillStyle = '#85bd55';
+    ctx.fillRect(state.camera.x, state.camera.y, dom.canvas.width, dom.canvas.height);
 
-    for(let i = 0; i < 26; i += 1){
-      const x = (i * 379) % state.width;
-      const y = (i * 223) % state.height;
-      ctx.fillStyle = i % 3 === 0 ? 'rgba(70,96,75,.22)' : 'rgba(64,84,99,.16)';
-      ctx.beginPath();
-      ctx.ellipse(x, y, 170 + i * 3, 70 + i * 2, i, 0, Math.PI * 2);
-      ctx.fill();
+    const startX = Math.max(0, Math.floor(state.camera.x / 24) * 24);
+    const startY = Math.max(0, Math.floor(state.camera.y / 24) * 24);
+    const endX = Math.min(state.width, state.camera.x + dom.canvas.width + 48);
+    const endY = Math.min(state.height, state.camera.y + dom.canvas.height + 48);
+
+    for(let y = startY; y < endY; y += 24){
+      for(let x = startX; x < endX; x += 24){
+        const seed = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453) % 1;
+        ctx.fillStyle = seed > .68 ? '#93c75f' : seed > .35 ? '#79ae51' : '#89bd57';
+        drawPixelGrass(x, y, seed);
+      }
     }
 
-    ctx.strokeStyle = 'rgba(255,255,255,.035)';
-    ctx.lineWidth = 1;
-    for(let x = 0; x < state.width; x += 120){
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, state.height);
-      ctx.stroke();
-    }
-    for(let y = 0; y < state.height; y += 120){
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(state.width, y);
-      ctx.stroke();
+    drawWaterEdges();
+    state.decor.filter(item => inView(item, 180)).forEach(drawDecor);
+  }
+
+  function drawPixelGrass(x, y, seed){
+    ctx.fillRect(x, y, 24, 24);
+    ctx.fillStyle = seed > .5 ? '#a8c95c' : '#6ea84b';
+    ctx.fillRect(x + 4, y + 6, 5, 3);
+    ctx.fillRect(x + 15, y + 15, 6, 3);
+    if(seed > .78){
+      ctx.fillStyle = '#c5d46d';
+      ctx.fillRect(x + 10, y + 4, 4, 4);
+      ctx.fillRect(x + 2, y + 18, 4, 3);
     }
   }
 
-  function drawResources(){
-    for(const resource of state.resources){
-      ctx.fillStyle = RESOURCE_COLORS[resource.kind];
-      ctx.globalAlpha = .88;
-      ctx.beginPath();
-      ctx.arc(resource.x, resource.y, resource.radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = 1;
-      ctx.strokeStyle = 'rgba(255,255,255,.26)';
-      ctx.stroke();
+  function drawWaterEdges(){
+    ctx.fillStyle = '#3da9a2';
+    const top = state.camera.y - 80;
+    const height = dom.canvas.height + 160;
+    if(state.camera.x < 90) ctx.fillRect(0, top, 64, height);
+    if(state.camera.x + dom.canvas.width > state.width - 90) ctx.fillRect(state.width - 64, top, 64, height);
+    ctx.fillStyle = '#6bd2ca';
+    const firstY = Math.max(18, Math.floor((state.camera.y - 84) / 84) * 84 + 18);
+    const lastY = Math.min(state.height, state.camera.y + dom.canvas.height + 120);
+    for(let y = firstY; y < lastY; y += 84){
+      ctx.fillRect(28, y, 6, 42);
+      ctx.fillRect(state.width - 34, y + 32, 6, 42);
     }
+    ctx.fillStyle = '#4c6f63';
+    if(state.camera.x < 110) ctx.fillRect(58, top, 18, height);
+    if(state.camera.x + dom.canvas.width > state.width - 110) ctx.fillRect(state.width - 76, top, 18, height);
+  }
+
+  function drawResources(){
+    state.resources.filter(resource => inView(resource, 90)).forEach(resource => {
+      drawResourceNode(resource);
+    });
   }
 
   function drawRallyLines(){
@@ -710,60 +773,357 @@
     ctx.setLineDash([]);
   }
 
-  function drawBuildings(){
-    for(const building of state.buildings){
-      const player = playerById(building.owner);
-      const selected = isSelected(building);
-      ctx.save();
-      ctx.translate(building.x, building.y);
-      ctx.fillStyle = player?.color || '#fff';
-      ctx.strokeStyle = selected ? '#fff' : 'rgba(0,0,0,.68)';
-      ctx.lineWidth = selected ? 4 : 2;
-      const sides = building.type === 'tower' ? 6 : building.type === 'house' ? 4 : 8;
+  function drawWorldObjects(){
+    const objects = [
+      ...state.buildings.filter(item => inView(item, 150)),
+      ...state.units.filter(item => inView(item, 80))
+    ].sort((a, b) => a.y - b.y);
+
+    objects.forEach(item => {
+      if(item.entity === 'building') drawBuildingSprite(item);
+      else drawUnitSprite(item);
+    });
+  }
+
+  function inView(item, pad){
+    return item.x > state.camera.x - pad &&
+      item.x < state.camera.x + dom.canvas.width + pad &&
+      item.y > state.camera.y - pad &&
+      item.y < state.camera.y + dom.canvas.height + pad;
+  }
+
+  function drawDecor(item){
+    if(item.type === 'tree') drawTree(item.x, item.y, item.scale, item.variant);
+    if(item.type === 'bush') drawBush(item.x, item.y, item.scale);
+    if(item.type === 'grass') drawTallGrass(item.x, item.y, item.scale);
+    if(item.type === 'cliff') drawCliff(item.x, item.y, item.scale);
+    if(item.type === 'water') drawWaterRock(item.x, item.y, item.scale);
+  }
+
+  function drawTree(x, y, scale, variant){
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = '#f1df9a';
+    ctx.strokeStyle = MANGA_INK;
+    ctx.lineWidth = 4;
+    ctx.fillRect(-7, 18, 14, 34);
+    ctx.strokeRect(-7, 18, 14, 34);
+    const crown = variant % 3 === 0 ? '#e9c85d' : variant % 3 === 1 ? '#6da34d' : '#456f45';
+    ctx.fillStyle = '#2d4e3e';
+    ctx.beginPath();
+    ctx.ellipse(0, 12, 42, 34, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = crown;
+    ctx.beginPath();
+    ctx.ellipse(-8, 2, 33, 29, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#b7c85a';
+    ctx.fillRect(-24, -7, 14, 8);
+    ctx.fillRect(8, 10, 16, 8);
+    ctx.restore();
+  }
+
+  function drawBush(x, y, scale){
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = '#294d39';
+    ctx.strokeStyle = MANGA_INK;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.ellipse(0, 16, 36, 20, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#4d8a4f';
+    ctx.fillRect(-24, 5, 16, 10);
+    ctx.fillRect(4, 0, 18, 10);
+    ctx.restore();
+  }
+
+  function drawTallGrass(x, y, scale){
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = '#2d7444';
+    for(let i = -2; i <= 2; i += 1){
+      ctx.fillRect(i * 8, 0 - Math.abs(i) * 2, 5, 28 + Math.abs(i) * 3);
+    }
+    ctx.fillStyle = '#7fb45a';
+    ctx.fillRect(-14, 10, 9, 10);
+    ctx.fillRect(10, 14, 10, 10);
+    ctx.restore();
+  }
+
+  function drawCliff(x, y, scale){
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = '#6c8b79';
+    ctx.strokeStyle = '#273c3f';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-48, -18);
+    ctx.lineTo(48, -18);
+    ctx.lineTo(38, 34);
+    ctx.lineTo(-38, 34);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#b2d3c6';
+    ctx.fillRect(-28, -7, 18, 7);
+    ctx.fillRect(8, 4, 22, 7);
+    ctx.restore();
+  }
+
+  function drawWaterRock(x, y, scale){
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = '#6f918b';
+    ctx.strokeStyle = '#274448';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 28, 18, -.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#a6d2c8';
+    ctx.fillRect(-8, -9, 16, 5);
+    ctx.restore();
+  }
+
+  function drawResourceNode(resource){
+    ctx.save();
+    ctx.translate(resource.x, resource.y);
+    ctx.strokeStyle = MANGA_INK;
+    ctx.lineWidth = 4;
+    if(resource.kind === 'food'){
+      ctx.fillStyle = '#315d35';
       ctx.beginPath();
-      for(let i = 0; i < sides; i += 1){
-        const angle = -Math.PI / 2 + i * Math.PI * 2 / sides;
-        const x = Math.cos(angle) * building.radius;
-        const y = Math.sin(angle) * building.radius;
-        if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-      }
+      ctx.ellipse(0, 8, 35, 22, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#4e9a50';
+      ctx.fillRect(-22, -2, 16, 10);
+      ctx.fillRect(3, -8, 18, 12);
+    }else if(resource.kind === 'steel'){
+      ctx.fillStyle = '#9e9f9c';
+      ctx.beginPath();
+      ctx.moveTo(-32, 18);
+      ctx.lineTo(-18, -20);
+      ctx.lineTo(12, -30);
+      ctx.lineTo(34, 0);
+      ctx.lineTo(18, 24);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
-      ctx.restore();
-      drawHealth(building);
-    }
-  }
-
-  function drawUnits(){
-    for(const unit of state.units){
-      const player = playerById(unit.owner);
-      const selected = isSelected(unit);
-      ctx.fillStyle = player?.color || '#fff';
-      ctx.strokeStyle = selected ? '#fff' : 'rgba(0,0,0,.68)';
-      ctx.lineWidth = selected ? 3 : 2;
+      ctx.fillStyle = '#dde4e5';
+      ctx.fillRect(-12, -16, 19, 8);
+    }else{
+      ctx.fillStyle = '#8d60ff';
       ctx.beginPath();
-      if(unit.type === 'elite'){
-        ctx.moveTo(unit.x, unit.y - unit.radius - 5);
-        ctx.lineTo(unit.x + unit.radius + 5, unit.y + unit.radius);
-        ctx.lineTo(unit.x - unit.radius - 5, unit.y + unit.radius);
-        ctx.closePath();
-      }else if(unit.type === 'ranged'){
-        ctx.rect(unit.x - unit.radius, unit.y - unit.radius, unit.radius * 2, unit.radius * 2);
-      }else{
-        ctx.arc(unit.x, unit.y, unit.radius, 0, Math.PI * 2);
-      }
+      ctx.moveTo(0, -34);
+      ctx.lineTo(28, -4);
+      ctx.lineTo(12, 30);
+      ctx.lineTo(-20, 24);
+      ctx.lineTo(-30, -6);
+      ctx.closePath();
       ctx.fill();
       ctx.stroke();
-
-      if(unit.carried){
-        ctx.fillStyle = RESOURCE_COLORS[unit.carried.kind];
-        ctx.beginPath();
-        ctx.arc(unit.x + unit.radius, unit.y - unit.radius, 4, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      drawHealth(unit);
+      ctx.fillStyle = '#d5c4ff';
+      ctx.fillRect(-5, -18, 10, 22);
     }
+    ctx.fillStyle = '#fff3bf';
+    ctx.font = 'bold 18px Trebuchet MS';
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = '#35220e';
+    ctx.strokeText(String(Math.floor(resource.amount)), 0, resource.radius + 30);
+    ctx.fillText(String(Math.floor(resource.amount)), 0, resource.radius + 30);
+    ctx.restore();
+  }
+
+  function drawBuildingSprite(building){
+    const player = playerById(building.owner);
+    const faction = player?.faction || 'slayer';
+    const color = player?.color || '#5dd8ff';
+    if(isSelected(building)) drawSelectionRing(building, building.radius + 10);
+
+    ctx.save();
+    ctx.translate(building.x, building.y);
+    if(building.type === 'hall') drawHall(faction, color);
+    else if(building.type === 'house') drawHouse(faction, color);
+    else if(building.type === 'barracks') drawBarracks(faction, color);
+    else if(building.type === 'tower') drawTower(faction, color);
+    else drawShrine(faction, color);
+    ctx.restore();
+    drawHealth(building);
+  }
+
+  function drawHall(faction, color){
+    ctx.strokeStyle = MANGA_INK;
+    ctx.lineWidth = 5;
+    ctx.fillStyle = faction === 'slayer' ? '#e8d88f' : '#564061';
+    roundRect(-64, -46, 128, 92, 10, true, true);
+    ctx.fillStyle = faction === 'slayer' ? '#5f9cc7' : '#8a3d73';
+    roundRect(-78, -54, 156, 28, 8, true, true);
+    ctx.fillStyle = '#cf9b55';
+    roundRect(-42, -68, 84, 30, 8, true, true);
+    ctx.fillStyle = color;
+    roundRect(-20, 5, 40, 41, 6, true, true);
+    ctx.fillStyle = '#1d2d35';
+    ctx.fillRect(-11, 24, 22, 22);
+  }
+
+  function drawHouse(faction, color){
+    ctx.strokeStyle = MANGA_INK;
+    ctx.lineWidth = 5;
+    ctx.fillStyle = faction === 'slayer' ? '#e9dfac' : '#5d445b';
+    roundRect(-38, -25, 76, 54, 8, true, true);
+    ctx.fillStyle = faction === 'slayer' ? '#bf7b48' : '#743459';
+    ctx.beginPath();
+    ctx.moveTo(-46, -22);
+    ctx.lineTo(0, -56);
+    ctx.lineTo(46, -22);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.fillRect(-10, 4, 20, 25);
+  }
+
+  function drawBarracks(faction, color){
+    ctx.strokeStyle = MANGA_INK;
+    ctx.lineWidth = 5;
+    ctx.fillStyle = faction === 'slayer' ? '#dccf9f' : '#4a3858';
+    roundRect(-58, -36, 116, 72, 8, true, true);
+    ctx.fillStyle = faction === 'slayer' ? '#527b9d' : '#7d3268';
+    ctx.fillRect(-66, -48, 132, 26);
+    ctx.strokeRect(-66, -48, 132, 26);
+    ctx.fillStyle = color;
+    ctx.fillRect(-43, -12, 86, 14);
+    ctx.fillStyle = '#281b18';
+    ctx.fillRect(-15, 10, 30, 26);
+  }
+
+  function drawTower(faction, color){
+    ctx.strokeStyle = MANGA_INK;
+    ctx.lineWidth = 5;
+    ctx.fillStyle = faction === 'slayer' ? '#d8d2b0' : '#51415a';
+    roundRect(-28, -58, 56, 104, 7, true, true);
+    ctx.fillStyle = color;
+    ctx.fillRect(-35, -64, 70, 24);
+    ctx.strokeRect(-35, -64, 70, 24);
+    ctx.fillStyle = '#fff0aa';
+    ctx.fillRect(-10, -24, 20, 18);
+  }
+
+  function drawShrine(faction, color){
+    ctx.strokeStyle = MANGA_INK;
+    ctx.lineWidth = 5;
+    ctx.fillStyle = faction === 'slayer' ? '#e6d7a2' : '#49304a';
+    roundRect(-44, -35, 88, 70, 8, true, true);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(0, -4, 24, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#fff1bd';
+    ctx.fillRect(-8, -16, 16, 24);
+  }
+
+  function drawUnitSprite(unit){
+    const player = playerById(unit.owner);
+    const color = player?.color || '#5dd8ff';
+    const faction = player?.faction || 'slayer';
+    if(isSelected(unit)) drawSelectionRing(unit, unit.radius + 8);
+
+    ctx.save();
+    ctx.translate(unit.x, unit.y);
+    ctx.strokeStyle = MANGA_INK;
+    ctx.lineWidth = 4;
+    ctx.fillStyle = 'rgba(31,44,39,.28)';
+    ctx.beginPath();
+    ctx.ellipse(0, 20, 22, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = color;
+    roundRect(-16, -4, 32, 32, 7, true, true);
+    ctx.fillStyle = faction === 'slayer' ? '#f5d7aa' : '#d2b4e8';
+    roundRect(-13, -26, 26, 24, 8, true, true);
+    ctx.fillStyle = faction === 'slayer' ? '#483529' : '#2f2036';
+    ctx.fillRect(-17, -31, 34, 12);
+    ctx.fillStyle = '#111820';
+    ctx.fillRect(-6, -14, 4, 4);
+    ctx.fillRect(5, -14, 4, 4);
+
+    if(unit.type === 'worker'){
+      ctx.fillStyle = '#6b4a2c';
+      ctx.fillRect(-23, -36, 46, 9);
+    }else if(unit.type === 'fighter'){
+      ctx.strokeStyle = '#f4f1dc';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(16, -17);
+      ctx.lineTo(35, -39);
+      ctx.stroke();
+    }else if(unit.type === 'ranged'){
+      ctx.strokeStyle = '#3b2518';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.arc(21, -7, 15, -1.3, 1.3);
+      ctx.stroke();
+    }else{
+      ctx.strokeStyle = '#fff2a8';
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(-24, -22);
+      ctx.lineTo(26, -44);
+      ctx.stroke();
+      ctx.fillStyle = '#fff2a8';
+      ctx.fillRect(-20, 1, 40, 7);
+    }
+
+    if(unit.carried){
+      ctx.fillStyle = RESOURCE_COLORS[unit.carried.kind];
+      ctx.strokeStyle = MANGA_INK;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(20, -28, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
+    drawHealth(unit);
+  }
+
+  function drawSelectionRing(entity, radius){
+    ctx.save();
+    ctx.strokeStyle = '#fff6b0';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([8, 6]);
+    ctx.beginPath();
+    ctx.ellipse(entity.x, entity.y + 8, radius, radius * .45, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  function roundRect(x, y, w, h, r, fill, stroke){
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    if(fill) ctx.fill();
+    if(stroke) ctx.stroke();
   }
 
   function drawEffects(){
@@ -1025,6 +1385,7 @@
       if(!state) return;
       state.paused = !state.paused;
       dom.pauseBtn.textContent = state.paused ? '▶' : 'II';
+      state.needsRender = true;
     });
     dom.backBtn.addEventListener('click', () => {
       state = null;

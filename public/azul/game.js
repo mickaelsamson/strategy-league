@@ -24,6 +24,8 @@ let gameOver = false;
 let timerInterval = null;
 let renderedScoreKey = "";
 let scoringToken = 0;
+let scoringPromise = Promise.resolve();
+let lastEndPayload = null;
 
 function escapeHtml(text){
   return String(text || "")
@@ -202,12 +204,6 @@ function renderBoard(player){
 function renderPlayers(){
   const players = [...(state.players || [])].sort((a, b) => a.seat === state.mySeat ? -1 : b.seat === state.mySeat ? 1 : a.seat - b.seat);
   document.getElementById("boards").innerHTML = players.map(renderBoard).join("");
-  document.getElementById("playersMini").innerHTML = players.map(player => `
-    <div class="mini-player ${player.seat === state.turnSeat ? "active" : ""}">
-      <span>${escapeHtml(player.username)}</span>
-      <strong>${player.active === false ? "Out" : player.score}</strong>
-    </div>
-  `).join("");
 }
 
 function renderStatus(){
@@ -234,7 +230,7 @@ function render(){
   renderCenter();
   renderPlayers();
   renderTimer();
-  showRoundScorePopups();
+  scoringPromise = showRoundScorePopups();
 }
 
 function formatTime(ms){
@@ -317,19 +313,19 @@ function setScoringHighlight(player, cells, active){
 }
 
 async function showRoundScorePopups(){
-  if(!state?.lastRound) return;
+  if(!state?.lastRound) return Promise.resolve();
   const key = `${state.gameId}-${state.round}-${JSON.stringify(state.lastRound)}`;
-  if(key === renderedScoreKey) return;
+  if(key === renderedScoreKey) return Promise.resolve();
   renderedScoreKey = key;
   const token = ++scoringToken;
 
-  requestAnimationFrame(async () => {
+  return new Promise(resolve => requestAnimationFrame(async () => {
     for(const player of (state.players || [])){
       const summary = state.lastRound[player.username];
       if(!summary) continue;
 
       for(const placement of (summary.placements || [])){
-        if(token !== scoringToken) return;
+        if(token !== scoringToken) return resolve();
         const target = document.querySelector(`.wall-cell[data-seat="${player.seat}"][data-row="${placement.row}"][data-col="${placement.col}"]`);
         const cells = getScoringCells(player, placement);
         setScoringHighlight(player, cells, true);
@@ -340,7 +336,7 @@ async function showRoundScorePopups(){
       }
 
       if(summary.floorPenalty){
-        if(token !== scoringToken) return;
+        if(token !== scoringToken) return resolve();
         const target = document.querySelector(`.score-pop-anchor[data-seat="${player.seat}"]`);
         document.querySelectorAll(`.player-board[data-seat="${player.seat}"] .floor-slot.has-tile`).forEach(slot => slot.classList.add("scoring"));
         scorePopup(target, String(summary.floorPenalty), false);
@@ -350,7 +346,7 @@ async function showRoundScorePopups(){
       }
 
       if(summary.bonus){
-        if(token !== scoringToken) return;
+        if(token !== scoringToken) return resolve();
         const target = document.querySelector(`.score-pop-anchor[data-seat="${player.seat}"]`);
         document.querySelectorAll(`.player-board[data-seat="${player.seat}"] .wall-cell.placed`).forEach(cell => cell.classList.add("scoring"));
         scorePopup(target, `+${summary.bonus}`, true);
@@ -358,7 +354,8 @@ async function showRoundScorePopups(){
         document.querySelectorAll(`.player-board[data-seat="${player.seat}"] .wall-cell.scoring`).forEach(cell => cell.classList.remove("scoring"));
       }
     }
-  });
+    resolve();
+  }));
 }
 
 function resign(){
@@ -374,6 +371,16 @@ function rematch(){
 
 function goBack(){
   window.location = "/azul/index.html";
+}
+
+function viewBoard(){
+  document.getElementById("endScreen").classList.remove("show");
+  document.getElementById("showResultBtn").hidden = false;
+}
+
+function showResult(){
+  document.getElementById("endScreen").classList.add("show");
+  document.getElementById("showResultBtn").hidden = true;
 }
 
 function updateStoredXp(xpChange){
@@ -403,13 +410,17 @@ socket.on("azul_state", data => {
   startTimerLoop();
 });
 
-socket.on("azul_end", data => {
+socket.on("azul_end", async data => {
   gameOver = true;
+  lastEndPayload = data;
+  await scoringPromise;
+  await delay(450);
   const reward = data.rewards?.[user.username] || {};
   const result = reward.result || (!data.winner ? "draw" : data.winner === user.username ? "win" : "loss");
   const xpChange = Number.isFinite(reward.xpChange) ? reward.xpChange : 0;
   const el = document.getElementById("endScreen");
   el.className = `end-screen show ${result === "win" ? "victory" : result === "loss" ? "defeat" : "draw"}`;
+  document.getElementById("showResultBtn").hidden = true;
   document.getElementById("winnerText").innerText = result === "win" ? "Victory" : result === "loss" ? "Defeat" : "Draw";
   document.getElementById("endMessage").innerText = data.message || "";
   const scores = data.scores || Object.fromEntries((state?.players || []).map(player => [player.username, player.score]));

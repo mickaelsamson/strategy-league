@@ -22,6 +22,18 @@
     </div>
   </header>
 
+  <section class="top-status">
+    <div class="turn-card">
+      <span id="roundLabel">Round 1</span>
+      <strong id="turnLabel">Waiting...</strong>
+      <div class="turn-timer">
+        <i id="timerFill"></i>
+        <b id="timerText">01:00</b>
+      </div>
+      <p id="selectionHint">Select tiles from a factory or the center.</p>
+    </div>
+  </section>
+
   <section class="azul-table">
     <section class="draft-zone">
       <div class="table-draft">
@@ -34,19 +46,6 @@
     </section>
 
     <section id="boards" class="boards"></section>
-
-    <aside class="side-panel">
-      <div class="turn-card">
-        <span id="roundLabel">Round 1</span>
-        <strong id="turnLabel">Waiting...</strong>
-        <div class="turn-timer">
-          <i id="timerFill"></i>
-          <b id="timerText">01:00</b>
-        </div>
-        <p id="selectionHint">Select tiles from a factory or the center.</p>
-      </div>
-      <div id="playersMini" class="players-mini"></div>
-    </aside>
   </section>
 
   <details class="rules-card rules-drawer">
@@ -69,11 +68,14 @@
   <div id="finalScores" class="final-scores"></div>
   <div id="xpReward" class="xp-reward">+0 XP</div>
   <div class="end-actions">
+    <button onclick="viewBoard()">View Board</button>
     <button onclick="rematch()">Rematch</button>
     <button onclick="goBack()">Back</button>
   </div>
   <p id="rematchStatus" class="rematch-status"></p>
 </div>
+
+<button id="showResultBtn" class="show-result-btn" onclick="showResult()" hidden>Show Result</button>
 
 <audio id="tileSound" src="https://assets.mixkit.co/sfx/preview/mixkit-game-click-1114.mp3"></audio>
 

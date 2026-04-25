@@ -62,11 +62,14 @@
   <div id="finalScore" class="final-score"></div>
   <div id="xpReward" class="xp-reward">+0 XP</div>
   <div class="end-actions">
+    <button onclick="viewBoard()">View Board</button>
     <button id="rematchBtn" onclick="rematch()">Rematch</button>
     <button onclick="goBack()">Back</button>
   </div>
   <p id="rematchStatus" class="rematch-status"></p>
 </div>
+
+<button id="showResultBtn" class="show-result-btn" onclick="showResult()" hidden>Show Result</button>
 
 <audio id="flipSound" src="https://assets.mixkit.co/sfx/preview/mixkit-game-click-1114.mp3"></audio>
 

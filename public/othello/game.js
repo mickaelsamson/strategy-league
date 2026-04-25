@@ -149,6 +149,16 @@ function showEnd(winner){
 
 function goBack(){window.location="/othello/index.html";}
 
+function viewBoard(){
+ document.getElementById("endScreen").classList.remove("show");
+ document.getElementById("showResultBtn").hidden=false;
+}
+
+function showResult(){
+ document.getElementById("endScreen").classList.add("show");
+ document.getElementById("showResultBtn").hidden=true;
+}
+
 function applyPlayers(players=[]){
  const me=players.find(p=>p.username===user.username);
  const opponent=players.find(p=>p.username!==user.username);
@@ -196,6 +206,7 @@ socket.on("othello_end",data=>{
  const message=data.message||`${data.winner} wins!`;
  const el=document.getElementById("endScreen");
  el.className=`end-screen show ${result==="win"?"victory":result==="loss"?"defeat":"draw"}`;
+ document.getElementById("showResultBtn").hidden=true;
  document.getElementById("winnerText").innerText=result==="win"?"Victory":result==="loss"?"Defeat":"Draw";
  document.getElementById("endMessage").innerText=message;
  const score=data.score||count();

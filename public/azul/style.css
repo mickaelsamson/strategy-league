@@ -152,6 +152,7 @@ button:disabled{
   justify-content:space-between;
   align-items:center;
   gap:18px;
+  margin-bottom:12px;
 }
 
 .hero-actions{
@@ -161,9 +162,39 @@ button:disabled{
   justify-content:flex-end;
 }
 
+.top-status{
+  margin-bottom:14px;
+}
+
+.top-status .turn-card{
+  display:grid;
+  grid-template-columns:auto auto minmax(150px, 240px) 1fr;
+  gap:12px;
+  align-items:center;
+  padding:10px 12px;
+}
+
+.top-status .turn-card strong,
+.top-status .turn-card p,
+.top-status .turn-timer{
+  margin:0;
+}
+
+.top-status .turn-card strong{
+  font-size:18px;
+}
+
+.top-status .turn-card p{
+  font-size:14px;
+}
+
+.top-status .turn-timer{
+  height:28px;
+}
+
 .azul-table{
   display:grid;
-  grid-template-columns:minmax(270px, 320px) minmax(330px, 390px) 210px;
+  grid-template-columns:minmax(310px, 370px) minmax(330px, 1fr);
   gap:18px;
   align-items:start;
 }
@@ -202,7 +233,7 @@ button:disabled{
 .turn-card strong{
   display:block;
   margin:5px 0 8px;
-  font-size:22px;
+  font-size:18px;
 }
 
 .turn-card p{
@@ -275,11 +306,11 @@ button:disabled{
 }
 
 .draft-zone{
-  min-height:340px;
+  min-height:370px;
 }
 
 .table-draft{
-  width:min(340px, 100%);
+  width:min(370px, 100%);
   aspect-ratio:1/1;
   position:relative;
   margin:0 auto;
@@ -292,7 +323,7 @@ button:disabled{
 
 .factory{
   position:absolute;
-  width:30%;
+  width:28%;
   aspect-ratio:1/1;
   display:grid;
   place-items:center;
@@ -330,7 +361,7 @@ button:disabled{
 }
 
 .center-zone{
-  width:34%;
+  width:44%;
   aspect-ratio:1/1;
   min-height:0;
   position:absolute;
@@ -346,7 +377,7 @@ button:disabled{
 }
 
 .center-pool{
-  min-height:74px;
+  min-height:104px;
   background:
     linear-gradient(135deg, rgba(1,150,179,0.18), rgba(255,255,255,0.22)),
     rgba(255,247,245,0.72);
@@ -364,14 +395,16 @@ button:disabled{
   display:flex;
   gap:3px;
   flex-wrap:wrap;
-  background:rgba(8,3,5,0.18);
+  background:rgba(255,247,245,0.42);
   border-color:transparent;
 }
 
-body.app-shell-active .tile-stack{
+body.app-shell-active .azul-game button.tile-stack,
+body.app-shell-active .azul-game .table-draft button.tile-stack:not(.shell-nav-item):not(.shell-brand):not(.online-player),
+body.app-shell-active .azul-game .tile-stack{
   min-height:0 !important;
   padding:3px !important;
-  background:rgba(8,3,5,0.18) !important;
+  background:rgba(255,247,245,0.42) !important;
   border-color:transparent !important;
 }
 
@@ -489,6 +522,7 @@ body.app-shell-active .tile-stack{
 body.app-shell-active .pattern-line{
   background:rgba(1,150,179,0.09) !important;
   border-color:rgba(11,96,117,0.18) !important;
+  color:#132934 !important;
 }
 
 .pattern-line.can-place{
@@ -499,6 +533,26 @@ body.app-shell-active .pattern-line{
 body.app-shell-active .pattern-line.can-place{
   border-color:rgba(94,228,109,0.65) !important;
   background:rgba(94,228,109,0.14) !important;
+}
+
+body.app-shell-active .azul-game button.pattern-line{
+  background:rgba(1,150,179,0.09) !important;
+  border-color:rgba(11,96,117,0.18) !important;
+}
+
+body.app-shell-active .azul-game .player-board button.pattern-line:not(.shell-nav-item):not(.shell-brand):not(.online-player){
+  background:rgba(1,150,179,0.09) !important;
+  border-color:rgba(11,96,117,0.18) !important;
+  color:#132934 !important;
+}
+
+body.app-shell-active .azul-game button.pattern-line.can-place{
+  background:rgba(94,228,109,0.14) !important;
+}
+
+body.app-shell-active .azul-game .player-board button.pattern-line.can-place:not(.shell-nav-item):not(.shell-brand):not(.online-player){
+  background:rgba(94,228,109,0.14) !important;
+  border-color:rgba(94,228,109,0.65) !important;
 }
 
 .pattern-slot,
@@ -762,13 +816,19 @@ body.app-shell-active .pattern-line.can-place{
   box-shadow:0 0 0 1px rgba(255,82,104,0.34), 0 24px 80px rgba(0,0,0,0.5), 0 0 46px rgba(255,82,104,0.22);
 }
 
+.show-result-btn{
+  position:fixed;
+  left:50%;
+  bottom:24px;
+  transform:translateX(-50%);
+  z-index:1000;
+  min-height:42px;
+  padding:0 16px;
+}
+
 @media (max-width:1180px){
   .azul-table{
     grid-template-columns:1fr;
-  }
-
-  .side-panel{
-    order:-1;
   }
 }
 
@@ -785,6 +845,10 @@ body.app-shell-active .pattern-line.can-place{
   .game-hero{
     align-items:flex-start;
     flex-direction:column;
+  }
+
+  .top-status .turn-card{
+    grid-template-columns:1fr;
   }
 
   .draft-zone{
