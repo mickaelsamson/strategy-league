@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
+<link rel="stylesheet" href="/assets/styles/theme.css">
+<script defer src="/assets/scripts/site-shell.js"></script>
 <title>Strategy Hub</title>
 
 <style>
@@ -101,51 +103,10 @@ button:hover{
 </style>
 </head>
 
-<body>
-
+<body class="with-navbar">
+  
 <!-- 🔥 NAVBAR -->
 <div id="navbar-container"></div>
-
-<script>
-fetch("/components/navbar.html")
-  .then(res => res.text())
-  .then(html => {
-
-    const container = document.getElementById("navbar-container");
-    container.innerHTML = html;
-
-    const user = JSON.parse(localStorage.getItem("user"));
-
-    // ADMIN BUTTON NAVBAR
-    if(user && user.isAdmin){
-      const adminBtn = document.getElementById("adminNav");
-      if(adminBtn){
-        adminBtn.style.display = "inline-block";
-      }
-    }
-
-    // NAVIGATION
-    document.querySelectorAll("[data-link]").forEach(btn=>{
-      btn.addEventListener("click", ()=>{
-
-        const link = btn.dataset.link;
-
-        if(link === "home") window.location.href = "/";
-        if(link === "games") window.location.href = "/games.html";
-        if(link === "leaderboard") window.location.href = "/leaderboard.html";
-        if(link === "profile") window.location.href = "/profile.html";
-        if(link === "admin") window.location.href = "/admin.html";
-
-        if(link === "logout"){
-          localStorage.removeItem("user");
-          window.location.href = "/login.html";
-        }
-
-      });
-    });
-
-  });
-</script>
 
 <div class="container">
 
@@ -214,7 +175,7 @@ async function loadLeaderboard(){
 
   document.getElementById("top3").innerHTML = top3.map((u,i)=>`
     <div class="row top${i+1}">
-      <span>${i===0?'🥇':i===1?'🥈':'🥉'} ${u.username}</span>
+      <span data-profile-username="${u.username}">${i===0?'🥇':i===1?'🥈':'🥉'} ${u.username}</span>
       <span>${u.value}</span>
     </div>
   `).join("");
