@@ -16,6 +16,7 @@ const COLOR_LABELS = {
   teal: "Aqua",
   first: "1"
 };
+const FLOOR_PENALTIES = [-1, -1, -2, -2, -2, -3, -3];
 
 let state = null;
 let selected = null;
@@ -179,7 +180,11 @@ function renderBoard(player){
 
       <div class="floor-line ${isMine && selected ? "can-place" : ""}" ${isMine ? `onclick="submitMove(-1)"` : ""}>
         <span>Floor</span>
-        ${Array.from({ length: 7 }, (_, i) => `<span class="floor-slot">${player.floor[i] ? tileMarkup(player.floor[i]) : ""}</span>`).join("")}
+        ${FLOOR_PENALTIES.map((penalty, i) => `
+          <span class="floor-slot" data-penalty="${penalty}">
+            ${player.floor[i] ? tileMarkup(player.floor[i]) : `<b>${penalty}</b>`}
+          </span>
+        `).join("")}
       </div>
     </article>
   `;
