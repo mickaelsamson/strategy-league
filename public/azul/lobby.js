@@ -32,10 +32,12 @@ socket.on("azul_lobbies_update", lobbies => {
 
   target.innerHTML = list.map(lobby => {
     const me = lobby.players.find(p => p.username === user.username);
-    const full = lobby.players.length >= 2;
+    const maxPlayers = lobby.maxPlayers || 2;
+    const full = lobby.players.length >= maxPlayers;
     return `
       <div class="lobby-item panel">
         <strong>${escapeHtml(lobby.name)}</strong>
+        <span class="lobby-size">${lobby.players.length}/${maxPlayers} players · ${maxPlayers * 2 + 1} factories</span>
         <div class="lobby-players">
           ${lobby.players.map(p => `${escapeHtml(p.username)} ${p.ready ? "Ready" : "Waiting"}`).join(" · ")}
         </div>
@@ -48,7 +50,10 @@ socket.on("azul_lobbies_update", lobbies => {
 });
 
 function createLobby(){
-  socket.emit("create_azul_lobby", { name: document.getElementById("name").value });
+  socket.emit("create_azul_lobby", {
+    name: document.getElementById("name").value,
+    maxPlayers: Number(document.getElementById("maxPlayers").value)
+  });
 }
 
 function join(id){

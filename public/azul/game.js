@@ -96,7 +96,8 @@ function submitMove(lineIndex){
 
 function renderFactories(){
   const factories = document.getElementById("factories");
-  factories.innerHTML = (state.factories || []).map((factory, index) => {
+  const tableFactories = state.factories || [];
+  factories.innerHTML = tableFactories.map((factory, index) => {
     const groups = ["blue", "yellow", "red", "black", "teal"].map(color => {
       const count = factory.filter(tile => tile === color).length;
       if(!count) return "";
@@ -106,7 +107,11 @@ function renderFactories(){
       </button>`;
     }).join("");
 
-    return `<div class="factory factory-${index} ${factory.length ? "" : "empty"}">
+    const angle = -90 + (index * 360 / Math.max(1, tableFactories.length));
+    const radius = 37;
+    const left = 50 + radius * Math.cos(angle * Math.PI / 180);
+    const top = 50 + radius * Math.sin(angle * Math.PI / 180);
+    return `<div class="factory ${factory.length ? "" : "empty"}" style="left:${left}%;top:${top}%;">
       <div class="plate-ring"></div>
       <div class="factory-tiles">${groups}</div>
     </div>`;
@@ -159,10 +164,10 @@ function renderBoard(player){
   const isMine = player.seat === state.mySeat;
   const active = player.seat === state.turnSeat;
   return `
-    <article class="player-board ${isMine ? "mine" : ""} ${active ? "active" : ""}">
+    <article class="player-board ${isMine ? "mine" : ""} ${active ? "active" : ""} ${player.active === false ? "eliminated" : ""}">
       <header>
         <div>
-          <span>${isMine ? "You" : "Opponent"}</span>
+          <span>${player.active === false ? "Eliminated" : isMine ? "You" : "Opponent"}</span>
           <strong>${escapeHtml(player.username)}</strong>
         </div>
         <b>${player.score}</b>
@@ -199,7 +204,7 @@ function renderPlayers(){
   document.getElementById("playersMini").innerHTML = players.map(player => `
     <div class="mini-player ${player.seat === state.turnSeat ? "active" : ""}">
       <span>${escapeHtml(player.username)}</span>
-      <strong>${player.score}</strong>
+      <strong>${player.active === false ? "Out" : player.score}</strong>
     </div>
   `).join("");
 }
@@ -357,6 +362,11 @@ socket.on("azul_rematch_status", data => {
   document.getElementById("rematchStatus").innerText = requestedBy.length < 2
     ? "Rematch requested. Waiting for opponent..."
     : "Starting rematch...";
+});
+
+socket.on("azul_notice", data => {
+  const hint = document.getElementById("selectionHint");
+  if(hint && data?.message) hint.innerText = data.message;
 });
 
 socket.on("azul_rematch_start", () => {

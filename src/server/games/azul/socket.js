@@ -7,9 +7,10 @@ const WALL_PATTERN = [
   ['yellow', 'red', 'black', 'teal', 'blue']
 ];
 const FLOOR_PENALTIES = [-1, -1, -2, -2, -2, -3, -3];
-const FACTORY_COUNT = 5;
 const TILES_PER_FACTORY = 4;
 const TURN_TIME_MS = 60 * 1000;
+const MIN_PLAYERS = 2;
+const MAX_PLAYERS = 4;
 
 function randomId(){
   return Math.random().toString(36).substr(2, 9);
@@ -37,11 +38,16 @@ function createPlayer(id, username, seat){
     id,
     username,
     seat,
+    active: true,
     score: 0,
     wall: Array.from({ length: 5 }, () => Array(5).fill(null)),
     pattern: Array.from({ length: 5 }, (_, row) => ({ color: null, count: 0, size: row + 1 })),
     floor: []
   };
+}
+
+function getFactoryCount(playerCount){
+  return playerCount * 2 + 1;
 }
 
 function drawTile(game){
@@ -53,11 +59,11 @@ function drawTile(game){
 }
 
 function refillFactories(game){
-  game.factories = Array.from({ length: FACTORY_COUNT }, () => []);
+  game.factories = Array.from({ length: game.factoryCount }, () => []);
   game.center = game.nextStartSeat === null ? ['first'] : [];
   game.round += 1;
 
-  for(let i = 0; i < FACTORY_COUNT; i += 1){
+  for(let i = 0; i < game.factoryCount; i += 1){
     for(let j = 0; j < TILES_PER_FACTORY; j += 1){
       const tile = drawTile(game);
       if(tile) game.factories[i].push(tile);
@@ -66,14 +72,12 @@ function refillFactories(game){
 }
 
 function createGame(gameId, lobby){
-  const p1 = lobby.players[0];
-  const p2 = lobby.players[1];
+  const players = lobby.players.slice(0, lobby.maxPlayers);
   const game = {
     id: gameId,
-    players: [
-      createPlayer(p1.id, p1.username, 0),
-      createPlayer(p2.id, p2.username, 1)
-    ],
+    players: players.map((player, seat) => createPlayer(player.id, player.username, seat)),
+    maxPlayers: lobby.maxPlayers,
+    factoryCount: getFactoryCount(players.length),
     turnSeat: 0,
     nextStartSeat: null,
     bag: createBag(),
@@ -91,6 +95,18 @@ function createGame(gameId, lobby){
 
   refillFactories(game);
   return game;
+}
+
+function getActivePlayers(game){
+  return game.players.filter(player => player.active !== false);
+}
+
+function getNextActiveSeat(game, currentSeat){
+  const active = getActivePlayers(game).sort((a, b) => a.seat - b.seat);
+  if(!active.length) return null;
+
+  const next = active.find(player => player.seat > currentSeat);
+  return (next || active[0]).seat;
 }
 
 function countColor(tiles, color){
@@ -210,7 +226,8 @@ function resolveRound(game){
       summary[player.username].bonus = bonus;
     });
   } else {
-    game.turnSeat = game.nextStartSeat ?? 0;
+    const preferred = game.players.find(player => player.active !== false && player.seat === game.nextStartSeat);
+    game.turnSeat = preferred ? preferred.seat : getNextActiveSeat(game, -1);
     game.nextStartSeat = null;
     refillFactories(game);
   }
@@ -219,21 +236,22 @@ function resolveRound(game){
 }
 
 function getWinnerUsername(game){
-  const [a, b] = game.players;
-  if(a.score > b.score) return a.username;
-  if(b.score > a.score) return b.username;
+  const contenders = getActivePlayers(game).length ? getActivePlayers(game) : game.players;
+  const sorted = [...contenders].sort((a, b) => {
+    if(b.score !== a.score) return b.score - a.score;
+    return completedRows(b) - completedRows(a);
+  });
 
-  const aRows = completedRows(a);
-  const bRows = completedRows(b);
-  if(aRows > bRows) return a.username;
-  if(bRows > aRows) return b.username;
-  return null;
+  if(sorted.length < 2) return sorted[0]?.username || null;
+  if(sorted[0].score === sorted[1].score && completedRows(sorted[0]) === completedRows(sorted[1])) return null;
+  return sorted[0].username;
 }
 
 function publicPlayer(player){
   return {
     username: player.username,
     seat: player.seat,
+    active: player.active !== false,
     score: player.score,
     wall: player.wall,
     pattern: player.pattern,
@@ -254,12 +272,27 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult }
 
     clearTurnTimer(game);
     const loser = game.players.find(p => p.seat === game.turnSeat);
-    const winner = game.players.find(p => p.seat !== game.turnSeat);
-    if(!loser || !winner) return;
+    if(!loser) return;
+    loser.active = false;
 
+    const remaining = getActivePlayers(game);
+    if(remaining.length > 1){
+      game.turnSeat = getNextActiveSeat(game, loser.seat);
+      game.lastRound = null;
+      startTurnTimer(game);
+      emitState(game);
+      game.players.forEach(player => {
+        const s = io.sockets.sockets.get(player.id);
+        if(s) s.emit('azul_notice', { message: `${loser.username} ran out of time and was eliminated.` });
+      });
+      updatePresence();
+      return;
+    }
+
+    const winner = remaining[0] || game.players.find(p => p.username !== loser.username);
+    if(!winner) return;
     game.ended = true;
     emitState(game);
-
     applyAzulResult(game, winner.username, 'timeout')
       .then(result=>emitEnd(game, {
         winner: winner.username,
@@ -338,16 +371,18 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult }
   }
 
   function register(){
-    socket.on('create_azul_lobby', ({ name } = {})=>{
+    socket.on('create_azul_lobby', ({ name, maxPlayers } = {})=>{
       const existing = Object.values(state.azulLobbies).find(l =>
         l.players.some(p => p.username === socket.username)
       );
       if(existing) return;
 
+      const parsedMaxPlayers = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, Number(maxPlayers) || MIN_PLAYERS));
       const id = randomId();
       state.azulLobbies[id] = {
         id,
         name: name || 'Azul Room',
+        maxPlayers: parsedMaxPlayers,
         players: [{ id: socket.id, username: socket.username, ready: false }]
       };
 
@@ -356,7 +391,7 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult }
 
     socket.on('join_azul_lobby', id => {
       const lobby = state.azulLobbies[id];
-      if(!lobby || lobby.players.length >= 2) return;
+      if(!lobby || lobby.players.length >= (lobby.maxPlayers || MIN_PLAYERS)) return;
 
       const existing = Object.values(state.azulLobbies).find(l =>
         l.players.some(p => p.username === socket.username)
@@ -375,7 +410,7 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult }
       if(!player) return;
       player.ready = !player.ready;
 
-      if(lobby.players.length === 2 && lobby.players.every(p => p.ready)){
+      if(lobby.players.length === (lobby.maxPlayers || MIN_PLAYERS) && lobby.players.every(p => p.ready)){
         const gameId = randomId();
         state.azulGames[gameId] = createGame(gameId, lobby);
         delete state.azulLobbies[id];
@@ -400,7 +435,7 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult }
       if(!game || game.ended) return;
 
       const player = game.players.find(p => p.username === socket.username);
-      if(!player || player.seat !== game.turnSeat) return;
+      if(!player || player.active === false || player.seat !== game.turnSeat) return;
       if(!COLORS.includes(color)) return;
 
       let selectedCount = 0;
@@ -444,7 +479,7 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult }
       }
 
       if(hasTableTiles(game)){
-        game.turnSeat = game.players.find(p => p.seat !== game.turnSeat).seat;
+        game.turnSeat = getNextActiveSeat(game, game.turnSeat);
         game.lastRound = null;
         startTurnTimer(game);
         emitState(game);
@@ -488,9 +523,26 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult }
       if(!game || game.ended) return;
 
       const quitter = game.players.find(p => p.username === socket.username);
-      const winner = game.players.find(p => p.username !== socket.username);
-      if(!quitter || !winner) return;
+      if(!quitter) return;
+      quitter.active = false;
 
+      const remaining = getActivePlayers(game);
+      if(remaining.length > 1){
+        if(quitter.seat === game.turnSeat){
+          game.turnSeat = getNextActiveSeat(game, quitter.seat);
+          startTurnTimer(game);
+        }
+        emitState(game);
+        game.players.forEach(player => {
+          const s = io.sockets.sockets.get(player.id);
+          if(s) s.emit('azul_notice', { message: `${quitter.username} resigned and was eliminated.` });
+        });
+        updatePresence();
+        return;
+      }
+
+      const winner = remaining[0] || game.players.find(p => p.username !== socket.username);
+      if(!winner) return;
       game.ended = true;
       clearTurnTimer(game);
       applyAzulResult(game, winner.username, 'resign')
@@ -532,6 +584,7 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult }
       if(!allReady) return;
 
       const lobby = {
+        maxPlayers: game.maxPlayers || game.players.length,
         players: game.players
           .map(p => ({ id: p.id, username: p.username }))
           .reverse()

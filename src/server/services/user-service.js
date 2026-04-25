@@ -210,68 +210,59 @@ async function applyAzulResult(User, game, winnerUsername, reason = 'game_end'){
   if(!game || game.rated) return;
   if(!Array.isArray(game.players) || game.players.length < 2) return;
 
-  const [playerA, playerB] = game.players;
-  const [userA, userB] = await Promise.all([
-    User.findOne({ username: playerA.username }),
-    User.findOne({ username: playerB.username })
-  ]);
-  if(!userA || !userB) return;
-
+  const users = await Promise.all(game.players.map(player => User.findOne({ username: player.username })));
+  if(users.some(user => !user)) return;
   const scoreFinal = getAzulScoreFinal(game);
-  const eloA = userA.azulElo || userA.azulPoints || 1000;
-  const eloB = userB.azulElo || userB.azulPoints || 1000;
+  const payload = {};
 
   if(!winnerUsername){
-    userA.azulPoints = (userA.azulPoints || 0) + 4;
-    userB.azulPoints = (userB.azulPoints || 0) + 4;
-    userA.azulElo = eloA;
-    userB.azulElo = eloB;
-    userA.xp += 4;
-    userB.xp += 4;
-    userA.draws = (userA.draws || 0) + 1;
-    userB.draws = (userB.draws || 0) + 1;
-    pushHistoryEntry(userA, { result: 'draw', opponent: userB.username, xpChange: 4, reason, gameKey: 'azul', gameName: 'Azul', scoreFinal, eloChange: 0 });
-    pushHistoryEntry(userB, { result: 'draw', opponent: userA.username, xpChange: 4, reason, gameKey: 'azul', gameName: 'Azul', scoreFinal, eloChange: 0 });
+    users.forEach(user => {
+      const opponents = users.filter(other => other.username !== user.username).map(other => other.username).join(', ');
+      user.azulPoints = (user.azulPoints || 0) + 4;
+      user.azulElo = user.azulElo || 1000;
+      user.xp += 4;
+      user.draws = (user.draws || 0) + 1;
+      pushHistoryEntry(user, { result: 'draw', opponent: opponents || 'Table', xpChange: 4, reason, gameKey: 'azul', gameName: 'Azul', scoreFinal, eloChange: 0 });
+      payload[user.username] = resultPayload(user.username, 'draw', 4, 0);
+    });
     game.result = { winner: null, loser: null, reason, eloDelta: 0 };
-
-    await Promise.all([userA.save(), userB.save()]);
+    await Promise.all(users.map(user => user.save()));
     game.rated = true;
-    return {
-      players: {
-        [userA.username]: resultPayload(userA.username, 'draw', 4, 0),
-        [userB.username]: resultPayload(userB.username, 'draw', 4, 0)
-      }
-    };
+    return { players: payload };
   }
 
-  const winnerUser = winnerUsername === userA.username ? userA : userB;
-  const loserUser = winnerUsername === userA.username ? userB : userA;
+  const winnerUser = users.find(user => user.username === winnerUsername);
+  if(!winnerUser) return;
+  const loserUsers = users.filter(user => user.username !== winnerUsername);
   const winnerElo = winnerUser.azulElo || winnerUser.azulPoints || 1000;
-  const loserElo = loserUser.azulElo || loserUser.azulPoints || 1000;
-  const eloDelta = computeEloDelta(winnerElo, loserElo);
+  const eloDelta = Math.max(8, Math.round(
+    loserUsers.reduce((total, loserUser) => total + computeEloDelta(winnerElo, loserUser.azulElo || loserUser.azulPoints || 1000), 0) /
+    Math.max(1, loserUsers.length)
+  ));
 
   winnerUser.azulPoints = (winnerUser.azulPoints || 0) + 14;
-  loserUser.azulPoints = (loserUser.azulPoints || 0) + 4;
   winnerUser.azulElo = winnerElo + eloDelta;
-  loserUser.azulElo = Math.max(100, loserElo - eloDelta);
   winnerUser.xp += 18;
-  loserUser.xp += 4;
   winnerUser.wins = (winnerUser.wins || 0) + 1;
-  loserUser.losses = (loserUser.losses || 0) + 1;
 
-  pushHistoryEntry(winnerUser, { result: 'win', opponent: loserUser.username, xpChange: 18, reason, gameKey: 'azul', gameName: 'Azul', scoreFinal, eloChange: eloDelta });
-  pushHistoryEntry(loserUser, { result: 'loss', opponent: winnerUser.username, xpChange: 4, reason, gameKey: 'azul', gameName: 'Azul', scoreFinal, eloChange: -eloDelta });
+  pushHistoryEntry(winnerUser, { result: 'win', opponent: loserUsers.map(user => user.username).join(', ') || 'Table', xpChange: 18, reason, gameKey: 'azul', gameName: 'Azul', scoreFinal, eloChange: eloDelta });
+  payload[winnerUser.username] = resultPayload(winnerUser.username, 'win', 18, eloDelta);
 
-  await Promise.all([winnerUser.save(), loserUser.save()]);
+  loserUsers.forEach(loserUser => {
+    const loserElo = loserUser.azulElo || loserUser.azulPoints || 1000;
+    loserUser.azulPoints = (loserUser.azulPoints || 0) + 4;
+    loserUser.azulElo = Math.max(100, loserElo - eloDelta);
+    loserUser.xp += 4;
+    loserUser.losses = (loserUser.losses || 0) + 1;
+    pushHistoryEntry(loserUser, { result: 'loss', opponent: winnerUser.username, xpChange: 4, reason, gameKey: 'azul', gameName: 'Azul', scoreFinal, eloChange: -eloDelta });
+    payload[loserUser.username] = resultPayload(loserUser.username, 'loss', 4, -eloDelta);
+  });
+
+  await Promise.all(users.map(user => user.save()));
 
   game.rated = true;
-  game.result = { winner: winnerUser.username, loser: loserUser.username, reason, eloDelta };
-  return {
-    players: {
-      [winnerUser.username]: resultPayload(winnerUser.username, 'win', 18, eloDelta),
-      [loserUser.username]: resultPayload(loserUser.username, 'loss', 4, -eloDelta)
-    }
-  };
+  game.result = { winner: winnerUser.username, losers: loserUsers.map(user => user.username), reason, eloDelta };
+  return { players: payload };
 }
 
 async function getLeaderboard(User, type){
