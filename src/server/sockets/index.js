@@ -4,6 +4,44 @@ const { createAzulModule } = require('../games/azul/socket');
 const { DISCONNECT_FORFEIT_MS } = require('../config/constants');
 
 function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, applyOthelloResult, applyAzulResult }){
+  const GAME_META = {
+    chess: { label: 'Chess', lobbyUrl: '/chess/index.html', gameUrl: '/chess/chess-game.html' },
+    othello: { label: 'Othello', lobbyUrl: '/othello/index.html', gameUrl: '/othello/game.html' },
+    azul: { label: 'Azul Arena', lobbyUrl: '/azul/index.html', gameUrl: '/azul/game.html' }
+  };
+
+  function socketsForUsername(username){
+    return [...io.sockets.sockets.values()].filter(s => s.username === username);
+  }
+
+  function emitToUsername(username, event, payload){
+    socketsForUsername(username).forEach(s => s.emit(event, payload));
+  }
+
+  function activeGameForUsername(username){
+    const chessEntry = Object.entries(state.chessGames).find(([, game]) =>
+      game && !game.ended && game.players?.some(p => p.username === username)
+    );
+    if(chessEntry) return { gameKey: 'chess', gameId: chessEntry[0], label: GAME_META.chess.label, url: GAME_META.chess.gameUrl };
+
+    const othelloEntry = Object.entries(state.othelloGames).find(([, game]) =>
+      game && !game.ended && game.players?.some(p => p.username === username)
+    );
+    if(othelloEntry) return { gameKey: 'othello', gameId: othelloEntry[0], label: GAME_META.othello.label, url: GAME_META.othello.gameUrl };
+
+    const azulEntry = Object.entries(state.azulGames).find(([, game]) =>
+      game && !game.ended && game.players?.some(p => p.username === username)
+    );
+    if(azulEntry) return { gameKey: 'azul', gameId: azulEntry[0], label: GAME_META.azul.label, url: GAME_META.azul.gameUrl };
+
+    return null;
+  }
+
+  function emitActiveGame(socket){
+    if(!socket.username) return;
+    socket.emit('active_game_status', activeGameForUsername(socket.username));
+  }
+
   async function updatePresence(){
     const users = {};
 
@@ -29,6 +67,7 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
     io.emit('lobbies_update', state.lobbies);
     io.emit('othello_lobbies_update', state.othelloLobbies);
     io.emit('azul_lobbies_update', state.azulLobbies);
+    io.sockets.sockets.forEach(s => emitActiveGame(s));
   }
 
   function clearPendingDisconnectForUsername(username){
@@ -133,12 +172,49 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
         azul.emitState(game);
       }
 
+      emitActiveGame(socket);
       updatePresence();
     });
 
     chess.register();
     othello.register();
     azul.register();
+
+    socket.on('send_game_invite', ({ toUsername, gameKey } = {})=>{
+      if(!socket.username || !toUsername || toUsername === socket.username) return;
+      const meta = GAME_META[gameKey];
+      if(!meta) return;
+      const targets = socketsForUsername(toUsername);
+      if(!targets.length){
+        socket.emit('game_notice', { message: `${toUsername} is not online.` });
+        return;
+      }
+
+      targets.forEach(target => target.emit('game_invite', {
+        from: socket.username,
+        gameKey,
+        label: meta.label,
+        url: meta.lobbyUrl,
+        message: `${socket.username} invited you to ${meta.label}.`
+      }));
+      socket.emit('game_notice', { message: `Invite sent to ${toUsername}.` });
+    });
+
+    socket.on('decline_game_invite', ({ toUsername, gameKey } = {})=>{
+      if(!socket.username || !toUsername) return;
+      const meta = GAME_META[gameKey] || {};
+      emitToUsername(toUsername, 'game_notice', {
+        message: `${socket.username} declined your ${meta.label || 'game'} invite.`
+      });
+    });
+
+    socket.on('decline_rematch', ({ toUsername, gameKey } = {})=>{
+      if(!socket.username || !toUsername) return;
+      const meta = GAME_META[gameKey] || {};
+      emitToUsername(toUsername, 'game_notice', {
+        message: `${socket.username} declined the ${meta.label || 'game'} rematch.`
+      });
+    });
 
     socket.on('disconnect', ()=>{
       if(socket.username){

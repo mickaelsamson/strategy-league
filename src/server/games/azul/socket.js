@@ -11,6 +11,8 @@ const TILES_PER_FACTORY = 4;
 const TURN_TIME_MS = 60 * 1000;
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 4;
+const SCORING_STEP_MS = 950;
+const SCORING_GAP_MS = 260;
 
 function randomId(){
   return Math.random().toString(36).substr(2, 9);
@@ -87,10 +89,13 @@ function createGame(gameId, lobby){
     round: 0,
     ended: false,
     rated: false,
+    phase: 'playing',
     lastRound: null,
+    scoringDelayMs: 0,
     turnStartedAt: null,
     turnDeadlineAt: null,
-    turnTimer: null
+    turnTimer: null,
+    scoringTimer: null
   };
 
   refillFactories(game);
@@ -189,7 +194,21 @@ function completedColorSets(player){
   return COLORS.filter(color => player.wall.every(row => row.includes(color))).length;
 }
 
-function resolveRound(game){
+function getScoringActionCount(summary){
+  return Object.values(summary || {}).reduce((total, playerSummary) => {
+    return total +
+      (playerSummary.placements?.length || 0) +
+      (playerSummary.floorPenalty ? 1 : 0) +
+      (playerSummary.bonus ? 1 : 0);
+  }, 0);
+}
+
+function getScoringDelay(summary){
+  const actions = getScoringActionCount(summary);
+  return Math.max(1800, Math.min(45000, 900 + actions * (SCORING_STEP_MS + SCORING_GAP_MS)));
+}
+
+function scoreRound(game){
   const summary = {};
 
   game.players.forEach(player => {
@@ -229,10 +248,11 @@ function resolveRound(game){
     const preferred = game.players.find(player => player.active !== false && player.seat === game.nextStartSeat);
     game.turnSeat = preferred ? preferred.seat : getNextActiveSeat(game, -1);
     game.nextStartSeat = null;
-    refillFactories(game);
   }
 
   game.lastRound = summary;
+  game.scoringDelayMs = getScoringDelay(summary);
+  game.phase = 'scoring';
 }
 
 function getWinnerUsername(game){
@@ -264,6 +284,17 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult, 
     if(game?.turnTimer){
       clearTimeout(game.turnTimer);
       game.turnTimer = null;
+    }
+    if(game){
+      game.turnStartedAt = null;
+      game.turnDeadlineAt = null;
+    }
+  }
+
+  function clearScoringTimer(game){
+    if(game?.scoringTimer){
+      clearTimeout(game.scoringTimer);
+      game.scoringTimer = null;
     }
   }
 
@@ -318,9 +349,54 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult, 
     if(!game || game.ended) return;
 
     clearTurnTimer(game);
+    game.phase = 'playing';
+    game.scoringDelayMs = 0;
     game.turnStartedAt = Date.now();
     game.turnDeadlineAt = game.turnStartedAt + TURN_TIME_MS;
     game.turnTimer = setTimeout(()=>endByTimeout(game), TURN_TIME_MS);
+  }
+
+  function finishAzulGame(game, reason){
+    const winner = getWinnerUsername(game);
+    applyAzulResult(game, winner, winner ? reason : 'draw')
+      .then(result=>emitEnd(game, {
+        winner,
+        reason: winner ? reason : 'draw',
+        message: winner ? `${winner} wins.` : 'Draw.',
+        rewards: result?.players || {},
+        scores: game.players.reduce((acc, p) => ({ ...acc, [p.username]: p.score }), {})
+      }))
+      .catch(err => {
+        console.error('Azul points update error:', err);
+        emitEnd(game, {
+          winner,
+          reason: winner ? reason : 'draw',
+          message: winner ? `${winner} wins.` : 'Draw.',
+          rewards: {},
+          scores: game.players.reduce((acc, p) => ({ ...acc, [p.username]: p.score }), {})
+        });
+      })
+      .finally(()=>updatePresence());
+  }
+
+  function scheduleRoundAdvance(game){
+    clearScoringTimer(game);
+    game.turnStartedAt = null;
+    game.turnDeadlineAt = null;
+    game.scoringTimer = setTimeout(()=>{
+      game.scoringTimer = null;
+      if(game.ended){
+        finishAzulGame(game, 'game_end');
+        return;
+      }
+
+      game.phase = 'playing';
+      game.lastRound = null;
+      game.scoringDelayMs = 0;
+      refillFactories(game);
+      startTurnTimer(game);
+      emitState(game);
+    }, game.scoringDelayMs || 1800);
   }
 
   function findGameIdForSocket(){
@@ -353,8 +429,10 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult, 
         turnSeat: game.turnSeat,
         turnStartedAt: game.turnStartedAt,
         turnDeadlineAt: game.turnDeadlineAt,
-        turnRemainingMs: game.turnDeadlineAt ? Math.max(0, game.turnDeadlineAt - Date.now()) : TURN_TIME_MS,
+        turnRemainingMs: game.turnDeadlineAt ? Math.max(0, game.turnDeadlineAt - Date.now()) : 0,
         turnTimeMs: TURN_TIME_MS,
+        phase: game.phase || 'playing',
+        scoringDelayMs: game.scoringDelayMs || 0,
         mySeat: player.seat,
         players: game.players.map(publicPlayer),
         lastRound: game.lastRound,
@@ -489,33 +567,10 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult, 
         return;
       }
 
-      resolveRound(game);
-      if(!game.ended) startTurnTimer(game);
+      clearTurnTimer(game);
+      scoreRound(game);
       emitState(game);
-
-      if(game.ended){
-        clearTurnTimer(game);
-        const winner = getWinnerUsername(game);
-        applyAzulResult(game, winner, winner ? 'game_end' : 'draw')
-          .then(result=>emitEnd(game, {
-            winner,
-            reason: winner ? 'game_end' : 'draw',
-            message: winner ? `${winner} wins.` : 'Draw.',
-            rewards: result?.players || {},
-            scores: game.players.reduce((acc, p) => ({ ...acc, [p.username]: p.score }), {})
-          }))
-          .catch(err => {
-            console.error('Azul points update error:', err);
-            emitEnd(game, {
-              winner,
-              reason: winner ? 'game_end' : 'draw',
-              message: winner ? `${winner} wins.` : 'Draw.',
-              rewards: {},
-              scores: game.players.reduce((acc, p) => ({ ...acc, [p.username]: p.score }), {})
-            });
-          })
-          .finally(()=>updatePresence());
-      }
+      scheduleRoundAdvance(game);
     });
 
     socket.on('azul_resign', ()=>{
@@ -524,6 +579,7 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult, 
 
       const game = state.azulGames[gameId];
       if(!game || game.ended) return;
+      clearScoringTimer(game);
 
       const quitter = game.players.find(p => p.username === socket.username);
       if(!quitter) return;
@@ -582,7 +638,17 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult, 
       const requestedBy = Object.keys(state.rematchRequests[gameId]);
       game.players.forEach(player => {
         const s = io.sockets.sockets.get(player.id);
-        if(s) s.emit('azul_rematch_status', { requestedBy });
+        if(!s) return;
+        s.emit('azul_rematch_status', { requestedBy });
+        if(player.username !== socket.username){
+          s.emit('game_rematch_invite', {
+            from: socket.username,
+            toUsername: player.username,
+            gameKey: 'azul',
+            label: 'Azul Arena',
+            message: `${socket.username} wants an Azul Arena rematch.`
+          });
+        }
       });
 
       const allReady = game.players.every(player => state.rematchRequests[gameId][player.username]);

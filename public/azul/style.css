@@ -1,6 +1,27 @@
 body{
   margin:0;
   color:var(--shell-text);
+  --azul-table-size:min(370px, 35vw);
+  --azul-factory-size:28%;
+  --azul-center-size:44%;
+  --azul-tile-size:22px;
+  --azul-cell-size:27px;
+}
+
+body[data-azul-players="3"]{
+  --azul-table-size:min(330px, 31vw);
+  --azul-factory-size:24%;
+  --azul-center-size:46%;
+  --azul-tile-size:20px;
+  --azul-cell-size:24px;
+}
+
+body[data-azul-players="4"]{
+  --azul-table-size:min(310px, 29vw);
+  --azul-factory-size:22%;
+  --azul-center-size:48%;
+  --azul-tile-size:18px;
+  --azul-cell-size:22px;
 }
 
 .blocked-screen{
@@ -18,7 +39,7 @@ body{
 
 .azul-container,
 .azul-game{
-  width:min(1180px, 100%);
+  width:min(1260px, 100%);
   margin:0 auto;
 }
 
@@ -74,6 +95,12 @@ body{
 
 .player-count-field select{
   min-height:44px;
+}
+
+.invite-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:8px;
 }
 
 .lobby-create h2,
@@ -194,7 +221,7 @@ button:disabled{
 
 .azul-table{
   display:grid;
-  grid-template-columns:minmax(310px, 370px) minmax(330px, 1fr);
+  grid-template-columns:minmax(280px, var(--azul-table-size)) minmax(300px, 1fr);
   gap:18px;
   align-items:start;
 }
@@ -207,7 +234,7 @@ button:disabled{
 }
 
 .boards{
-  grid-template-columns:repeat(auto-fit, minmax(316px, 360px));
+  grid-template-columns:repeat(auto-fit, minmax(min(100%, 300px), max-content));
   justify-content:center;
 }
 
@@ -306,11 +333,11 @@ button:disabled{
 }
 
 .draft-zone{
-  min-height:370px;
+  min-height:var(--azul-table-size);
 }
 
 .table-draft{
-  width:min(370px, 100%);
+  width:min(var(--azul-table-size), 100%);
   aspect-ratio:1/1;
   position:relative;
   margin:0 auto;
@@ -323,7 +350,7 @@ button:disabled{
 
 .factory{
   position:absolute;
-  width:28%;
+  width:var(--azul-factory-size);
   aspect-ratio:1/1;
   display:grid;
   place-items:center;
@@ -361,7 +388,7 @@ button:disabled{
 }
 
 .center-zone{
-  width:44%;
+  width:var(--azul-center-size);
   aspect-ratio:1/1;
   min-height:0;
   position:absolute;
@@ -377,7 +404,7 @@ button:disabled{
 }
 
 .center-pool{
-  min-height:104px;
+  min-height:calc(var(--azul-table-size) * .28);
   background:
     linear-gradient(135deg, rgba(1,150,179,0.18), rgba(255,255,255,0.22)),
     rgba(255,247,245,0.72);
@@ -413,9 +440,9 @@ body.app-shell-active .azul-game .tile-stack{
 }
 
 .tile{
-  width:22px;
-  height:22px;
-  flex:0 0 22px;
+  width:var(--azul-tile-size);
+  height:var(--azul-tile-size);
+  flex:0 0 var(--azul-tile-size);
   display:grid;
   place-items:center;
   border-radius:6px;
@@ -442,6 +469,7 @@ body.app-shell-active .azul-game .tile-stack{
   position:relative;
   width:max-content;
   max-width:100%;
+  transition:transform .25s ease, opacity .25s ease, box-shadow .25s ease;
 }
 
 .player-board.eliminated{
@@ -558,8 +586,8 @@ body.app-shell-active .azul-game .player-board button.pattern-line.can-place:not
 .pattern-slot,
 .wall-cell,
 .floor-slot{
-  width:27px;
-  height:27px;
+  width:var(--azul-cell-size);
+  height:var(--azul-cell-size);
   display:grid;
   place-items:center;
   border-radius:6px;
@@ -578,7 +606,7 @@ body.app-shell-active .azul-game .player-board button.pattern-line.can-place:not
 
 .wall-row{
   display:grid;
-  grid-template-columns:repeat(5, 27px);
+  grid-template-columns:repeat(5, var(--azul-cell-size));
   gap:4px;
 }
 
@@ -600,7 +628,7 @@ body.app-shell-active .azul-game .player-board button.pattern-line.can-place:not
 .floor-line{
   margin-top:10px;
   display:grid;
-  grid-template-columns:44px repeat(7, 27px);
+  grid-template-columns:44px repeat(7, var(--azul-cell-size));
   gap:4px;
   align-items:center;
   padding:6px;
@@ -648,6 +676,18 @@ body.app-shell-active .azul-game .player-board button.pattern-line.can-place:not
   z-index:2;
   box-shadow:0 0 0 2px rgba(255,196,78,0.92), 0 0 20px rgba(255,196,78,0.5);
   animation:scoreHighlight .95s ease-in-out infinite;
+}
+
+.azul-scoring .player-board{
+  opacity:.38;
+  transform:scale(.96);
+}
+
+.azul-scoring .player-board.scoring-focus{
+  opacity:1;
+  transform:scale(1.08);
+  z-index:20;
+  box-shadow:0 0 0 2px rgba(255,196,78,0.86), 0 28px 90px rgba(0,0,0,0.42), 0 0 44px rgba(255,196,78,0.22);
 }
 
 .score-pop-anchor{

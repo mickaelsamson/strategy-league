@@ -119,12 +119,14 @@
             <span><i></i><b id="onlineCount">0</b></span>
           </div>
           <div id="onlinePlayers" class="online-list">
-            <div class="online-empty">Connexion...</div>
+            <div class="online-empty">Connecting...</div>
           </div>
         </div>
       </aside>
 
       <div id="shellPlayerCard" class="shell-player-card hidden"></div>
+      <div id="shellToastStack" class="shell-toast-stack"></div>
+      <div id="activeGameBanner" class="active-game-banner hidden"></div>
     `;
 
     document.querySelectorAll('[data-link]').forEach(btn => {
@@ -171,6 +173,7 @@
         onlineSocket = window.io();
         onlineSocket.emit('register_online', user.username);
         onlineSocket.on('online_users', renderOnlinePlayers);
+        bindSharedSocketEvents(onlineSocket);
       })
       .catch(err => {
         console.error('Online players unavailable:', err);
@@ -195,6 +198,7 @@
         socket.on('online_users', users => {
           window.dispatchEvent(new CustomEvent('site-shell-online-users', { detail: users }));
         });
+        bindSharedSocketEvents(socket);
         if(user?.username && typeof socket.emit === 'function'){
           socket.emit('register_online', user.username);
         }
@@ -206,10 +210,116 @@
     }, 125);
   }
 
+  function currentGameKey(){
+    const path = window.location.pathname;
+    if(path.includes('/chess')) return 'chess';
+    if(path.includes('/othello')) return 'othello';
+    if(path.includes('/azul')) return 'azul';
+    return null;
+  }
+
+  function gameUrlFor(gameKey){
+    return {
+      chess: '/chess/chess-game.html',
+      othello: '/othello/game.html',
+      azul: '/azul/game.html'
+    }[gameKey] || '/games.html';
+  }
+
+  function bindSharedSocketEvents(socket){
+    if(!socket || socket.__siteShellSharedBound) return;
+    socket.__siteShellSharedBound = true;
+
+    socket.on('game_invite', invite => {
+      showToast({
+        title: invite.label || 'Game invite',
+        message: invite.message || 'You received a game invite.',
+        actions: [
+          { label: 'Accept', onClick: () => { window.location.href = invite.url || '/games.html'; } },
+          { label: 'Decline', quiet: true, onClick: () => socket.emit('decline_game_invite', { toUsername: invite.from, gameKey: invite.gameKey }) }
+        ]
+      });
+    });
+
+    socket.on('game_rematch_invite', invite => {
+      showToast({
+        title: 'Rematch',
+        message: invite.message || 'Rematch requested.',
+        actions: [
+          { label: 'Accept', onClick: () => acceptRematch(socket, invite.gameKey) },
+          { label: 'Decline', quiet: true, onClick: () => socket.emit('decline_rematch', { toUsername: invite.from, gameKey: invite.gameKey }) }
+        ]
+      });
+    });
+
+    socket.on('game_notice', notice => {
+      showToast({ title: 'Game notice', message: notice?.message || 'Game update.' });
+    });
+
+    socket.on('active_game_status', renderActiveGameBanner);
+  }
+
+  function acceptRematch(socket, gameKey){
+    if(gameKey === 'chess') socket.emit('rematch');
+    if(gameKey === 'othello') socket.emit('othello_rematch');
+    if(gameKey === 'azul') socket.emit('azul_rematch');
+    const url = gameUrlFor(gameKey);
+    if(window.location.pathname !== url){
+      setTimeout(() => { window.location.href = url; }, 120);
+    }
+  }
+
+  function showToast({ title, message, actions = [] }){
+    const stack = document.getElementById('shellToastStack');
+    if(!stack) return;
+
+    const toast = document.createElement('div');
+    toast.className = 'shell-toast';
+    toast.innerHTML = `
+      <strong>${escapeHtml(title)}</strong>
+      <p>${escapeHtml(message)}</p>
+      <div class="shell-toast-actions">
+        ${actions.map((action, index) => `<button type="button" data-action="${index}" class="${action.quiet ? 'quiet' : ''}">${escapeHtml(action.label)}</button>`).join('')}
+      </div>
+    `;
+
+    actions.forEach((action, index) => {
+      toast.querySelector(`[data-action="${index}"]`)?.addEventListener('click', () => {
+        action.onClick?.();
+        toast.remove();
+      });
+    });
+
+    stack.appendChild(toast);
+    if(!actions.length) setTimeout(()=>toast.remove(), 4200);
+  }
+
+  function renderActiveGameBanner(activeGame){
+    const banner = document.getElementById('activeGameBanner');
+    if(!banner) return;
+
+    if(!activeGame || window.location.pathname === activeGame.url){
+      banner.classList.add('hidden');
+      banner.innerHTML = '';
+      return;
+    }
+
+    banner.classList.remove('hidden');
+    banner.innerHTML = `
+      <span>Active ${escapeHtml(activeGame.label || 'game')} in progress</span>
+      <button type="button">Rejoin</button>
+    `;
+    banner.querySelector('button')?.addEventListener('click', () => {
+      window.location.href = activeGame.url || '/games.html';
+    });
+  }
+
   function renderOnlinePlayers(users){
     const list = document.getElementById('onlinePlayers');
     const count = document.getElementById('onlineCount');
     if(!list) return;
+    const user = getUser();
+    const gameKey = currentGameKey();
 
     const entries = Object.entries(users || {}).map(([username, data]) => ({
       username,
@@ -223,18 +333,41 @@
     }
 
     list.innerHTML = entries.map(player => {
+      const canInvite = gameKey && user?.username && player.username !== user.username;
       return `
-        <button class="online-player" type="button" data-profile-username="${escapeHtml(player.username)}" data-player='${escapeHtml(JSON.stringify(player))}'>
-          ${avatarMarkup(player, 'online-avatar')}
-          <span class="online-player-copy">
-            <strong>${escapeHtml(player.username)}</strong>
-          </span>
-          <i></i>
-        </button>
+        <div class="online-player-row">
+          <button class="online-player" type="button" data-profile-username="${escapeHtml(player.username)}" data-player='${escapeHtml(JSON.stringify(player))}'>
+            ${avatarMarkup(player, 'online-avatar')}
+            <span class="online-player-copy">
+              <strong>${escapeHtml(player.username)}</strong>
+            </span>
+            <i></i>
+          </button>
+          ${canInvite ? `<button class="online-invite" type="button" data-invite-username="${escapeHtml(player.username)}">Invite</button>` : ''}
+        </div>
       `;
     }).join('');
 
     bindPlayerCards();
+    bindInviteButtons(gameKey);
+  }
+
+  function getSharedSocket(){
+    return window.StrategyLeagueSocket || onlineSocket;
+  }
+
+  function bindInviteButtons(gameKey){
+    document.querySelectorAll('[data-invite-username]').forEach(button => {
+      button.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        const socket = getSharedSocket();
+        const toUsername = button.dataset.inviteUsername;
+        if(socket && toUsername && gameKey){
+          socket.emit('send_game_invite', { toUsername, gameKey });
+        }
+      });
+    });
   }
 
   function bindPlayerCards(){

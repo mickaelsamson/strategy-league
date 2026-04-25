@@ -307,7 +307,17 @@ function createOthelloModule({ io, socket, state, updatePresence, applyOthelloRe
       const requestedBy = Object.keys(state.rematchRequests[gameId]);
       game.players.forEach(player => {
         const s = io.sockets.sockets.get(player.id);
-        if(s) s.emit('othello_rematch_status', { requestedBy });
+        if(!s) return;
+        s.emit('othello_rematch_status', { requestedBy });
+        if(player.username !== socket.username){
+          s.emit('game_rematch_invite', {
+            from: socket.username,
+            toUsername: player.username,
+            gameKey: 'othello',
+            label: 'Othello',
+            message: `${socket.username} wants an Othello rematch.`
+          });
+        }
       });
 
       const allReady = game.players.every(player => state.rematchRequests[gameId][player.username]);

@@ -68,6 +68,13 @@ function ready(id){
   socket.emit("toggle_azul_ready", id);
 }
 
+function sendInvite(){
+  if(!gamesEnabled) return;
+  const toUsername = document.getElementById("inviteUsername").value.trim();
+  if(!toUsername) return;
+  socket.emit("send_game_invite", { toUsername, gameKey: "azul" });
+}
+
 async function checkGamesAccess(){
   try{
     const res = await fetch("/api/games/status");

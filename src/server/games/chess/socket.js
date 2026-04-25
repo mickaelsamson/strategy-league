@@ -248,7 +248,17 @@ function createChessModule({ io, socket, state, updatePresence, applyRankedResul
       const requestedBy = Object.keys(state.rematchRequests[gameId]);
       game.players.forEach(player => {
         const s = io.sockets.sockets.get(player.id);
-        if(s) s.emit('chess_rematch_status', { requestedBy });
+        if(!s) return;
+        s.emit('chess_rematch_status', { requestedBy });
+        if(player.username !== socket.username){
+          s.emit('game_rematch_invite', {
+            from: socket.username,
+            toUsername: player.username,
+            gameKey: 'chess',
+            label: 'Chess',
+            message: `${socket.username} wants a Chess rematch.`
+          });
+        }
       });
 
       const allReady = game.players.every(player => state.rematchRequests[gameId][player.username]);

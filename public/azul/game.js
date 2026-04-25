@@ -49,7 +49,7 @@ function tileMarkup(color, extra = ""){
 }
 
 function isMyTurn(){
-  return state && state.turnSeat === state.mySeat && !state.ended && !gameOver;
+  return state && state.phase === "playing" && state.turnSeat === state.mySeat && !state.ended && !gameOver;
 }
 
 function myPlayer(){
@@ -211,10 +211,14 @@ function renderStatus(){
   const turnCard = document.querySelector(".turn-card");
   if(turnCard) turnCard.classList.toggle("your-turn", isMyTurn());
   document.getElementById("roundLabel").innerText = `Round ${state.round}`;
-  document.getElementById("turnLabel").innerText = isMyTurn() ? "Your turn" : `${turnPlayer?.username || "Opponent"} to play`;
+  document.getElementById("turnLabel").innerText = state.phase === "scoring"
+    ? "Scoring"
+    : isMyTurn() ? "Your turn" : `${turnPlayer?.username || "Opponent"} to play`;
 
   const hint = document.getElementById("selectionHint");
-  if(!isMyTurn()){
+  if(state.phase === "scoring"){
+    hint.innerText = "Counting points. Watch each board resolve.";
+  } else if(!isMyTurn()){
     hint.innerText = "Waiting for the opponent.";
   } else if(selected){
     hint.innerText = `Place ${selectedCount()} ${COLOR_LABELS[selected.color]} tile(s) on a pattern line or the floor.`;
@@ -225,6 +229,8 @@ function renderStatus(){
 
 function render(){
   if(!state) return;
+  document.body.classList.toggle("azul-scoring", state.phase === "scoring");
+  document.body.dataset.azulPlayers = String(state.players?.length || 2);
   renderStatus();
   renderFactories();
   renderCenter();
@@ -243,9 +249,16 @@ function formatTime(ms){
 function renderTimer(){
   const text = document.getElementById("timerText");
   const fill = document.getElementById("timerFill");
-  if(!text || !fill || !state?.localTurnDeadlineAt){
-    if(text) text.innerText = "01:00";
-    if(fill) fill.style.width = "100%";
+  if(!text || !fill || state?.phase === "scoring"){
+    if(text) text.innerText = state?.phase === "scoring" ? "Scoring" : "01:00";
+    if(fill) fill.style.width = state?.phase === "scoring" ? "0%" : "100%";
+    if(fill) fill.classList.remove("danger");
+    return;
+  }
+
+  if(!state?.localTurnDeadlineAt){
+    text.innerText = "01:00";
+    fill.style.width = "100%";
     return;
   }
 
@@ -312,6 +325,11 @@ function setScoringHighlight(player, cells, active){
   });
 }
 
+function setBoardFocus(player, active){
+  const board = document.querySelector(`.player-board[data-seat="${player.seat}"]`);
+  if(board) board.classList.toggle("scoring-focus", active);
+}
+
 async function showRoundScorePopups(){
   if(!state?.lastRound) return Promise.resolve();
   const key = `${state.gameId}-${state.round}-${JSON.stringify(state.lastRound)}`;
@@ -320,12 +338,18 @@ async function showRoundScorePopups(){
   const token = ++scoringToken;
 
   return new Promise(resolve => requestAnimationFrame(async () => {
+    document.body.classList.add("azul-scoring");
     for(const player of (state.players || [])){
       const summary = state.lastRound[player.username];
       if(!summary) continue;
+      setBoardFocus(player, true);
 
       for(const placement of (summary.placements || [])){
-        if(token !== scoringToken) return resolve();
+        if(token !== scoringToken){
+          setBoardFocus(player, false);
+          document.body.classList.remove("azul-scoring");
+          return resolve();
+        }
         const target = document.querySelector(`.wall-cell[data-seat="${player.seat}"][data-row="${placement.row}"][data-col="${placement.col}"]`);
         const cells = getScoringCells(player, placement);
         setScoringHighlight(player, cells, true);
@@ -336,7 +360,11 @@ async function showRoundScorePopups(){
       }
 
       if(summary.floorPenalty){
-        if(token !== scoringToken) return resolve();
+        if(token !== scoringToken){
+          setBoardFocus(player, false);
+          document.body.classList.remove("azul-scoring");
+          return resolve();
+        }
         const target = document.querySelector(`.score-pop-anchor[data-seat="${player.seat}"]`);
         document.querySelectorAll(`.player-board[data-seat="${player.seat}"] .floor-slot.has-tile`).forEach(slot => slot.classList.add("scoring"));
         scorePopup(target, String(summary.floorPenalty), false);
@@ -346,14 +374,21 @@ async function showRoundScorePopups(){
       }
 
       if(summary.bonus){
-        if(token !== scoringToken) return resolve();
+        if(token !== scoringToken){
+          setBoardFocus(player, false);
+          document.body.classList.remove("azul-scoring");
+          return resolve();
+        }
         const target = document.querySelector(`.score-pop-anchor[data-seat="${player.seat}"]`);
         document.querySelectorAll(`.player-board[data-seat="${player.seat}"] .wall-cell.placed`).forEach(cell => cell.classList.add("scoring"));
         scorePopup(target, `+${summary.bonus}`, true);
         await delay(1100);
         document.querySelectorAll(`.player-board[data-seat="${player.seat}"] .wall-cell.scoring`).forEach(cell => cell.classList.remove("scoring"));
       }
+      setBoardFocus(player, false);
+      await delay(260);
     }
+    document.body.classList.remove("azul-scoring");
     resolve();
   }));
 }
@@ -402,7 +437,9 @@ socket.on("azul_state", data => {
   if(!data.lastRound) scoringToken += 1;
   state = {
     ...data,
-    localTurnDeadlineAt: Date.now() + (Number.isFinite(data.turnRemainingMs) ? data.turnRemainingMs : data.turnTimeMs || 60000)
+    localTurnDeadlineAt: data.phase === "playing" && Number.isFinite(data.turnRemainingMs)
+      ? Date.now() + data.turnRemainingMs
+      : null
   };
   gameOver = Boolean(data.ended);
   selected = null;

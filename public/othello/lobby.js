@@ -34,6 +34,12 @@ function createLobby(){
 }
 function join(id){if(gamesEnabled)socket.emit("join_othello_lobby",id);}
 function ready(id){if(gamesEnabled)socket.emit("toggle_othello_ready",id);}
+function sendInvite(){
+ if(!gamesEnabled)return;
+ const toUsername=document.getElementById("inviteUsername").value.trim();
+ if(!toUsername)return;
+ socket.emit("send_game_invite",{toUsername,gameKey:"othello"});
+}
 
 async function checkGamesAccess(){
  try{

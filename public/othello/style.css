@@ -88,6 +88,12 @@ body.lobby-page{
   text-align:left;
 }
 
+.invite-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:8px;
+}
+
 .lobby-create input{
   flex:1;
   border:1px solid var(--shell-line);
