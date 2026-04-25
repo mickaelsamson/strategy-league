@@ -1,95 +1,244 @@
-// ===== OTHELLO COMPLETE =====
+const { CHESS_TIME_CONTROLS } = require('../../config/constants');
 
-let othelloLobbies={},othelloGames={};
-
-function initBoard(){
- const b=Array(8).fill().map(()=>Array(8).fill(null));
- b[3][3]="white";b[3][4]="black";b[4][3]="black";b[4][4]="white";
- return b;
+function randomId(){
+  return Math.random().toString(36).substr(2, 9);
 }
 
-const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+function createChessModule({ io, socket, state, updatePresence, applyRankedResult }){
+  function findGameIdForSocket(){
+    let gameId = state.playerGames[socket.id];
+    if(gameId) return gameId;
+    if(!socket.username) return null;
 
-function valid(b,x,y,c){
- if(b[y][x])return false;
- let opp=c==="black"?"white":"black";
- for(const[dX,dY]of dirs){
-  let nx=x+dX,ny=y+dY,found=false;
-  while(nx>=0&&ny>=0&&nx<8&&ny<8){
-   if(b[ny][nx]===opp)found=true;
-   else if(b[ny][nx]===c&&found)return true;
-   else break;
-   nx+=dX;ny+=dY;
+    gameId = Object.keys(state.chessGames).find(id =>
+      state.chessGames[id]?.players?.some(p => p.username === socket.username)
+    );
+
+    if(gameId) state.playerGames[socket.id] = gameId;
+    return gameId || null;
   }
- }
- return false;
+
+  function emitGameStart(game){
+    game.players.forEach(player => {
+      state.playerGames[player.id] = game.id;
+      const s = io.sockets.sockets.get(player.id);
+      if(!s) return;
+
+      s.emit('chess_start', {
+        color: player.color,
+        fen: game.fen,
+        timeControl: game.timeControl,
+        players: {
+          white: game.players.find(pl => pl.color === 'w').username,
+          black: game.players.find(pl => pl.color === 'b').username
+        }
+      });
+    });
+  }
+
+  function emitGameOver(gameId, payload){
+    const game = state.chessGames[gameId];
+    if(!game || game.ended) return;
+
+    game.ended = true;
+    state.rematchRequests[gameId] = {};
+
+    game.players.forEach(player => {
+      const s = io.sockets.sockets.get(player.id);
+      if(s) s.emit('chess_game_over', payload);
+    });
+  }
+
+  function register(){
+    socket.on('create_lobby', ({ name, time })=>{
+      const parsedTime = Number(time);
+      if(!CHESS_TIME_CONTROLS.includes(parsedTime)) return;
+
+      const existing = Object.values(state.lobbies).find(l =>
+        l.players.some(p => p.username === socket.username)
+      );
+      if(existing) return;
+
+      const id = randomId();
+      state.lobbies[id] = {
+        id,
+        name,
+        time: parsedTime,
+        players: [{ id: socket.id, username: socket.username, ready: false }]
+      };
+
+      updatePresence();
+    });
+
+    socket.on('join_lobby', id => {
+      const lobby = state.lobbies[id];
+      if(!lobby) return;
+
+      const existing = Object.values(state.lobbies).find(l =>
+        l.players.some(p => p.username === socket.username)
+      );
+      if(existing) return;
+
+      lobby.players.push({ id: socket.id, username: socket.username, ready: false });
+      updatePresence();
+    });
+
+    socket.on('toggle_ready', id => {
+      const lobby = state.lobbies[id];
+      if(!lobby) return;
+
+      const player = lobby.players.find(p => p.id === socket.id);
+      if(!player) return;
+      player.ready = !player.ready;
+
+      if(lobby.players.length === 2 && lobby.players.every(p => p.ready)){
+        const gameId = randomId();
+        const p1 = lobby.players[0];
+        const p2 = lobby.players[1];
+
+        state.chessGames[gameId] = {
+          id: gameId,
+          players: [
+            { id: p1.id, username: p1.username, color: 'w' },
+            { id: p2.id, username: p2.username, color: 'b' }
+          ],
+          turn: 'w',
+          fen: null,
+          ended: false,
+          rated: false,
+          timeControl: lobby.time
+        };
+
+        emitGameStart(state.chessGames[gameId]);
+        delete state.lobbies[id];
+      }
+
+      updatePresence();
+    });
+
+    socket.on('chess_move', ({ fen })=>{
+      const gameId = findGameIdForSocket();
+      if(!gameId) return;
+
+      const game = state.chessGames[gameId];
+      if(!game || game.ended) return;
+
+      game.fen = fen;
+      game.players.forEach(p => {
+        const s = io.sockets.sockets.get(p.id);
+        if(s) s.emit('chess_update', { fen });
+      });
+    });
+
+    socket.on('resign', ()=>{
+      const gameId = findGameIdForSocket();
+      if(!gameId) return;
+
+      const game = state.chessGames[gameId];
+      if(!game || game.ended) return;
+
+      const quitter = game.players.find(p => p.id === socket.id || p.username === socket.username);
+      const winner = game.players.find(p => p.username !== quitter?.username);
+
+      applyRankedResult(game, winner?.username, 'resign')
+        .catch(err => console.error('ELO update error:', err))
+        .finally(()=>{
+          emitGameOver(gameId, {
+            reason: 'resign',
+            message: quitter ? `${quitter.username} abandoned the game.` : 'A player abandoned the game.',
+            winner: winner?.username || null
+          });
+        });
+    });
+
+    socket.on('chess_game_end', ({ winner, reason } = {})=>{
+      const gameId = findGameIdForSocket();
+      if(!gameId) return;
+
+      const game = state.chessGames[gameId];
+      if(!game || game.ended) return;
+
+      const inGame = game.players.some(p => p.username === socket.username);
+      if(!inGame) return;
+
+      const validWinner = winner && game.players.some(p => p.username === winner);
+      const winnerName = validWinner ? winner : null;
+      const endReason = reason || 'completed';
+
+      const messageByReason = {
+        checkmate: 'Checkmate.',
+        timeout: 'Time is over.',
+        stalemate: 'Draw by stalemate.',
+        draw: 'Draw.'
+      };
+
+      applyRankedResult(game, winnerName, endReason)
+        .catch(err => console.error('ELO update error:', err))
+        .finally(()=>emitGameOver(gameId, {
+          reason: endReason,
+          message: messageByReason[endReason] || 'Game finished.',
+          winner: winnerName
+        }));
+    });
+
+    socket.on('chess_timeout', ()=>{
+      const gameId = findGameIdForSocket();
+      if(!gameId) return;
+
+      const game = state.chessGames[gameId];
+      if(!game || game.ended) return;
+
+      const loser = game.players.find(p => p.username === socket.username);
+      if(!loser) return;
+
+      const winner = game.players.find(p => p.username !== loser.username);
+
+      applyRankedResult(game, winner?.username || null, 'timeout')
+        .catch(err => console.error('ELO update error:', err))
+        .finally(()=>emitGameOver(gameId, {
+          reason: 'timeout',
+          message: loser ? `${loser.username} ran out of time.` : 'Time is over.',
+          winner: winner?.username || null
+        }));
+    });
+
+    socket.on('rematch', ()=>{
+      const gameId = findGameIdForSocket();
+      if(!gameId) return;
+
+      const game = state.chessGames[gameId];
+      if(!game || !game.ended) return;
+
+      if(!state.rematchRequests[gameId]) state.rematchRequests[gameId] = {};
+      state.rematchRequests[gameId][socket.username] = true;
+
+      const requestedBy = Object.keys(state.rematchRequests[gameId]);
+      game.players.forEach(player => {
+        const s = io.sockets.sockets.get(player.id);
+        if(s) s.emit('chess_rematch_status', { requestedBy });
+      });
+
+      const allReady = game.players.every(player => state.rematchRequests[gameId][player.username]);
+      if(!allReady) return;
+
+      game.players.forEach(player => {
+        player.color = player.color === 'w' ? 'b' : 'w';
+      });
+
+      game.fen = null;
+      game.turn = 'w';
+      game.ended = false;
+      state.rematchRequests[gameId] = {};
+      emitGameStart(game);
+    });
+  }
+
+  return {
+    register,
+    findGameIdForSocket,
+    emitGameStart,
+    emitGameOver
+  };
 }
 
-function apply(b,x,y,c){
- let opp=c==="black"?"white":"black";
- b[y][x]=c;
- for(const[dX,dY]of dirs){
-  let nx=x+dX,ny=y+dY,path=[];
-  while(nx>=0&&ny>=0&&nx<8&&ny<8){
-   if(b[ny][nx]===opp)path.push([nx,ny]);
-   else if(b[ny][nx]===c){path.forEach(([px,py])=>b[py][px]=c);break;}
-   else break;
-   nx+=dX;ny+=dY;
-  }
- }
-}
-
-io.on("connection",socket=>{
-
- socket.on("create_othello_lobby",({name})=>{
-  const id=Math.random().toString(36).substr(2,9);
-  othelloLobbies[id]={id,name,players:[{id:socket.id,username:socket.username,ready:false}]};
-  io.emit("othello_lobbies_update",othelloLobbies);
- });
-
- socket.on("join_othello_lobby",id=>{
-  const l=othelloLobbies[id];if(!l||l.players.length>=2)return;
-  l.players.push({id:socket.id,username:socket.username,ready:false});
-  io.emit("othello_lobbies_update",othelloLobbies);
- });
-
- socket.on("toggle_othello_ready",id=>{
-  const l=othelloLobbies[id];if(!l)return;
-  const p=l.players.find(p=>p.id===socket.id);if(!p)return;
-  p.ready=!p.ready;
-
-  if(l.players.length===2&&l.players.every(p=>p.ready)){
-   const gameId=id;
-   othelloGames[gameId]={board:initBoard(),turn:"black",players:l.players};
-
-   l.players.forEach((p,i)=>{
-    const s=io.sockets.sockets.get(p.id);
-    if(s)s.emit("othello_state",{board:initBoard(),turn:"black",color:i===0?"black":"white"});
-   });
-
-   delete othelloLobbies[id];
-  }
-
-  io.emit("othello_lobbies_update",othelloLobbies);
- });
-
- socket.on("othello_move",({x,y})=>{
-  const game=Object.values(othelloGames).find(g=>g.players.some(p=>p.id===socket.id));
-  if(!game)return;
-
-  const player=game.players.find(p=>p.id===socket.id);
-  const color=game.players.indexOf(player)===0?"black":"white";
-
-  if(game.turn!==color)return;
-  if(!valid(game.board,x,y,color))return;
-
-  apply(game.board,x,y,color);
-  game.turn=color==="black"?"white":"black";
-
-  game.players.forEach(p=>{
-   const s=io.sockets.sockets.get(p.id);
-   if(s)s.emit("othello_state",{board:game.board,turn:game.turn,color:(p.id===player.id?color:(color==="black"?"white":"black"))});
-  });
- });
-
-});
+module.exports = { createChessModule };
