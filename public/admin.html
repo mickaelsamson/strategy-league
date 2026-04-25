@@ -90,11 +90,11 @@ input:checked + .slider:before {
 <!-- NAVBAR -->
 <div id="navbar-container"></div>
 
-<h1>👑 Admin Panel</h1>
-<p>Bloquer / autoriser l'accès aux jeux avec un switch.</p>
+<h1>Admin Panel</h1>
+<p>Enable or disable game access.</p>
 
 <div class="switch-wrap">
-  <span>Jeux</span>
+  <span>Games</span>
   <label class="switch">
     <input id="gamesSwitch" type="checkbox" />
     <span class="slider"></span>
@@ -102,9 +102,9 @@ input:checked + .slider:before {
   <strong id="switchLabel">OFF</strong>
 </div>
 
-<p id="status">Chargement du statut...</p>
+<p id="status">Loading status...</p>
 
-<button class="back-btn" onclick="goMain()">⬅ Back to Main Menu</button>
+<button class="back-btn" onclick="goMain()">Back to Main Menu</button>
 
 <script>
 
@@ -117,8 +117,8 @@ function render(enabled){
   gamesSwitch.checked = enabled;
   switchLabel.textContent = enabled ? "ON" : "OFF";
   statusEl.textContent = enabled
-    ? "✅ Les jeux sont autorisés"
-    : "⛔ Les jeux sont bloqués";
+    ? "Games are enabled"
+    : "Games are disabled";
 }
 
 async function fetchGamesStatus(){
@@ -127,7 +127,7 @@ async function fetchGamesStatus(){
     const data = await res.json();
     render(Boolean(data.enabled));
   } catch (err) {
-    statusEl.textContent = "Impossible de récupérer le statut des jeux.";
+    statusEl.textContent = "Unable to load game status.";
     console.error(err);
   }
 }
@@ -135,7 +135,7 @@ async function fetchGamesStatus(){
 async function setGames(enabled){
 
   if (!user?.email) {
-    statusEl.textContent = "Utilisateur admin introuvable.";
+    statusEl.textContent = "Admin user not found.";
     gamesSwitch.checked = !enabled;
     return;
   }
@@ -153,7 +153,7 @@ async function setGames(enabled){
     const data = await res.json();
 
     if (!res.ok) {
-      statusEl.textContent = data?.error || "Mise à jour refusée.";
+      statusEl.textContent = data?.error || "Update rejected.";
       gamesSwitch.checked = !enabled;
       return;
     }
@@ -161,7 +161,7 @@ async function setGames(enabled){
     render(enabled);
 
   } catch (err) {
-    statusEl.textContent = "Erreur serveur.";
+    statusEl.textContent = "Server error.";
     gamesSwitch.checked = !enabled;
     console.error(err);
   }

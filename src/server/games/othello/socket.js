@@ -206,16 +206,34 @@ function createOthelloModule({ io, socket, state, updatePresence, applyOthelloRe
         if(score.white > score.black) winnerColor = 'white';
 
         applyOthelloResult(game, winnerColor, winnerColor ? 'game_end' : 'draw')
-          .catch(err => console.error('Othello points update error:', err))
-          .finally(()=>{
+          .then(result=>{
             const winnerPlayer = winnerColor ? game.players.find(p => p.color === winnerColor) : null;
             game.players.forEach(p => {
               const s = io.sockets.sockets.get(p.id);
               if(!s) return;
               s.emit('othello_state', { board: game.board, turn: game.turn, color: p.color });
-              s.emit('othello_end', { winner: winnerPlayer ? winnerPlayer.username : 'Draw' });
+              s.emit('othello_end', {
+                winner: winnerPlayer ? winnerPlayer.username : 'Draw',
+                message: winnerPlayer ? `${winnerPlayer.username} wins!` : 'Draw.',
+                rewards: result?.players || {}
+              });
             });
-          });
+          })
+          .catch(err => {
+            console.error('Othello points update error:', err);
+            const winnerPlayer = winnerColor ? game.players.find(p => p.color === winnerColor) : null;
+            game.players.forEach(p => {
+              const s = io.sockets.sockets.get(p.id);
+              if(!s) return;
+              s.emit('othello_state', { board: game.board, turn: game.turn, color: p.color });
+              s.emit('othello_end', {
+                winner: winnerPlayer ? winnerPlayer.username : 'Draw',
+                message: winnerPlayer ? `${winnerPlayer.username} wins!` : 'Draw.',
+                rewards: {}
+              });
+            });
+          })
+          .finally(()=>updatePresence());
 
         return;
       }
@@ -237,19 +255,34 @@ function createOthelloModule({ io, socket, state, updatePresence, applyOthelloRe
       game.ended = true;
 
       applyOthelloResult(game, winner.color, 'resign')
-        .catch(err => console.error('Othello points update error:', err))
-        .finally(()=>{
+        .then(result=>{
           game.players.forEach(p => {
             const s = io.sockets.sockets.get(p.id);
             if(s){
               s.emit('othello_end', {
                 winner: winner.username,
                 reason: 'resign',
-                message: `${quitter.username} abandoned the game.`
+                message: `${quitter.username} resigned.`,
+                rewards: result?.players || {}
               });
             }
           });
-        });
+        })
+        .catch(err => {
+          console.error('Othello points update error:', err);
+          game.players.forEach(p => {
+            const s = io.sockets.sockets.get(p.id);
+            if(s){
+              s.emit('othello_end', {
+                winner: winner.username,
+                reason: 'resign',
+                message: `${quitter.username} resigned.`,
+                rewards: {}
+              });
+            }
+          });
+        })
+        .finally(()=>updatePresence());
     });
   }
 

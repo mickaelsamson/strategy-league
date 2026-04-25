@@ -49,6 +49,10 @@ function getOthelloScoreFinal(game){
   return `${score.black}-${score.white}`;
 }
 
+function resultPayload(username, result, xpChange, eloChange){
+  return { username, result, xpChange, eloChange };
+}
+
 async function applyRankedResult(User, game, winnerUsername, reason = 'game_end'){
   if(!game || game.rated) return;
   if(!Array.isArray(game.players) || game.players.length < 2) return;
@@ -75,7 +79,12 @@ async function applyRankedResult(User, game, winnerUsername, reason = 'game_end'
 
     game.rated = true;
     game.result = { winner: null, loser: null, reason, eloDelta: 0 };
-    return;
+    return {
+      players: {
+        [userA.username]: resultPayload(userA.username, 'draw', 5, 0),
+        [userB.username]: resultPayload(userB.username, 'draw', 5, 0)
+      }
+    };
   }
 
   const loser = game.players.find(p => p.username !== winnerUsername);
@@ -107,6 +116,12 @@ async function applyRankedResult(User, game, winnerUsername, reason = 'game_end'
 
   game.rated = true;
   game.result = { winner: winnerUsername, loser: loser.username, reason, eloDelta };
+  return {
+    players: {
+      [winnerUser.username]: resultPayload(winnerUser.username, 'win', 25, eloDelta),
+      [loserUser.username]: resultPayload(loserUser.username, 'loss', 5, -eloDelta)
+    }
+  };
 }
 
 async function applyOthelloResult(User, game, winnerColor, reason = 'game_end'){
@@ -137,6 +152,7 @@ async function applyOthelloResult(User, game, winnerColor, reason = 'game_end'){
     whiteUser.draws = (whiteUser.draws || 0) + 1;
     pushHistoryEntry(blackUser, { result: 'draw', opponent: whiteUser.username, xpChange: 2, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: 0 });
     pushHistoryEntry(whiteUser, { result: 'draw', opponent: blackUser.username, xpChange: 2, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: 0 });
+    game.result = { winner: null, loser: null, reason, eloDelta: 0 };
   } else if(winnerColor === 'black'){
     const eloDelta = computeEloDelta(blackElo, whiteElo);
     blackUser.othelloPoints = (blackUser.othelloPoints || 0) + 12;
@@ -149,6 +165,7 @@ async function applyOthelloResult(User, game, winnerColor, reason = 'game_end'){
     whiteUser.losses = (whiteUser.losses || 0) + 1;
     pushHistoryEntry(blackUser, { result: 'win', opponent: whiteUser.username, xpChange: 10, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: eloDelta });
     pushHistoryEntry(whiteUser, { result: 'loss', opponent: blackUser.username, xpChange: 2, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: -eloDelta });
+    game.result = { winner: blackUser.username, loser: whiteUser.username, reason, eloDelta };
   } else {
     const eloDelta = computeEloDelta(whiteElo, blackElo);
     whiteUser.othelloPoints = (whiteUser.othelloPoints || 0) + 12;
@@ -161,10 +178,27 @@ async function applyOthelloResult(User, game, winnerColor, reason = 'game_end'){
     blackUser.losses = (blackUser.losses || 0) + 1;
     pushHistoryEntry(whiteUser, { result: 'win', opponent: blackUser.username, xpChange: 10, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: eloDelta });
     pushHistoryEntry(blackUser, { result: 'loss', opponent: whiteUser.username, xpChange: 2, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: -eloDelta });
+    game.result = { winner: whiteUser.username, loser: blackUser.username, reason, eloDelta };
   }
 
   await Promise.all([blackUser.save(), whiteUser.save()]);
   game.rated = true;
+  return {
+    players: {
+      [blackUser.username]: resultPayload(
+        blackUser.username,
+        !winnerColor ? 'draw' : winnerColor === 'black' ? 'win' : 'loss',
+        !winnerColor ? 2 : winnerColor === 'black' ? 10 : 2,
+        !winnerColor ? 0 : winnerColor === 'black' ? game.result.eloDelta : -game.result.eloDelta
+      ),
+      [whiteUser.username]: resultPayload(
+        whiteUser.username,
+        !winnerColor ? 'draw' : winnerColor === 'white' ? 'win' : 'loss',
+        !winnerColor ? 2 : winnerColor === 'white' ? 10 : 2,
+        !winnerColor ? 0 : winnerColor === 'white' ? game.result.eloDelta : -game.result.eloDelta
+      )
+    }
+  };
 }
 
 async function getLeaderboard(User, type){

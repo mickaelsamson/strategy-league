@@ -161,6 +161,68 @@ button{
   padding:6px;
   border-bottom:1px solid #1f2937;
 }
+
+.result-overlay{
+  position:fixed;
+  inset:0;
+  z-index:1100;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(9,3,5,0.68);
+  backdrop-filter:blur(10px);
+}
+
+.result-overlay.show{
+  display:flex;
+}
+
+.result-box{
+  width:min(420px, calc(100vw - 32px));
+  padding:34px;
+  border-radius:8px;
+  text-align:center;
+  background:linear-gradient(145deg, rgba(76,20,27,0.98), rgba(25,7,11,0.96));
+  border:1px solid var(--shell-line-strong);
+  box-shadow:0 24px 80px rgba(0,0,0,0.5);
+  animation:resultPop .52s cubic-bezier(.2,1.35,.28,1) both;
+}
+
+.result-overlay.victory .result-box{
+  box-shadow:0 0 0 1px rgba(94,228,109,0.28), 0 24px 80px rgba(0,0,0,0.5), 0 0 46px rgba(94,228,109,0.22);
+}
+
+.result-overlay.defeat .result-box{
+  box-shadow:0 0 0 1px rgba(255,82,104,0.34), 0 24px 80px rgba(0,0,0,0.5), 0 0 46px rgba(255,82,104,0.22);
+}
+
+.result-title{
+  margin:0 0 10px;
+  font-size:42px;
+}
+
+.result-subtitle{
+  margin:0 0 18px;
+  color:var(--shell-soft);
+}
+
+.result-xp{
+  display:inline-flex;
+  min-height:42px;
+  align-items:center;
+  padding:0 18px;
+  border-radius:999px;
+  color:var(--shell-green);
+  background:rgba(94,228,109,0.12);
+  border:1px solid rgba(94,228,109,0.24);
+  font-weight:900;
+  font-size:20px;
+}
+
+@keyframes resultPop{
+  from{opacity:0; transform:translateY(24px) scale(.92);}
+  to{opacity:1; transform:translateY(0) scale(1);}
+}
 </style>
 </head>
 
@@ -195,7 +257,7 @@ button{
 <div id="opponentTimer" class="timer">⏱️ 02:00</div>
   
 <div>
-  <button id="resignBtn" onclick="resign()">Abandon</button>
+  <button id="resignBtn" onclick="resign()">Resign</button>
   <button id="rematchBtn" onclick="rematch()" style="display:none;">Rematch</button>
   <button id="endGameBtn" onclick="goMain()" style="display:none;">Back</button>
 </div>
@@ -205,6 +267,14 @@ button{
 <div id="sidebar">
   <h3>Players Online</h3>
   <div id="players"></div>
+</div>
+
+<div id="resultOverlay" class="result-overlay">
+  <div class="result-box">
+    <h1 id="resultTitle" class="result-title">Game Over</h1>
+    <p id="resultSubtitle" class="result-subtitle"></p>
+    <div id="resultXp" class="result-xp">+0 XP</div>
+  </div>
 </div>
 
 <script>
@@ -354,15 +424,19 @@ socket.on("chess_game_over", data=>{
   if(timerInterval) clearInterval(timerInterval);
 
   const iWon = data.winner && data.winner === myName;
+  const reward = data.rewards?.[myName] || {};
+  const result = reward.result || (!data.winner ? "draw" : iWon ? "win" : "loss");
+  const xpChange = Number.isFinite(reward.xpChange) ? reward.xpChange : 0;
   const message = data.message || "Game finished.";
   const winnerMessage = data.winner
-    ? (iWon ? " You won 🎉" : ` Winner: ${data.winner}`)
+    ? (iWon ? " You won." : ` Winner: ${data.winner}`)
     : "";
 
-  document.getElementById("status").innerText = `🏁 ${message}${winnerMessage}`;
+  document.getElementById("status").innerText = `${message}${winnerMessage}`;
   document.getElementById("turn").innerText = "Game over";
   document.getElementById("rematchBtn").style.display = "inline-block";
   document.getElementById("endGameBtn").style.display = "inline-block";
+  showResultAnimation(result, message, xpChange);
 });
 
 socket.on("chess_rematch_status", data=>{
@@ -376,7 +450,38 @@ socket.on("chess_rematch_status", data=>{
   
 function updateUI(){
   document.getElementById("turn").innerText =
-    game.turn() === playerColor ? "🟢 Your turn" : "🔴 Opponent turn";
+    game.turn() === playerColor ? "Your turn" : "Opponent turn";
+}
+
+function showResultAnimation(result, message, xpChange){
+  const overlay = document.getElementById("resultOverlay");
+  const title = document.getElementById("resultTitle");
+  const subtitle = document.getElementById("resultSubtitle");
+  const xp = document.getElementById("resultXp");
+
+  overlay.className = `result-overlay show ${result === "win" ? "victory" : result === "loss" ? "defeat" : "draw"}`;
+  title.textContent = result === "win" ? "Victory" : result === "loss" ? "Defeat" : "Draw";
+  subtitle.textContent = message || "Game finished.";
+  xp.textContent = `+${xpChange} XP`;
+  updateStoredXp(xpChange);
+
+  setTimeout(()=>{
+    overlay.classList.remove("show");
+  }, 2600);
+}
+
+function updateStoredXp(xpChange){
+  if(!xpChange) return;
+  try{
+    const stored = JSON.parse(localStorage.getItem("user") || "null");
+    if(!stored) return;
+    localStorage.setItem("user", JSON.stringify({
+      ...stored,
+      xp: (stored.xp || 0) + xpChange
+    }));
+  }catch(err){
+    console.error(err);
+  }
 }
 
 /* DRAW + MOVE */
@@ -487,7 +592,7 @@ function clickCell(sq){
   
 function resign(){
   if(gameOver) return;
-  if(confirm("Abandon game?")){
+  if(confirm("Resign game?")){
     socket.emit("resign");
   }
 }

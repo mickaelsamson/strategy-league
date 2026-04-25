@@ -175,7 +175,7 @@
       .catch(err => {
         console.error('Online players unavailable:', err);
         const list = document.getElementById('onlinePlayers');
-        if(list) list.innerHTML = '<div class="online-empty">Joueurs indisponibles</div>';
+        if(list) list.innerHTML = '<div class="online-empty">Online players unavailable</div>';
       });
   }
 
@@ -218,7 +218,7 @@
 
     if(count) count.textContent = String(entries.length);
     if(!entries.length){
-      list.innerHTML = '<div class="online-empty">Aucun joueur en ligne</div>';
+      list.innerHTML = '<div class="online-empty">No players online</div>';
       return;
     }
 

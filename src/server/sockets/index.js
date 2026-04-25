@@ -125,14 +125,24 @@ function registerSockets({ io, User, state, applyRankedResult, applyOthelloResul
             const winner = activeGame.players.find(p => p.username !== socket.username);
 
             applyRankedResult(User, activeGame, winner?.username || null, 'disconnect')
-              .catch(err => console.error('ELO update error:', err))
-              .finally(()=>{
+              .then(result=>{
                 chess.emitGameOver(gameId, {
                   reason: 'disconnect',
                   message: `${socket.username} disconnected for more than 1 minute.`,
-                  winner: winner?.username || null
+                  winner: winner?.username || null,
+                  rewards: result?.players || {}
                 });
-              });
+              })
+              .catch(err => {
+                console.error('ELO update error:', err);
+                chess.emitGameOver(gameId, {
+                  reason: 'disconnect',
+                  message: `${socket.username} disconnected for more than 1 minute.`,
+                  winner: winner?.username || null,
+                  rewards: {}
+                });
+              })
+              .finally(()=>updatePresence());
           }, DISCONNECT_FORFEIT_MS);
         }
       }

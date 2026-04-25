@@ -5,9 +5,6 @@ if(!user){
  window.location="/login.html";
 }
 socket.emit("register_online",user.username);
-socket.on("online_users",users=>{
- window.dispatchEvent(new CustomEvent("site-shell-online-users",{detail:users}));
-});
 
 let board,turn,color;
 let myName=user.username;
@@ -123,8 +120,10 @@ function play(x,y){
 
 function showEnd(winner){
  const el=document.getElementById("endScreen");
- el.style.display="flex";
+ el.className="end-screen show";
  document.getElementById("winnerText").innerText=winner+" wins!";
+ document.getElementById("endMessage").innerText="";
+ document.getElementById("xpReward").innerText="+0 XP";
 }
 
 function goBack(){window.location="/othello/index.html";}
@@ -149,6 +148,7 @@ function resign(){
 }
 
 socket.on("online_users",users=>{
+ window.dispatchEvent(new CustomEvent("site-shell-online-users",{detail:users}));
  document.getElementById("players").innerHTML=
  Object.entries(users).map(([name,data])=>`<div class="player" data-profile-username="${name}">${name} (ELO Othello ${data.othelloElo||1000})</div>`).join("");
 });
@@ -160,8 +160,28 @@ socket.on("othello_state",data=>{
 });
 
 socket.on("othello_end",data=>{
+ const reward=data.rewards?.[myName]||{};
+ const result=reward.result||(data.winner==="Draw"?"draw":data.winner===myName?"win":"loss");
+ const xpChange=Number.isFinite(reward.xpChange)?reward.xpChange:0;
  const message=data.message||`${data.winner} wins!`;
  const el=document.getElementById("endScreen");
- el.style.display="flex";
- document.getElementById("winnerText").innerText=message;
+ el.className=`end-screen show ${result==="win"?"victory":result==="loss"?"defeat":"draw"}`;
+ document.getElementById("winnerText").innerText=result==="win"?"Victory":result==="loss"?"Defeat":"Draw";
+ document.getElementById("endMessage").innerText=message;
+ document.getElementById("xpReward").innerText=`+${xpChange} XP`;
+ updateStoredXp(xpChange);
 });
+
+function updateStoredXp(xpChange){
+ if(!xpChange)return;
+ try{
+  const stored=JSON.parse(localStorage.getItem("user")||"null");
+  if(!stored)return;
+  localStorage.setItem("user",JSON.stringify({
+   ...stored,
+   xp:(stored.xp||0)+xpChange
+  }));
+ }catch(err){
+  console.error(err);
+ }
+}

@@ -141,14 +141,24 @@ function createChessModule({ io, socket, state, updatePresence, applyRankedResul
       const winner = game.players.find(p => p.username !== quitter?.username);
 
       applyRankedResult(game, winner?.username, 'resign')
-        .catch(err => console.error('ELO update error:', err))
-        .finally(()=>{
+        .then(result=>{
           emitGameOver(gameId, {
             reason: 'resign',
-            message: quitter ? `${quitter.username} abandoned the game.` : 'A player abandoned the game.',
-            winner: winner?.username || null
+            message: quitter ? `${quitter.username} resigned.` : 'A player resigned.',
+            winner: winner?.username || null,
+            rewards: result?.players || {}
           });
-        });
+        })
+        .catch(err => {
+          console.error('ELO update error:', err);
+          emitGameOver(gameId, {
+            reason: 'resign',
+            message: quitter ? `${quitter.username} resigned.` : 'A player resigned.',
+            winner: winner?.username || null,
+            rewards: {}
+          });
+        })
+        .finally(()=>updatePresence());
     });
 
     socket.on('chess_game_end', ({ winner, reason } = {})=>{
@@ -173,12 +183,22 @@ function createChessModule({ io, socket, state, updatePresence, applyRankedResul
       };
 
       applyRankedResult(game, winnerName, endReason)
-        .catch(err => console.error('ELO update error:', err))
-        .finally(()=>emitGameOver(gameId, {
+        .then(result=>emitGameOver(gameId, {
           reason: endReason,
           message: messageByReason[endReason] || 'Game finished.',
-          winner: winnerName
-        }));
+          winner: winnerName,
+          rewards: result?.players || {}
+        }))
+        .catch(err => {
+          console.error('ELO update error:', err);
+          emitGameOver(gameId, {
+            reason: endReason,
+            message: messageByReason[endReason] || 'Game finished.',
+            winner: winnerName,
+            rewards: {}
+          });
+        })
+        .finally(()=>updatePresence());
     });
 
     socket.on('chess_timeout', ()=>{
@@ -194,12 +214,22 @@ function createChessModule({ io, socket, state, updatePresence, applyRankedResul
       const winner = game.players.find(p => p.username !== loser.username);
 
       applyRankedResult(game, winner?.username || null, 'timeout')
-        .catch(err => console.error('ELO update error:', err))
-        .finally(()=>emitGameOver(gameId, {
+        .then(result=>emitGameOver(gameId, {
           reason: 'timeout',
           message: loser ? `${loser.username} ran out of time.` : 'Time is over.',
-          winner: winner?.username || null
-        }));
+          winner: winner?.username || null,
+          rewards: result?.players || {}
+        }))
+        .catch(err => {
+          console.error('ELO update error:', err);
+          emitGameOver(gameId, {
+            reason: 'timeout',
+            message: loser ? `${loser.username} ran out of time.` : 'Time is over.',
+            winner: winner?.username || null,
+            rewards: {}
+          });
+        })
+        .finally(()=>updatePresence());
     });
 
     socket.on('rematch', ()=>{

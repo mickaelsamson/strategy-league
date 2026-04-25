@@ -276,12 +276,12 @@ function resultLabel(match){
   const result = match.result || "draw";
   const reason = match.reason || "game_end";
 
-  if(reason === "resign") return result === "loss" ? "Abandon" : "Victoire (abandon)";
-  if(reason === "disconnect") return result === "loss" ? "Déconnexion" : "Victoire (déconnexion)";
-  if(reason === "timeout") return result === "loss" ? "Temps écoulé" : "Victoire au temps";
-  if(result === "win") return "Victoire";
-  if(result === "loss") return "Défaite";
-  return "Match nul";
+  if(reason === "resign") return result === "loss" ? "Resigned" : "Victory by resignation";
+  if(reason === "disconnect") return result === "loss" ? "Disconnected" : "Victory by disconnect";
+  if(reason === "timeout") return result === "loss" ? "Timed out" : "Victory on time";
+  if(result === "win") return "Victory";
+  if(result === "loss") return "Defeat";
+  return "Draw";
 }
 
 function formatPlayedAt(value){
@@ -305,12 +305,12 @@ function renderAvatarGrid(selectedAvatar){
 
   card.hidden = false;
   if(!availableAvatars.length){
-    grid.innerHTML = "<p class=\"avatar-empty\">Ajoute des images dans public/avatars pour les voir ici.</p>";
+    grid.innerHTML = "<p class=\"avatar-empty\">Add images to public/avatars to see them here.</p>";
     return;
   }
 
   grid.innerHTML = availableAvatars.map(avatar=>`
-    <button class="avatar-option ${avatar === selectedAvatar ? "selected" : ""}" type="button" data-avatar="${escapeHtml(avatar)}" title="Choisir cet avatar">
+    <button class="avatar-option ${avatar === selectedAvatar ? "selected" : ""}" type="button" data-avatar="${escapeHtml(avatar)}" title="Choose this avatar">
       <img src="${escapeHtml(avatar)}" alt="Avatar">
     </button>
   `).join("");
