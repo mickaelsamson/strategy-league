@@ -1,95 +1,147 @@
-// ===== OTHELLO COMPLETE =====
+const { createChessModule } = require('../games/chess/socket');
+const { createOthelloModule } = require('../games/othello/socket');
+const { DISCONNECT_FORFEIT_MS } = require('../config/constants');
 
-let othelloLobbies={},othelloGames={};
+function registerSockets({ io, User, state, applyRankedResult, applyOthelloResult }){
+  async function updatePresence(){
+    const users = {};
 
-function initBoard(){
- const b=Array(8).fill().map(()=>Array(8).fill(null));
- b[3][3]="white";b[3][4]="black";b[4][3]="black";b[4][4]="white";
- return b;
-}
+    for(const id in state.onlineUsers){
+      const username = state.onlineUsers[id];
+      const user = await User.findOne({ username });
+      users[username] = { elo: user?.elo || 1000 };
+    }
 
-const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
-
-function valid(b,x,y,c){
- if(b[y][x])return false;
- let opp=c==="black"?"white":"black";
- for(const[dX,dY]of dirs){
-  let nx=x+dX,ny=y+dY,found=false;
-  while(nx>=0&&ny>=0&&nx<8&&ny<8){
-   if(b[ny][nx]===opp)found=true;
-   else if(b[ny][nx]===c&&found)return true;
-   else break;
-   nx+=dX;ny+=dY;
-  }
- }
- return false;
-}
-
-function apply(b,x,y,c){
- let opp=c==="black"?"white":"black";
- b[y][x]=c;
- for(const[dX,dY]of dirs){
-  let nx=x+dX,ny=y+dY,path=[];
-  while(nx>=0&&ny>=0&&nx<8&&ny<8){
-   if(b[ny][nx]===opp)path.push([nx,ny]);
-   else if(b[ny][nx]===c){path.forEach(([px,py])=>b[py][px]=c);break;}
-   else break;
-   nx+=dX;ny+=dY;
-  }
- }
-}
-
-io.on("connection",socket=>{
-
- socket.on("create_othello_lobby",({name})=>{
-  const id=Math.random().toString(36).substr(2,9);
-  othelloLobbies[id]={id,name,players:[{id:socket.id,username:socket.username,ready:false}]};
-  io.emit("othello_lobbies_update",othelloLobbies);
- });
-
- socket.on("join_othello_lobby",id=>{
-  const l=othelloLobbies[id];if(!l||l.players.length>=2)return;
-  l.players.push({id:socket.id,username:socket.username,ready:false});
-  io.emit("othello_lobbies_update",othelloLobbies);
- });
-
- socket.on("toggle_othello_ready",id=>{
-  const l=othelloLobbies[id];if(!l)return;
-  const p=l.players.find(p=>p.id===socket.id);if(!p)return;
-  p.ready=!p.ready;
-
-  if(l.players.length===2&&l.players.every(p=>p.ready)){
-   const gameId=id;
-   othelloGames[gameId]={board:initBoard(),turn:"black",players:l.players};
-
-   l.players.forEach((p,i)=>{
-    const s=io.sockets.sockets.get(p.id);
-    if(s)s.emit("othello_state",{board:initBoard(),turn:"black",color:i===0?"black":"white"});
-   });
-
-   delete othelloLobbies[id];
+    io.emit('online_users', users);
+    io.emit('lobbies_update', state.lobbies);
+    io.emit('othello_lobbies_update', state.othelloLobbies);
   }
 
-  io.emit("othello_lobbies_update",othelloLobbies);
- });
+  function clearPendingDisconnectForUsername(username){
+    if(!username || !state.pendingDisconnects[username]) return;
+    clearTimeout(state.pendingDisconnects[username]);
+    delete state.pendingDisconnects[username];
+  }
 
- socket.on("othello_move",({x,y})=>{
-  const game=Object.values(othelloGames).find(g=>g.players.some(p=>p.id===socket.id));
-  if(!game)return;
+  io.on('connection', socket => {
+    const chess = createChessModule({
+      io,
+      socket,
+      state,
+      updatePresence,
+      applyRankedResult: (game, winner, reason) => applyRankedResult(User, game, winner, reason)
+    });
 
-  const player=game.players.find(p=>p.id===socket.id);
-  const color=game.players.indexOf(player)===0?"black":"white";
+    const othello = createOthelloModule({
+      io,
+      socket,
+      state,
+      updatePresence,
+      applyOthelloResult: (game, winnerColor) => applyOthelloResult(User, game, winnerColor)
+    });
 
-  if(game.turn!==color)return;
-  if(!valid(game.board,x,y,color))return;
+    socket.on('register_online', username => {
+      socket.username = username;
+      clearPendingDisconnectForUsername(username);
+      state.onlineUsers[socket.id] = username;
 
-  apply(game.board,x,y,color);
-  game.turn=color==="black"?"white":"black";
+      for(const gameId in state.chessGames){
+        const game = state.chessGames[gameId];
+        if(!game || game.ended) continue;
 
-  game.players.forEach(p=>{
-   const s=io.sockets.sockets.get(p.id);
-   if(s)s.emit("othello_state",{board:game.board,turn:game.turn,color:(p.id===player.id?color:(color==="black"?"white":"black"))});
+        const player = game.players.find(p => p.username === username);
+        if(!player) continue;
+
+        const previousSocketId = player.id;
+        player.id = socket.id;
+
+        if(previousSocketId && previousSocketId !== socket.id){
+          delete state.playerGames[previousSocketId];
+        }
+
+        state.playerGames[socket.id] = gameId;
+
+        socket.emit('chess_start', {
+          color: player.color,
+          fen: game.fen,
+          timeControl: game.timeControl,
+          players: {
+            white: game.players.find(pl => pl.color === 'w').username,
+            black: game.players.find(pl => pl.color === 'b').username
+          }
+        });
+      }
+
+      for(const gameId in state.othelloGames){
+        const game = state.othelloGames[gameId];
+        if(!game || game.ended) continue;
+
+        const player = game.players.find(p => p.username === username);
+        if(!player) continue;
+
+        const previousSocketId = player.id;
+        player.id = socket.id;
+
+        if(previousSocketId && previousSocketId !== socket.id){
+          delete state.othelloPlayerGames[previousSocketId];
+        }
+
+        state.othelloPlayerGames[socket.id] = gameId;
+        othello.emitState(game);
+      }
+
+      updatePresence();
+    });
+
+    chess.register();
+    othello.register();
+
+    socket.on('disconnect', ()=>{
+      if(socket.username){
+        const gameId = chess.findGameIdForSocket();
+        const game = gameId ? state.chessGames[gameId] : null;
+
+        if(game && !game.ended){
+          clearPendingDisconnectForUsername(socket.username);
+          state.pendingDisconnects[socket.username] = setTimeout(()=>{
+            delete state.pendingDisconnects[socket.username];
+            const activeGame = state.chessGames[gameId];
+            if(!activeGame || activeGame.ended) return;
+
+            const disconnected = activeGame.players.find(p => p.username === socket.username);
+            if(!disconnected) return;
+
+            const winner = activeGame.players.find(p => p.username !== socket.username);
+
+            applyRankedResult(User, activeGame, winner?.username || null, 'disconnect')
+              .catch(err => console.error('ELO update error:', err))
+              .finally(()=>{
+                chess.emitGameOver(gameId, {
+                  reason: 'disconnect',
+                  message: `${socket.username} disconnected for more than 1 minute.`,
+                  winner: winner?.username || null
+                });
+              });
+          }, DISCONNECT_FORFEIT_MS);
+        }
+      }
+
+      delete state.onlineUsers[socket.id];
+
+      for(const id in state.lobbies){
+        state.lobbies[id].players = state.lobbies[id].players.filter(p => p.id !== socket.id);
+        if(state.lobbies[id].players.length === 0) delete state.lobbies[id];
+      }
+
+      for(const id in state.othelloLobbies){
+        state.othelloLobbies[id].players = state.othelloLobbies[id].players.filter(p => p.id !== socket.id);
+        if(state.othelloLobbies[id].players.length === 0) delete state.othelloLobbies[id];
+      }
+
+      io.emit('othello_lobbies_update', state.othelloLobbies);
+      updatePresence();
+    });
   });
- });
+}
 
-});
+module.exports = { registerSockets };
