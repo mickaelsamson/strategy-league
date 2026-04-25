@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
+<link rel="stylesheet" href="/assets/styles/theme.css">
+<script defer src="/assets/scripts/site-shell.js"></script>
 <title>Chess</title>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -328,8 +330,8 @@ function checkTimeout(){
 socket.on("online_users", users=>{
   document.getElementById("players").innerHTML =
     Object.entries(users).map(([name,data])=>`
-      <div class="player">${name} (${data.elo})</div>
-    `).join("");
+      <div class="player" data-profile-username="${name}">${name} (${data.elo})</div>
+      `).join("");
 });
 
 socket.on("chess_start", data=>{
