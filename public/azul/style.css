@@ -7,7 +7,7 @@ body{
   --azul-tile-size:26px;
   --azul-cell-size:27px;
   --azul-board-width:min(500px, 100%);
-  --azul-board-slot-size:31px;
+  --azul-board-slot-size:28px;
   --azul-board-gap:4px;
 }
 
@@ -18,7 +18,7 @@ body[data-azul-players="3"]{
   --azul-tile-size:23px;
   --azul-cell-size:24px;
   --azul-board-width:min(460px, 100%);
-  --azul-board-slot-size:28px;
+  --azul-board-slot-size:25px;
   --azul-board-gap:3px;
 }
 
@@ -29,7 +29,7 @@ body[data-azul-players="4"]{
   --azul-tile-size:21px;
   --azul-cell-size:22px;
   --azul-board-width:min(420px, 100%);
-  --azul-board-slot-size:24px;
+  --azul-board-slot-size:22px;
   --azul-board-gap:3px;
 }
 
@@ -479,9 +479,9 @@ body.app-shell-active .azul-game .tile-stack{
 }
 
 .board-surface .tile{
-  width:calc(var(--azul-board-slot-size) - 2px);
-  height:calc(var(--azul-board-slot-size) - 2px);
-  flex:0 0 calc(var(--azul-board-slot-size) - 2px);
+  width:calc(var(--azul-board-slot-size) - 4px);
+  height:calc(var(--azul-board-slot-size) - 4px);
+  flex:0 0 calc(var(--azul-board-slot-size) - 4px);
 }
 
 .player-board{
@@ -560,13 +560,13 @@ body.app-shell-active .azul-game .tile-stack{
 
 .board-grid{
   position:absolute;
-  left:7.2%;
-  right:7.2%;
-  top:8%;
-  bottom:23%;
+  left:6.8%;
+  right:8.8%;
+  top:7.3%;
+  bottom:25.6%;
   display:grid;
-  grid-template-columns:1.18fr .9fr;
-  gap:5.4%;
+  grid-template-columns:1.24fr .82fr;
+  gap:4.4%;
   align-items:stretch;
 }
 
@@ -575,7 +575,7 @@ body.app-shell-active .azul-game .tile-stack{
   grid-template-rows:repeat(5, 1fr);
   gap:var(--azul-board-gap);
   align-content:start;
-  padding:10% 6% 5% 8%;
+  padding:9% 8% 1% 9%;
 }
 
 .pattern-line{
@@ -646,7 +646,7 @@ body.app-shell-active .azul-game .player-board button.pattern-line.can-place:not
   display:grid;
   gap:var(--azul-board-gap);
   align-content:start;
-  padding:6% 4% 4%;
+  padding:4% 4% 0 0;
 }
 
 .wall-row{
@@ -694,13 +694,13 @@ body.app-shell-active .azul-game .player-board button.pattern-line.can-place:not
 .floor-line{
   display:grid;
   grid-template-columns:repeat(7, 1fr);
-  gap:2.2%;
+  gap:1.5%;
   position:absolute;
-  left:4.8%;
-  right:4.8%;
-  bottom:6.1%;
-  height:18.7%;
-  align-items:stretch;
+  left:5%;
+  right:5%;
+  bottom:6.3%;
+  height:13.2%;
+  align-items:center;
   padding:0;
   border:none;
   background:transparent;
@@ -712,28 +712,33 @@ body.app-shell-active .azul-game .player-board button.pattern-line.can-place:not
 }
 
 .floor-slot{
-  width:100%;
-  height:100%;
+  width:72%;
+  height:72%;
+  justify-self:center;
+  align-self:center;
   color:#c7ad7d;
-  font-size:12px;
+  font-size:13px;
   font-weight:900;
   background:transparent;
   border:none;
-  align-content:center;
+  display:grid;
+  place-items:center;
 }
 
 .floor-slot b{
   font-weight:900;
   color:#bca075;
   text-shadow:0 1px 2px rgba(0,0,0,0.55);
+  line-height:1;
 }
 
 .floor-slot:has(.tile)::after{
   content:attr(data-penalty);
   position:absolute;
-  right:2px;
-  bottom:1px;
-  font-size:9px;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:4px;
+  font-size:10px;
   color:rgba(255,247,245,0.78);
   text-shadow:0 1px 3px rgba(0,0,0,0.6);
 }
