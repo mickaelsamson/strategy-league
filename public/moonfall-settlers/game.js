@@ -101,13 +101,30 @@
     devBtn: document.getElementById('devBtn'),
     resourcePanel: document.getElementById('resourcePanel'),
     costPanel: document.getElementById('costPanel'),
-    tradeGive: document.getElementById('tradeGive'),
-    tradeGiveAmount: document.getElementById('tradeGiveAmount'),
-    tradeGet: document.getElementById('tradeGet'),
-    tradeGetAmount: document.getElementById('tradeGetAmount'),
-    tradePartner: document.getElementById('tradePartner'),
-    tradeBtn: document.getElementById('tradeBtn'),
-    playerTradeBtn: document.getElementById('playerTradeBtn'),
+    tradeOpenBtn: document.getElementById('tradeOpenBtn'),
+    tradeModal: document.getElementById('tradeModal'),
+    tradeCloseBtn: document.getElementById('tradeCloseBtn'),
+    tradeCancelBtn: document.getElementById('tradeCancelBtn'),
+    tradeBankModeBtn: document.getElementById('tradeBankModeBtn'),
+    tradeClanModeBtn: document.getElementById('tradeClanModeBtn'),
+    tradeGiveIcons: document.getElementById('tradeGiveIcons'),
+    tradeGetIcons: document.getElementById('tradeGetIcons'),
+    tradeGiveMinus: document.getElementById('tradeGiveMinus'),
+    tradeGivePlus: document.getElementById('tradeGivePlus'),
+    tradeGetMinus: document.getElementById('tradeGetMinus'),
+    tradeGetPlus: document.getElementById('tradeGetPlus'),
+    tradeGiveAmountLabel: document.getElementById('tradeGiveAmountLabel'),
+    tradeGetAmountLabel: document.getElementById('tradeGetAmountLabel'),
+    tradePartnerRow: document.getElementById('tradePartnerRow'),
+    tradeSummary: document.getElementById('tradeSummary'),
+    tradeSubmitBtn: document.getElementById('tradeSubmitBtn'),
+    tradeResponseModal: document.getElementById('tradeResponseModal'),
+    tradeResponseTitle: document.getElementById('tradeResponseTitle'),
+    tradeResponseText: document.getElementById('tradeResponseText'),
+    tradeResponseSummary: document.getElementById('tradeResponseSummary'),
+    tradeResponseActions: document.getElementById('tradeResponseActions'),
+    tradeAcceptBtn: document.getElementById('tradeAcceptBtn'),
+    tradeDeclineBtn: document.getElementById('tradeDeclineBtn'),
     devPanel: document.getElementById('devPanel'),
     playersPanel: document.getElementById('playersPanel'),
     boardPanel: document.getElementById('boardPanel'),
@@ -121,6 +138,7 @@
   let noticeTimer = null;
   let aiTimer = null;
   let autoRollTimer = null;
+  let tradeResponseTimer = null;
 
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const randomInt = max => Math.floor(Math.random() * max);
@@ -247,6 +265,19 @@
     };
   }
 
+  function createTradeState(players){
+    return {
+      open: false,
+      mode: 'bank',
+      give: 'cedar',
+      get: 'clay',
+      giveAmount: 4,
+      getAmount: 1,
+      partnerId: players.find(player => player.id !== 0)?.id ?? players[1]?.id ?? null,
+      pendingOffer: null
+    };
+  }
+
   function startGame(event){
     event.preventDefault();
     const players = readSetup();
@@ -275,6 +306,7 @@
       longestRoadHolder: null,
       winner: null,
       log: [],
+      trade: createTradeState(players),
       view: { width: 1, height: 1, scale: 1, offsetX: 0, offsetY: 0 }
     };
 
@@ -911,14 +943,27 @@
         if(canBuildRoad(player.id, edge.id, state.phase === 'setup' || state.freeRoads > 0)){
           const a = screenPoint(state.board.vertices[edge.v1]);
           const b = screenPoint(state.board.vertices[edge.v2]);
-          ctx.strokeStyle = 'rgba(242,200,109,.7)';
-          ctx.lineWidth = 5;
-          ctx.setLineDash([9, 8]);
+          ctx.shadowColor = 'rgba(242,200,109,.48)';
+          ctx.shadowBlur = 16;
+          ctx.strokeStyle = 'rgba(242,200,109,.92)';
+          ctx.lineWidth = 10;
           ctx.beginPath();
           ctx.moveTo(a.x, a.y);
           ctx.lineTo(b.x, b.y);
           ctx.stroke();
-          ctx.setLineDash([]);
+          ctx.shadowBlur = 0;
+          ctx.strokeStyle = 'rgba(37,27,15,.84)';
+          ctx.lineWidth = 5;
+          ctx.stroke();
+          [a, b].forEach(point => {
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, 8, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(242,200,109,.18)';
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#f2c86d';
+            ctx.stroke();
+          });
         }
       });
     }
@@ -940,28 +985,17 @@
       ctx.save();
       ctx.translate((a.x + b.x) / 2, (a.y + b.y) / 2);
       ctx.rotate(angle);
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = player.color;
-      ctx.lineWidth = 12;
-      ctx.globalAlpha = .78;
-      ctx.beginPath();
-      ctx.moveTo(-length * .44, 0);
-      ctx.lineTo(length * .44, 0);
-      ctx.stroke();
 
       if(image?.complete && image.naturalWidth){
-        const drawWidth = length * .78;
-        const drawHeight = Math.max(22, state.view.scale * .32);
-        ctx.globalAlpha = .96;
+        const drawHeight = Math.max(20, state.view.scale * .34);
+        const drawWidth = Math.min(length * .94, drawHeight * (image.naturalWidth / image.naturalHeight));
+        ctx.save();
+        ctx.shadowColor = player.color;
+        ctx.shadowBlur = 16;
+        ctx.globalAlpha = .98;
         ctx.drawImage(image, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+        ctx.restore();
       }else{
-        ctx.globalAlpha = 1;
-        ctx.strokeStyle = 'rgba(0,0,0,.48)';
-        ctx.lineWidth = 12;
-        ctx.beginPath();
-        ctx.moveTo(-length * .44, 0);
-        ctx.lineTo(length * .44, 0);
-        ctx.stroke();
         ctx.strokeStyle = player.color;
         ctx.lineWidth = 8;
         ctx.beginPath();
@@ -970,12 +1004,12 @@
         ctx.stroke();
       }
 
-      ctx.globalAlpha = 1;
-      ctx.strokeStyle = player.accent;
-      ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.moveTo(-length * .34, -4);
-      ctx.lineTo(length * .34, -4);
+      ctx.arc(0, 0, 8, 0, Math.PI * 2);
+      ctx.fillStyle = '#0d1216';
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = player.color;
       ctx.stroke();
       ctx.restore();
     });
@@ -1001,19 +1035,21 @@
     ctx.fill();
 
     if(image?.complete && image.naturalWidth){
-      const drawHeight = kind === 'city' ? 62 : 48;
+      const drawHeight = kind === 'city' ? 72 : 58;
       const drawWidth = drawHeight * (image.naturalWidth / image.naturalHeight);
       ctx.save();
       ctx.shadowColor = player.color;
-      ctx.shadowBlur = 12;
-      ctx.globalAlpha = .92;
+      ctx.shadowBlur = 14;
+      ctx.globalAlpha = .98;
       ctx.drawImage(image, -drawWidth / 2, -drawHeight + size * .75, drawWidth, drawHeight);
       ctx.restore();
 
-      ctx.strokeStyle = player.color;
-      ctx.lineWidth = 4;
+      ctx.fillStyle = '#0c1014';
       ctx.beginPath();
-      ctx.arc(0, size * .9, size * .75, 0, Math.PI * 2);
+      ctx.arc(size * .78, size * .38, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = player.color;
       ctx.stroke();
       ctx.restore();
       return;
@@ -1198,6 +1234,7 @@
   function hitTest(x, y){
     const player = getInteractionPlayer();
     const mode = state.activeMode;
+    const freeRoad = state.phase === 'setup' || state.freeRoads > 0;
     const vertexRadius = mode === 'settlement' || mode === 'city' ? 22 : 14;
     let nearestVertex = null;
     let nearestVertexDistance = Infinity;
@@ -1211,7 +1248,15 @@
       }
     });
 
-    if(nearestVertex && nearestVertexDistance <= vertexRadius){
+    const validVertex =
+      nearestVertex
+      && (
+        mode === 'settlement' ? canBuildSettlement(player.id, nearestVertex.id, state.phase === 'setup')
+        : mode === 'city' ? canBuildCity(player.id, nearestVertex.id)
+        : true
+      );
+
+    if(validVertex && nearestVertexDistance <= vertexRadius){
       return { vertexId: nearestVertex.id };
     }
 
@@ -1228,7 +1273,7 @@
     });
 
     if(nearestEdge && nearestEdgeDistance <= (mode === 'road' ? 18 : 10)){
-      if(!player || mode !== 'road' || canBuildRoad(player.id, nearestEdge.id, state.phase === 'setup' || state.freeRoads > 0)){
+      if(!player || mode !== 'road' || canBuildRoad(player.id, nearestEdge.id, freeRoad)){
         return { edgeId: nearestEdge.id };
       }
     }
@@ -1556,60 +1601,215 @@
     updateAll();
   }
 
-  function bankTrade(){
+  function syncTradeState(){
+    if(!state) return;
+    const trade = state.trade;
+    if(trade.give === trade.get){
+      trade.get = RESOURCE_KEYS.find(key => key !== trade.give) || 'clay';
+    }
+    if(trade.mode === 'bank'){
+      trade.getAmount = clamp(trade.getAmount || 1, 1, 4);
+      trade.giveAmount = getTradeRatio(currentPlayer().id, trade.give) * trade.getAmount;
+      return;
+    }
+    trade.giveAmount = clamp(trade.giveAmount || 1, 1, 19);
+    trade.getAmount = clamp(trade.getAmount || 1, 1, 19);
+    if(!state.players.some(player => player.id === trade.partnerId && player.id !== currentPlayer().id)){
+      trade.partnerId = state.players.find(player => player.id !== currentPlayer().id)?.id ?? null;
+    }
+  }
+
+  function openTradeModal(event){
+    event?.preventDefault?.();
     if(!state || state.phase !== 'main' || !isHumanInteraction()) return;
+    dom.tradeOpenBtn.parentElement.open = false;
+    state.trade.open = true;
+    syncTradeState();
+    dom.tradeModal.hidden = false;
+    dom.tradeModal.classList.remove('is-hidden');
+    renderTradePanel();
+  }
+
+  function closeTradeModal(){
+    if(!state) return;
+    dom.tradeOpenBtn.parentElement.open = false;
+    state.trade.open = false;
+    dom.tradeModal.hidden = true;
+    dom.tradeModal.classList.add('is-hidden');
+  }
+
+  function closeTradeResponse(){
+    clearTimeout(tradeResponseTimer);
+    if(!state) return;
+    state.trade.pendingOffer = null;
+    dom.tradeResponseModal.hidden = true;
+    dom.tradeResponseModal.classList.add('is-hidden');
+  }
+
+  function setTradeMode(mode){
+    if(!state) return;
+    state.trade.mode = mode;
+    syncTradeState();
+    renderTradePanel();
+  }
+
+  function setTradeResource(side, resource){
+    if(!state) return;
+    state.trade[side] = resource;
+    syncTradeState();
+    renderTradePanel();
+  }
+
+  function changeTradeAmount(side, delta){
+    if(!state) return;
+    if(state.trade.mode === 'bank' && side === 'giveAmount') return;
+    const key = side === 'giveAmount' ? 'giveAmount' : 'getAmount';
+    state.trade[key] = clamp((state.trade[key] || 1) + delta, 1, 19);
+    syncTradeState();
+    renderTradePanel();
+  }
+
+  function selectTradePartner(partnerId){
+    if(!state) return;
+    state.trade.partnerId = partnerId;
+    renderTradePanel();
+  }
+
+  function describeTradeOffer(offer){
+    return `
+      <div class="trade-summary-row">
+        <strong>${state.players[offer.from].name}</strong>
+        <div class="trade-summary-icons">
+          ${tradeMiniCard(offer.give, offer.giveAmount)}
+          ${tradeMiniCard(offer.get, offer.getAmount)}
+        </div>
+      </div>
+    `;
+  }
+
+  function tradeMiniCard(resource, amount){
+    return `
+      <span class="trade-mini-card">
+        <img src="${RESOURCES[resource].icon}" alt="">
+        <b>x${amount}</b>
+      </span>
+    `;
+  }
+
+  function submitTrade(){
+    if(!state || state.phase !== 'main' || !isHumanInteraction()) return;
+    if(state.trade.mode === 'bank'){
+      bankTrade();
+      return;
+    }
+    playerTrade();
+  }
+
+  function bankTrade(){
     const player = currentPlayer();
-    const give = dom.tradeGive.value;
-    const get = dom.tradeGet.value;
-    if(give === get){
+    const trade = state.trade;
+    syncTradeState();
+    if(trade.give === trade.get){
       notice('Choose two different resources.');
       return;
     }
-    const ratio = getTradeRatio(player.id, give);
-    if(player.resources[give] < ratio){
-      notice(`Il faut ${ratio} ${RESOURCES[give].name}.`);
+    if(player.resources[trade.give] < trade.giveAmount){
+      notice(`Il faut ${trade.giveAmount} ${RESOURCES[trade.give].name}.`);
       return;
     }
-    player.resources[give] -= ratio;
-    player.resources[get] += 1;
-      log(`${player.name} trades ${ratio}:1 with the bank.`);
+    player.resources[trade.give] -= trade.giveAmount;
+    player.resources[trade.get] += trade.getAmount;
+    log(`${player.name} trades ${trade.giveAmount} ${RESOURCES[trade.give].name} with the bank for ${trade.getAmount} ${RESOURCES[trade.get].name}.`);
+    closeTradeModal();
     updateAll();
   }
 
   function playerTrade(){
-    if(!state || state.phase !== 'main' || !isHumanInteraction()) return;
     const player = currentPlayer();
-    const partner = state.players[Number(dom.tradePartner.value)];
-    const give = dom.tradeGive.value;
-    const get = dom.tradeGet.value;
-    const giveAmount = clamp(Number(dom.tradeGiveAmount.value) || 1, 1, 19);
-    const getAmount = clamp(Number(dom.tradeGetAmount.value) || 1, 1, 19);
-
-    dom.tradeGiveAmount.value = String(giveAmount);
-    dom.tradeGetAmount.value = String(getAmount);
-
+    const trade = state.trade;
+    syncTradeState();
+    const partner = state.players.find(entry => entry.id === trade.partnerId);
     if(!partner || partner.id === player.id){
       notice('Choose a clan.');
       return;
     }
-    if(give === get){
+    if(trade.give === trade.get){
       notice('Choose two different resources.');
       return;
     }
-    if(player.resources[give] < giveAmount){
-      notice(`${player.name} needs more ${RESOURCES[give].name}.`);
+    if(player.resources[trade.give] < trade.giveAmount){
+      notice(`${player.name} needs more ${RESOURCES[trade.give].name}.`);
       return;
     }
-    if(partner.resources[get] < getAmount){
-      notice(`${partner.name} needs more ${RESOURCES[get].name}.`);
+    if(partner.resources[trade.get] < trade.getAmount){
+      notice(`${partner.name} needs more ${RESOURCES[trade.get].name}.`);
       return;
     }
 
-    player.resources[give] -= giveAmount;
-    partner.resources[give] += giveAmount;
-    partner.resources[get] -= getAmount;
-    player.resources[get] += getAmount;
-    log(`${player.name} trades with ${partner.name}.`);
+    const offer = {
+      from: player.id,
+      to: partner.id,
+      give: trade.give,
+      giveAmount: trade.giveAmount,
+      get: trade.get,
+      getAmount: trade.getAmount
+    };
+    state.trade.pendingOffer = offer;
+    openTradeResponse(offer);
+  }
+
+  function openTradeResponse(offer){
+    const from = state.players[offer.from];
+    const to = state.players[offer.to];
+    dom.tradeResponseModal.hidden = false;
+    dom.tradeResponseModal.classList.remove('is-hidden');
+    dom.tradeResponseTitle.textContent = `${to.name} reviews the offer`;
+    dom.tradeResponseSummary.innerHTML = describeTradeOffer(offer);
+
+    if(to.type === 'ai'){
+      dom.tradeResponseText.textContent = `${to.name} examines the exchange in silence.`;
+      dom.tradeResponseActions.hidden = true;
+      clearTimeout(tradeResponseTimer);
+      tradeResponseTimer = setTimeout(() => resolveTradeOffer(aiAcceptTrade(offer)), 900);
+      return;
+    }
+
+    dom.tradeResponseText.textContent = `${from.name} offers ${offer.giveAmount} ${RESOURCES[offer.give].name} for ${offer.getAmount} ${RESOURCES[offer.get].name}.`;
+    dom.tradeResponseActions.hidden = false;
+  }
+
+  function aiAcceptTrade(offer){
+    const partner = state.players[offer.to];
+    if(partner.resources[offer.get] < offer.getAmount) return false;
+    const incoming = tradeNeedScore(partner, offer.give) * offer.giveAmount;
+    const outgoing = tradeNeedScore(partner, offer.get) * offer.getAmount;
+    return incoming >= outgoing * 0.92;
+  }
+
+  function tradeNeedScore(player, resource){
+    const plans = [COSTS.city, COSTS.settlement, COSTS.road, COSTS.dev];
+    const shortages = plans.reduce((best, cost) => Math.max(best, Math.max(0, (cost[resource] || 0) - player.resources[resource])), 0);
+    return 1 + shortages * 0.9 + (player.resources[resource] <= 1 ? 0.45 : 0);
+  }
+
+  function resolveTradeOffer(accepted){
+    if(!state?.trade.pendingOffer) return;
+    const offer = state.trade.pendingOffer;
+    const from = state.players[offer.from];
+    const to = state.players[offer.to];
+    if(accepted){
+      from.resources[offer.give] -= offer.giveAmount;
+      to.resources[offer.give] += offer.giveAmount;
+      to.resources[offer.get] -= offer.getAmount;
+      from.resources[offer.get] += offer.getAmount;
+      log(`${from.name} trades with ${to.name}.`);
+      notice(`${to.name} accepts the offer.`);
+    }else{
+      log(`${to.name} refuses the trade offer.`);
+      notice(`${to.name} declines the offer.`);
+    }
+    closeTradeResponse();
+    closeTradeModal();
     updateAll();
   }
 
@@ -1623,6 +1823,8 @@
     player.devCards.forEach(card => {
       card.fresh = false;
     });
+    closeTradeResponse();
+    closeTradeModal();
     state.activeMode = null;
     state.freeRoads = 0;
     state.devPlayedThisTurn = false;
@@ -2035,8 +2237,43 @@
   }
 
   function renderDiceHud(){
-    const values = state.dicePair || ['-', '-'];
-    dom.diceHud.innerHTML = values.map(value => `<i>${value}</i>`).join('');
+    const values = state.dicePair || [0, 0];
+    dom.diceHud.innerHTML = values.map(value => renderDieFace(value)).join('');
+  }
+
+  function renderDieFace(value){
+    const positions = {
+      1: [[50, 50]],
+      2: [[28, 28], [72, 72]],
+      3: [[28, 28], [50, 50], [72, 72]],
+      4: [[28, 28], [72, 28], [28, 72], [72, 72]],
+      5: [[28, 28], [72, 28], [50, 50], [28, 72], [72, 72]],
+      6: [[28, 28], [72, 28], [28, 50], [72, 50], [28, 72], [72, 72]]
+    };
+    const pips = positions[value] || [];
+    const faceStyle = [
+      'display:block',
+      'position:relative',
+      'width:72px',
+      'height:72px',
+      'border-radius:16px',
+      'border:2px solid rgba(30,16,14,.92)',
+      'background:linear-gradient(180deg,#8b2d28,#5b1715)',
+      'box-shadow:inset 0 -6px 0 rgba(0,0,0,.18),0 12px 24px rgba(0,0,0,.34)',
+      `opacity:${value ? 1 : .55}`
+    ].join(';');
+    const pipStyle = ([left, top]) => [
+      'position:absolute',
+      `left:${left}%`,
+      `top:${top}%`,
+      'width:12px',
+      'height:12px',
+      'margin:-6px 0 0 -6px',
+      'border-radius:50%',
+      'background:#121010',
+      'box-shadow:inset 0 2px 3px rgba(255,255,255,.08),0 1px 0 rgba(0,0,0,.38)'
+    ].join(';');
+    return `<i class="die-face${value ? '' : ' is-empty'}" style="${faceStyle}">${pips.map(position => `<span class="pip" style="${pipStyle(position)}"></span>`).join('')}</i>`;
   }
 
   function updateButtons(){
@@ -2049,12 +2286,16 @@
     dom.settlementBtn.disabled = !mainHuman || !canAfford(player, COSTS.settlement);
     dom.cityBtn.disabled = !mainHuman || !canAfford(player, COSTS.city);
     dom.devBtn.disabled = !mainHuman || !canAfford(player, COSTS.dev) || !state.devDeck.length;
-    dom.tradeBtn.disabled = !mainHuman;
-    dom.playerTradeBtn.disabled = !mainHuman;
+    dom.tradeOpenBtn.style.pointerEvents = mainHuman ? 'auto' : 'none';
+    dom.tradeOpenBtn.style.opacity = mainHuman ? '1' : '.46';
 
     [['road', dom.roadBtn], ['settlement', dom.settlementBtn], ['city', dom.cityBtn]].forEach(([mode, button]) => {
       button.classList.toggle('active', state.activeMode === mode);
     });
+
+    if(!mainHuman){
+      closeTradeModal();
+    }
 
     dom.roadBtn.title = `Road cost: ${formatCost(COSTS.road)}`;
     dom.settlementBtn.title = `Settlement cost: ${formatCost(COSTS.settlement)}`;
@@ -2086,16 +2327,69 @@
   }
 
   function renderTradePanel(){
-    const give = dom.tradeGive.value || 'cedar';
-    const get = dom.tradeGet.value || 'clay';
-    const partner = dom.tradePartner.value || '';
-    const activePlayer = state ? (getInteractionPlayer() || currentPlayer()) : null;
-    dom.tradeGive.innerHTML = RESOURCE_KEYS.map(key => `<option value="${key}"${give === key ? ' selected' : ''}>${RESOURCES[key].name}</option>`).join('');
-    dom.tradeGet.innerHTML = RESOURCE_KEYS.map(key => `<option value="${key}"${get === key ? ' selected' : ''}>${RESOURCES[key].name}</option>`).join('');
-    dom.tradePartner.innerHTML = state ? state.players
-      .filter(player => player.id !== activePlayer.id)
-      .map(player => `<option value="${player.id}"${partner === String(player.id) ? ' selected' : ''}>${escapeHtml(player.name)}</option>`)
-      .join('') : '';
+    if(!state) return;
+    const player = getInteractionPlayer() || currentPlayer();
+    const trade = state.trade;
+    syncTradeState();
+
+    dom.tradeBankModeBtn.classList.toggle('active', trade.mode === 'bank');
+    dom.tradeClanModeBtn.classList.toggle('active', trade.mode === 'clan');
+    dom.tradePartnerRow.hidden = trade.mode === 'bank';
+    dom.tradePartnerRow.innerHTML = state.players
+      .filter(entry => entry.id !== player.id)
+      .map(entry => `
+        <button class="trade-partner-chip ${trade.partnerId === entry.id ? 'active' : ''}" type="button" data-trade-partner="${entry.id}">
+          <img src="${entry.crest}" alt="">
+          <span>${escapeHtml(entry.name)}</span>
+        </button>
+      `)
+      .join('');
+
+    dom.tradeGiveIcons.innerHTML = RESOURCE_KEYS.map(key => `
+      <button class="trade-resource-card ${trade.give === key ? 'active' : ''}" type="button" data-trade-side="give" data-trade-resource="${key}">
+        <img src="${RESOURCES[key].icon}" alt="">
+        <strong>${RESOURCES[key].name}</strong>
+        <span>${player.resources[key]} in hand</span>
+      </button>
+    `).join('');
+    dom.tradeGetIcons.innerHTML = RESOURCE_KEYS.map(key => {
+      const partner = state.players.find(entry => entry.id === trade.partnerId);
+      const stock = trade.mode === 'bank' ? 'bank stock' : `${partner?.resources[key] ?? 0} in stock`;
+      return `
+        <button class="trade-resource-card ${trade.get === key ? 'active' : ''}" type="button" data-trade-side="get" data-trade-resource="${key}">
+          <img src="${RESOURCES[key].icon}" alt="">
+          <strong>${RESOURCES[key].name}</strong>
+          <span>${stock}</span>
+        </button>
+      `;
+    }).join('');
+
+    dom.tradeGiveAmountLabel.textContent = String(trade.giveAmount);
+    dom.tradeGetAmountLabel.textContent = String(trade.getAmount);
+    dom.tradeGiveMinus.disabled = trade.mode === 'bank';
+    dom.tradeGivePlus.disabled = trade.mode === 'bank';
+    dom.tradeSummary.innerHTML = `
+      <div class="trade-summary-row">
+        <strong>${trade.mode === 'bank' ? 'Bank route' : 'Clan proposal'}</strong>
+        <span>${trade.mode === 'bank' ? `${getTradeRatio(player.id, trade.give)}:1 on ${RESOURCES[trade.give].name}` : `${state.players.find(entry => entry.id === trade.partnerId)?.name || 'Clan'} reviews the offer`}</span>
+      </div>
+      <div class="trade-summary-row">
+        <div class="trade-summary-icons">
+          ${tradeMiniCard(trade.give, trade.giveAmount)}
+          ${tradeMiniCard(trade.get, trade.getAmount)}
+        </div>
+      </div>
+    `;
+    dom.tradeSubmitBtn.textContent = trade.mode === 'bank' ? 'Exchange with bank' : 'Send proposal';
+
+    dom.tradePartnerRow.querySelectorAll('[data-trade-partner]').forEach(button => {
+      button.addEventListener('click', () => selectTradePartner(Number(button.dataset.tradePartner)));
+    });
+    [dom.tradeGiveIcons, dom.tradeGetIcons].forEach(container => {
+      container.querySelectorAll('[data-trade-resource]').forEach(button => {
+        button.addEventListener('click', () => setTradeResource(button.dataset.tradeSide, button.dataset.tradeResource));
+      });
+    });
   }
 
   function renderDevPanel(){
@@ -2190,6 +2484,7 @@
   function resetToSetup(){
     clearTimeout(aiTimer);
     clearTimeout(autoRollTimer);
+    clearTimeout(tradeResponseTimer);
     state = null;
     dom.gameView.hidden = true;
     dom.gameView.classList.add('is-hidden');
@@ -2210,8 +2505,26 @@
   dom.settlementBtn.addEventListener('click', () => setMode('settlement'));
   dom.cityBtn.addEventListener('click', () => setMode('city'));
   dom.devBtn.addEventListener('click', buyDevCard);
-  dom.tradeBtn.addEventListener('click', bankTrade);
-  dom.playerTradeBtn.addEventListener('click', playerTrade);
+  dom.tradeOpenBtn.addEventListener('click', openTradeModal);
+  dom.tradeCloseBtn.addEventListener('click', closeTradeModal);
+  dom.tradeCancelBtn.addEventListener('click', closeTradeModal);
+  dom.tradeBankModeBtn.addEventListener('click', () => setTradeMode('bank'));
+  dom.tradeClanModeBtn.addEventListener('click', () => setTradeMode('clan'));
+  dom.tradeGiveMinus.addEventListener('click', () => changeTradeAmount('giveAmount', -1));
+  dom.tradeGivePlus.addEventListener('click', () => changeTradeAmount('giveAmount', 1));
+  dom.tradeGetMinus.addEventListener('click', () => changeTradeAmount('getAmount', -1));
+  dom.tradeGetPlus.addEventListener('click', () => changeTradeAmount('getAmount', 1));
+  dom.tradeSubmitBtn.addEventListener('click', submitTrade);
+  dom.tradeAcceptBtn.addEventListener('click', () => resolveTradeOffer(true));
+  dom.tradeDeclineBtn.addEventListener('click', () => resolveTradeOffer(false));
+  dom.tradeModal.addEventListener('click', event => {
+    if(event.target === dom.tradeModal) closeTradeModal();
+  });
+  dom.tradeResponseModal.addEventListener('click', event => {
+    if(event.target === dom.tradeResponseModal && state?.players[state.trade.pendingOffer?.to]?.type !== 'human'){
+      closeTradeResponse();
+    }
+  });
   (document.querySelectorAll ? document.querySelectorAll('[data-panel-target]') : []).forEach(button => {
     button.addEventListener('click', () => {
       document.getElementById(button.dataset.panelTarget)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });

@@ -1311,13 +1311,13 @@ body.app-shell-active.moonsettlers-page .command-grid button.active{
   justify-content:center;
 }
 
-.dice-pair{
+.dice-stage .dice-pair{
   display:flex;
   flex-direction:column;
   gap:16px;
 }
 
-.die-face{
+.dice-stage .die-face{
   width:96px;
   height:96px;
   position:relative;
@@ -1330,9 +1330,10 @@ body.app-shell-active.moonsettlers-page .command-grid button.active{
   box-shadow:
     inset 0 -6px 0 rgba(0,0,0,.18),
     0 16px 32px rgba(0,0,0,.38);
+  overflow:hidden;
 }
 
-.die-face::before{
+.dice-stage .die-face::before{
   content:"";
   position:absolute;
   inset:11px;
@@ -1342,11 +1343,11 @@ body.app-shell-active.moonsettlers-page .command-grid button.active{
     linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.01));
 }
 
-.die-face.is-empty{
+.dice-stage .die-face.is-empty{
   opacity:.62;
 }
 
-.die-face .pip{
+.dice-stage .die-face .pip{
   position:absolute;
   width:14px;
   height:14px;
