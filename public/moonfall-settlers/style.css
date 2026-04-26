@@ -1310,7 +1310,7 @@ body.app-shell-active.moonsettlers-page .command-grid button.active{
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  gap:18px;
+  gap:12px;
 }
 
 .dice-stage .dice-pair{
@@ -1366,6 +1366,10 @@ body.app-shell-active.moonsettlers-page .command-grid button.active{
   background:linear-gradient(180deg, rgba(14,20,23,.96), rgba(5,8,11,.96));
   color:#d7b06b;
   box-shadow:inset 0 0 0 1px rgba(255,230,177,.05), 0 10px 22px rgba(0,0,0,.34);
+}
+
+.dice-end-btn{
+  min-width:104px;
 }
 
 .dice-roll-btn.is-attention{

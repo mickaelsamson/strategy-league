@@ -554,10 +554,10 @@
       .forEach(drawTile);
     drawPorts();
     drawPlacementHints();
+    drawHover();
     drawRoads();
     drawBuildings();
     drawRobber();
-    drawHover();
   }
 
   function drawBackground(width, height){
@@ -1046,7 +1046,7 @@
     if(image?.complete && image.naturalWidth){
       const drawHeight = kind === 'city' ? 48 : 36;
       const drawWidth = drawHeight * (image.naturalWidth / image.naturalHeight);
-      const drawY = kind === 'city' ? -drawHeight + 2 : -drawHeight + 1;
+      const drawY = kind === 'city' ? -drawHeight + 15 : -drawHeight + 11;
 
       ctx.save();
       ctx.shadowColor = 'rgba(0,0,0,.6)';
