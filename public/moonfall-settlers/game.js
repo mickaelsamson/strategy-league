@@ -866,15 +866,7 @@
       const py = my + Math.sin(angle) * 34;
       const label = edge.port === 'generic' ? '3:1' : `${RESOURCES[edge.port].short} 2:1`;
 
-      ctx.save();
-      ctx.strokeStyle = '#b98931';
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.moveTo(mx, my);
-      ctx.lineTo(px, py);
-      ctx.stroke();
       drawShip(px, py, angle + Math.PI / 2, label, edge.port);
-      ctx.restore();
     });
   }
 
@@ -1011,11 +1003,11 @@
 
       if(image?.complete && image.naturalWidth){
         const ratio = image.naturalWidth / image.naturalHeight;
-        const drawWidth = length * .78;
-        const drawHeight = Math.min(drawWidth / ratio, Math.max(16, state.view.scale * .22));
+        const drawWidth = length * .74;
+        const drawHeight = Math.min(drawWidth / ratio, Math.max(14, state.view.scale * .19));
         ctx.save();
         ctx.shadowColor = 'rgba(0,0,0,.46)';
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = 7;
         ctx.shadowOffsetY = 1;
         ctx.globalAlpha = 1;
         ctx.drawImage(image, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
@@ -1052,14 +1044,14 @@
     ctx.fill();
 
     if(image?.complete && image.naturalWidth){
-      const drawHeight = kind === 'city' ? 54 : 42;
+      const drawHeight = kind === 'city' ? 48 : 36;
       const drawWidth = drawHeight * (image.naturalWidth / image.naturalHeight);
-      const drawY = kind === 'city' ? -drawHeight + 8 : -drawHeight + 6;
+      const drawY = kind === 'city' ? -drawHeight + 2 : -drawHeight + 1;
 
       ctx.save();
       ctx.shadowColor = 'rgba(0,0,0,.6)';
-      ctx.shadowBlur = 14;
-      ctx.shadowOffsetY = 3;
+      ctx.shadowBlur = 12;
+      ctx.shadowOffsetY = 2;
       ctx.globalAlpha = 1;
       ctx.drawImage(image, -drawWidth / 2, drawY, drawWidth, drawHeight);
       ctx.restore();
@@ -1860,15 +1852,7 @@
 
   function scheduleAutoRoll(){
     clearTimeout(autoRollTimer);
-    if(!state || state.winner || state.phase !== 'roll') return;
-    const player = getInteractionPlayer();
-    if(!player || player.type !== 'human') return;
-
-    autoRollTimer = setTimeout(() => {
-      if(!state || state.winner || state.phase !== 'roll') return;
-      if(getInteractionPlayer()?.id !== player.id) return;
-      rollDice();
-    }, 620);
+    return;
   }
 
   function spend(player, cost){

@@ -566,8 +566,8 @@ body.app-shell-active .azul-game .tile-stack{
 
 .pattern-lines{
   position:absolute;
-  left:24.8%;
-  top:13.4%;
+  left:16.2%;
+  top:15.2%;
   width:calc(var(--azul-board-slot-size) * 5 + var(--azul-board-gap) * 4);
   height:calc(var(--azul-board-slot-size) * 5 + var(--azul-board-gap) * 4);
   display:grid;
@@ -643,8 +643,8 @@ body.app-shell-active .azul-game .player-board button.pattern-line.can-place:not
 
 .wall{
   position:absolute;
-  left:55.6%;
-  top:13.4%;
+  left:58.2%;
+  top:15.2%;
   width:calc(var(--azul-board-slot-size) * 5 + var(--azul-board-gap) * 4);
   height:calc(var(--azul-board-slot-size) * 5 + var(--azul-board-gap) * 4);
   display:grid;
