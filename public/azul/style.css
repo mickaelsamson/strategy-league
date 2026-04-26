@@ -6,8 +6,8 @@ body{
   --azul-center-size:44%;
   --azul-tile-size:26px;
   --azul-cell-size:27px;
-  --azul-board-width:min(500px, 100%);
-  --azul-board-slot-size:25px;
+  --azul-board-width:min(580px, 100%);
+  --azul-board-slot-size:24px;
   --azul-board-gap:4px;
 }
 
@@ -17,8 +17,8 @@ body[data-azul-players="3"]{
   --azul-center-size:46%;
   --azul-tile-size:23px;
   --azul-cell-size:24px;
-  --azul-board-width:min(460px, 100%);
-  --azul-board-slot-size:23px;
+  --azul-board-width:min(530px, 100%);
+  --azul-board-slot-size:22px;
   --azul-board-gap:3px;
 }
 
@@ -28,8 +28,8 @@ body[data-azul-players="4"]{
   --azul-center-size:48%;
   --azul-tile-size:21px;
   --azul-cell-size:22px;
-  --azul-board-width:min(420px, 100%);
-  --azul-board-slot-size:21px;
+  --azul-board-width:min(480px, 100%);
+  --azul-board-slot-size:20px;
   --azul-board-gap:3px;
 }
 
@@ -485,7 +485,7 @@ body.app-shell-active .azul-game .tile-stack{
 }
 
 .player-board{
-  padding:14px 14px 18px;
+  padding:16px 16px 20px;
   overflow:hidden;
   position:relative;
   width:min(100%, var(--azul-board-width));
@@ -565,14 +565,15 @@ body.app-shell-active .azul-game .tile-stack{
 
 .pattern-lines{
   position:absolute;
-  left:24.6%;
-  top:16.1%;
-  width:43.2%;
-  height:55.2%;
+  left:24.8%;
+  top:13.4%;
+  width:calc(var(--azul-board-slot-size) * 5 + var(--azul-board-gap) * 4);
+  height:calc(var(--azul-board-slot-size) * 5 + var(--azul-board-gap) * 4);
   display:grid;
-  grid-template-rows:repeat(5, 1fr);
+  grid-template-rows:repeat(5, var(--azul-board-slot-size));
   gap:var(--azul-board-gap);
   padding:0;
+  align-content:start;
 }
 
 .pattern-line{
@@ -641,12 +642,14 @@ body.app-shell-active .azul-game .player-board button.pattern-line.can-place:not
 
 .wall{
   position:absolute;
-  right:7.2%;
-  top:13.2%;
+  left:55.6%;
+  top:13.4%;
   width:calc(var(--azul-board-slot-size) * 5 + var(--azul-board-gap) * 4);
+  height:calc(var(--azul-board-slot-size) * 5 + var(--azul-board-gap) * 4);
   display:grid;
   gap:var(--azul-board-gap);
   padding:0;
+  align-content:start;
 }
 
 .wall-row{
