@@ -1139,8 +1139,8 @@ body.moonsettlers-page{
   border-radius:4px;
   clip-path:polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
   border:1px solid rgba(185,133,68,.64);
-  background:linear-gradient(180deg, rgba(19,25,29,.94), rgba(5,8,11,.94));
-  color:#ddb46b;
+  background:center/58% no-repeat, linear-gradient(180deg, rgba(19,25,29,.94), rgba(5,8,11,.94));
+  color:transparent;
   box-shadow:0 10px 26px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,229,168,.06);
   font-family:"Trebuchet MS", sans-serif;
 }
@@ -1153,6 +1153,10 @@ body.moonsettlers-page{
 .tool-icon{
   text-transform:uppercase;
 }
+
+.tool-icon:nth-child(1){background-image:url("/moonfall-settlers/assets/generated/icon-hourglass-cutout.png"), linear-gradient(180deg, rgba(19,25,29,.94), rgba(5,8,11,.94));}
+.tool-icon:nth-child(2){background-image:url("/moonfall-settlers/assets/generated/icon-action-cutout.png"), linear-gradient(180deg, rgba(19,25,29,.94), rgba(5,8,11,.94));}
+.tool-icon:nth-child(3){background-image:url("/moonfall-settlers/assets/generated/icon-menu-cutout.png"), linear-gradient(180deg, rgba(19,25,29,.94), rgba(5,8,11,.94));}
 
 .board-frame{
   background:#02070b;
@@ -1240,6 +1244,18 @@ body.moonsettlers-page{
 .player-row::before{
   background:radial-gradient(circle, currentColor 0 24%, transparent 25%), #070b0e;
   box-shadow:0 0 18px currentColor;
+}
+
+.player-row:has(.player-crest)::before{
+  display:none;
+}
+
+.player-crest{
+  width:44px;
+  height:44px;
+  object-fit:contain;
+  grid-row:1 / span 3;
+  filter:drop-shadow(0 0 12px currentColor);
 }
 
 .oni-stat img{

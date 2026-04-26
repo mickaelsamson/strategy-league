@@ -21,10 +21,15 @@ const FACTIONS = {
 };
 
 const BUILD_OPTIONS = ['house', 'farm', 'tower'];
-const WORLD = { width: 2600, height: 1464 };
+const TILE_SIZE = 64;
+const WORLD = { width: 2560, height: 1472 };
+const MAP_COLS = Math.ceil(WORLD.width / TILE_SIZE);
+const MAP_ROWS = Math.ceil(WORLD.height / TILE_SIZE);
 const START_RESOURCES = { crystal: 320, wood: 280, food: 180 };
 const GATHER_AMOUNT = 14;
 const GATHER_TIME = 0.85;
+const EDGE_SCROLL_SIZE = 28;
+const EDGE_SCROLL_SPEED = 720;
 const ASSET_PATHS = {
   resources: {
     crystal: '/moonfall-rts/assets/resources/crystal_node.png',
@@ -34,10 +39,9 @@ const ASSET_PATHS = {
   tiles: {
     grass: '/moonfall-rts/assets/tiles/grass_tile.png',
     dirt: '/moonfall-rts/assets/tiles/dirt_path_tile.png',
-    forest: '/moonfall-rts/assets/tiles/forest_tile.png',
-    corrupted: '/moonfall-rts/assets/tiles/corrupted_ground_tile.png',
     rock: '/moonfall-rts/assets/tiles/rock_tile.png',
-    water: '/moonfall-rts/assets/tiles/water_tile.png'
+    water: '/moonfall-rts/assets/tiles/water.png',
+    waterGrass: '/moonfall-rts/assets/tiles/water-grass.png'
   },
   decor: {
     tree: '/moonfall-rts/assets/decor/tree_object.png',
@@ -100,6 +104,7 @@ const dom = {
   pop: document.getElementById('popValue'),
   pause: document.getElementById('pauseBtn'),
   restart: document.getElementById('restartBtn'),
+  fullscreen: document.getElementById('fullscreenBtn'),
   canvas: document.getElementById('gameCanvas'),
   minimap: document.getElementById('minimap'),
   message: document.getElementById('systemMessage'),
@@ -199,11 +204,12 @@ function startGame(){
     units: [],
     buildings: [],
     resources: [],
+    map: generateMap(),
     projectiles: [],
     selectedId: null,
     buildMode: null,
     camera: { x: 180, y: 360 },
-    mouse: { x: 0, y: 0 },
+    mouse: { x: 0, y: 0, inViewport: false },
     keys: new Set(),
     paused: false,
     gameOver: false,
@@ -220,6 +226,93 @@ function startGame(){
   centerCameraOn(getHQ('player'));
   updateUi(true);
   showMessage('Build a production building, train an army, destroy the enemy HQ.');
+}
+
+function generateMap(){
+  const tiles = Array.from({ length: MAP_ROWS }, () => Array(MAP_COLS).fill('grass'));
+  const setTile = (col, row, kind) => {
+    if(row >= 0 && row < MAP_ROWS && col >= 0 && col < MAP_COLS) tiles[row][col] = kind;
+  };
+  const getTile = (col, row) => row >= 0 && row < MAP_ROWS && col >= 0 && col < MAP_COLS ? tiles[row][col] : 'grass';
+  const markDisk = (cx, cy, radius, kind, skip = () => false) => {
+    for(let row = Math.floor(cy - radius); row <= Math.ceil(cy + radius); row += 1){
+      for(let col = Math.floor(cx - radius); col <= Math.ceil(cx + radius); col += 1){
+        if(Math.hypot(col - cx, row - cy) <= radius && !skip(col, row)) setTile(col, row, kind);
+      }
+    }
+  };
+
+  // Connected dirt road between the two bases. The grass edges are baked into the dirt tile.
+  for(let col = 4; col < MAP_COLS - 3; col += 1){
+    const t = (col - 4) / (MAP_COLS - 7);
+    const row = 15 - t * 5 + Math.sin(t * Math.PI * 2.4) * 1.15;
+    markDisk(col, row, 1.45, 'dirt');
+  }
+  for(let col = 8; col < 22; col += 1){
+    const row = 13 + Math.sin(col * 0.7) * 0.9;
+    markDisk(col, row, 1.05, 'dirt');
+  }
+
+  // Lake rule: water core, then a water-grass shoreline ring. Shoreline always sits between grass and water.
+  const lakes = [
+    { col: 31.3, row: 17.0, rx: 4.8, ry: 3.1 },
+    { col: 33.4, row: 18.8, rx: 2.3, ry: 1.7 }
+  ];
+  for(let row = 0; row < MAP_ROWS; row += 1){
+    for(let col = 0; col < MAP_COLS; col += 1){
+      let lakeDistance = Infinity;
+      for(const lake of lakes){
+        const dx = (col - lake.col) / lake.rx;
+        const dy = (row - lake.row) / lake.ry;
+        lakeDistance = Math.min(lakeDistance, Math.hypot(dx, dy));
+      }
+      if(lakeDistance < 0.78) setTile(col, row, 'water');
+      else if(lakeDistance < 1.08) setTile(col, row, 'waterGrass');
+    }
+  }
+
+  // Rock patches are grass-compatible variation, not hard isolated blocks.
+  const protectedAreas = [
+    { col: 12, row: 14, r: 5 },
+    { col: 30, row: 10, r: 5 },
+    { col: 31, row: 17, r: 6 }
+  ];
+  const skipRock = (col, row) => {
+    const kind = getTile(col, row);
+    if(kind !== 'grass') return true;
+    return protectedAreas.some(area => Math.hypot(col - area.col, row - area.row) < area.r);
+  };
+  [
+    [5, 4, 1.3],
+    [15, 4, 1.4],
+    [23, 5, 1.2],
+    [35, 6, 1.7],
+    [6, 19, 1.4],
+    [21, 18, 1.5]
+  ].forEach(([col, row, radius]) => markDisk(col, row, radius, 'rock', skipRock));
+
+  // Comfort pass: enforce legal water relationships.
+  const next = tiles.map(row => [...row]);
+  for(let row = 0; row < MAP_ROWS; row += 1){
+    for(let col = 0; col < MAP_COLS; col += 1){
+      const kind = getTile(col, row);
+      const neighbors = cardinalNeighbors(col, row).map(([c, r]) => getTile(c, r));
+      if(kind === 'water' && neighbors.some(item => item === 'grass' || item === 'rock' || item === 'dirt')){
+        next[row][col] = 'waterGrass';
+      }
+      if(kind === 'waterGrass'){
+        const hasWater = neighbors.includes('water');
+        const hasGrassSide = neighbors.some(item => item === 'grass' || item === 'rock' || item === 'dirt');
+        if(!hasWater) next[row][col] = 'grass';
+        if(!hasGrassSide) next[row][col] = 'water';
+      }
+    }
+  }
+  return { tiles: next };
+}
+
+function cardinalNeighbors(col, row){
+  return [[col - 1, row], [col + 1, row], [col, row - 1], [col, row + 1]];
 }
 
 function seedMap(){
@@ -349,11 +442,12 @@ function update(dt){
 }
 
 function updateCamera(dt){
-  const speed = 620 * dt;
-  if(state.keys.has('ArrowLeft') || state.keys.has('a')) state.camera.x -= speed;
-  if(state.keys.has('ArrowRight') || state.keys.has('d')) state.camera.x += speed;
-  if(state.keys.has('ArrowUp') || state.keys.has('w')) state.camera.y -= speed;
-  if(state.keys.has('ArrowDown') || state.keys.has('s')) state.camera.y += speed;
+  const speed = EDGE_SCROLL_SPEED * dt;
+  const mouse = state.mouse;
+  if(state.keys.has('ArrowLeft') || state.keys.has('a') || (mouse.inViewport && mouse.x < EDGE_SCROLL_SIZE)) state.camera.x -= speed;
+  if(state.keys.has('ArrowRight') || state.keys.has('d') || (mouse.inViewport && mouse.x > dom.canvas.width - EDGE_SCROLL_SIZE)) state.camera.x += speed;
+  if(state.keys.has('ArrowUp') || state.keys.has('w') || (mouse.inViewport && mouse.y < EDGE_SCROLL_SIZE)) state.camera.y -= speed;
+  if(state.keys.has('ArrowDown') || state.keys.has('s') || (mouse.inViewport && mouse.y > dom.canvas.height - EDGE_SCROLL_SIZE)) state.camera.y += speed;
   state.camera.x = clamp(state.camera.x, 0, WORLD.width - dom.canvas.width);
   state.camera.y = clamp(state.camera.y, 0, WORLD.height - dom.canvas.height);
 }
@@ -772,15 +866,17 @@ function drawTerrain(){
 }
 
 function drawTileMap(){
-  const tile = 64;
-  const startX = Math.floor(state.camera.x / tile) * tile;
-  const startY = Math.floor(state.camera.y / tile) * tile;
-  const endX = state.camera.x + dom.canvas.width + tile;
-  const endY = state.camera.y + dom.canvas.height + tile;
+  const tile = TILE_SIZE;
+  const startCol = Math.max(0, Math.floor(state.camera.x / tile));
+  const startRow = Math.max(0, Math.floor(state.camera.y / tile));
+  const endCol = Math.min(MAP_COLS - 1, Math.ceil((state.camera.x + dom.canvas.width) / tile));
+  const endRow = Math.min(MAP_ROWS - 1, Math.ceil((state.camera.y + dom.canvas.height) / tile));
 
-  for(let y = startY; y < endY; y += tile){
-    for(let x = startX; x < endX; x += tile){
-      const kind = tileKindAt(x, y);
+  for(let row = startRow; row <= endRow; row += 1){
+    for(let col = startCol; col <= endCol; col += 1){
+      const x = col * tile;
+      const y = row * tile;
+      const kind = tileAt(col, row);
       const image = assets.get(ASSET_PATHS.tiles[kind]);
       if(image){
         ctx.drawImage(image, x - 1, y - 1, tile + 2, tile + 2);
@@ -795,32 +891,18 @@ function drawTileMap(){
   }
 }
 
-function tileKindAt(x, y){
-  const cx = x + 32;
-  const cy = y + 32;
-  const edge = cx < 128 || cy < 128 || cx > WORLD.width - 128 || cy > WORLD.height - 128;
-  const n = noise(Math.floor(x / 64) * 37, Math.floor(y / 64) * 53);
-  const pathY = 960 - (cx - 740) * 0.22 + Math.sin(cx * 0.006) * 70;
-  const onPath = Math.abs(cy - pathY) < 75 || Math.abs(cy - (790 + Math.sin(cx * 0.004) * 90)) < 46 && cx > 520 && cx < 2060;
-  const corrupted = cx > 1580 && (cy < 1190 || n > 0.34);
-  const forest = n > 0.78 && !onPath;
-  const rock = edge || (n < 0.08 && !onPath);
-  if(cy > WORLD.height - 100 && cx > 1700) return 'water';
-  if(rock) return 'rock';
-  if(onPath) return 'dirt';
-  if(corrupted) return 'corrupted';
-  if(forest) return 'forest';
-  return 'grass';
+function tileAt(col, row){
+  if(!state?.map?.tiles) return 'grass';
+  return state.map.tiles[row]?.[col] || 'grass';
 }
 
 function fallbackTileColor(kind){
   return {
     grass: '#405f31',
     dirt: '#6c5b3d',
-    forest: '#1f442a',
-    corrupted: '#39234f',
     rock: '#3d4140',
-    water: '#1f6173'
+    water: '#1f6173',
+    waterGrass: '#496b42'
   }[kind] || '#405f31';
 }
 
@@ -1151,24 +1233,41 @@ function drawBuildPreview(){
 
 function drawMinimap(){
   mini.clearRect(0, 0, dom.minimap.width, dom.minimap.height);
-  mini.fillStyle = '#23354b';
-  mini.fillRect(0, 0, dom.minimap.width, dom.minimap.height);
   const sx = dom.minimap.width / WORLD.width;
   const sy = dom.minimap.height / WORLD.height;
+  const tileW = Math.ceil(TILE_SIZE * sx) + 1;
+  const tileH = Math.ceil(TILE_SIZE * sy) + 1;
+  for(let row = 0; row < MAP_ROWS; row += 1){
+    for(let col = 0; col < MAP_COLS; col += 1){
+      mini.fillStyle = minimapTerrainColor(tileAt(col, row));
+      mini.fillRect(Math.floor(col * TILE_SIZE * sx), Math.floor(row * TILE_SIZE * sy), tileW, tileH);
+    }
+  }
   for(const resource of state.resources){
-    mini.fillStyle = resource.kind === 'crystal' ? '#5bdcff' : '#4faa68';
-    mini.fillRect(resource.x * sx - 1, resource.y * sy - 1, 3, 3);
+    mini.fillStyle = resource.kind === 'crystal' ? '#44d8ff' : '#d7a15c';
+    mini.fillRect(resource.x * sx - 2, resource.y * sy - 2, 4, 4);
   }
   for(const building of state.buildings){
     mini.fillStyle = building.owner === 'player' ? '#40a7ff' : '#9a63ff';
-    mini.fillRect(building.x * sx - 3, building.y * sy - 3, 6, 6);
+    mini.fillRect(building.x * sx - 3, building.y * sy - 3, 7, 7);
   }
   for(const unit of state.units){
-    mini.fillStyle = unit.owner === 'player' ? '#9bdcff' : '#d6b3ff';
-    mini.fillRect(unit.x * sx - 1, unit.y * sy - 1, 2, 2);
+    mini.fillStyle = unit.owner === 'player' ? '#abf0ff' : '#e1a8ff';
+    mini.fillRect(unit.x * sx - 1, unit.y * sy - 1, 3, 3);
   }
-  mini.strokeStyle = '#fff';
+  mini.strokeStyle = '#f4f0de';
+  mini.lineWidth = 2;
   mini.strokeRect(state.camera.x * sx, state.camera.y * sy, dom.canvas.width * sx, dom.canvas.height * sy);
+}
+
+function minimapTerrainColor(kind){
+  return {
+    grass: '#40682e',
+    dirt: '#74613d',
+    rock: '#4f524a',
+    water: '#1d7894',
+    waterGrass: '#47785f'
+  }[kind] || '#40682e';
 }
 
 function inView(entity, pad){
@@ -1190,7 +1289,7 @@ function updateUi(force = false){
 
   const selected = selectedEntity();
   if(!selected){
-    dom.selectedInfo.textContent = 'Aucune unite selectionnee.';
+    dom.selectedInfo.textContent = 'No unit selected.';
     if(dom.selectedPortrait) dom.selectedPortrait.innerHTML = '';
   }else{
     dom.selectedInfo.innerHTML = `
@@ -1271,7 +1370,7 @@ function renderActionButtons(selected){
   if(!buttons.length){
     const empty = document.createElement('div');
     empty.className = 'selected-info';
-    empty.textContent = 'Selectionne un worker, un HQ ou un batiment de production.';
+    empty.textContent = 'Select a worker, HQ, or production building.';
     dom.actions.appendChild(empty);
     return;
   }
@@ -1373,6 +1472,15 @@ function bindEvents(){
     state.paused = !state.paused;
     dom.pause.textContent = state.paused ? '▶' : 'II';
   });
+  dom.fullscreen?.addEventListener('click', async () => {
+    const target = dom.game;
+    if(!document.fullscreenElement){
+      await target.requestFullscreen?.();
+    }else{
+      await document.exitFullscreen?.();
+    }
+    resizeCanvas();
+  });
   dom.restart.addEventListener('click', () => {
     state = null;
     dom.game.hidden = true;
@@ -1385,6 +1493,13 @@ function bindEvents(){
     const point = canvasPoint(event);
     state.mouse.x = point.x;
     state.mouse.y = point.y;
+    state.mouse.inViewport = true;
+  });
+  dom.canvas.addEventListener('mouseenter', () => {
+    if(state) state.mouse.inViewport = true;
+  });
+  dom.canvas.addEventListener('mouseleave', () => {
+    if(state) state.mouse.inViewport = false;
   });
   dom.canvas.addEventListener('click', event => {
     if(!state) return;
@@ -1402,6 +1517,7 @@ function bindEvents(){
     else issueMove(units, point.wx, point.wy);
   });
   window.addEventListener('resize', resizeCanvas);
+  document.addEventListener('fullscreenchange', resizeCanvas);
   window.addEventListener('keydown', event => state?.keys.add(event.key));
   window.addEventListener('keyup', event => state?.keys.delete(event.key));
 }

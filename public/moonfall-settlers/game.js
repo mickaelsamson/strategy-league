@@ -145,6 +145,7 @@
     loadImage('pieceSettlement', ASSETS.pieceSettlement);
     loadImage('pieceCity', ASSETS.pieceCity);
     loadImage('pieceDev', ASSETS.pieceDev);
+    ASSETS.crests.forEach((src, index) => loadImage(`crest-${index}`, src));
     RESOURCE_KEYS.forEach(key => {
       loadImage(`tile-${key}`, RESOURCES[key].texture);
       loadImage(`icon-${key}`, RESOURCES[key].icon);
@@ -234,6 +235,7 @@
       type,
       color: preset.color,
       accent: preset.accent,
+      crest: preset.crest,
       resources: { cedar: 0, clay: 0, rice: 0, wisteria: 0, sunsteel: 0 },
       devCards: [],
       knights: 0,
@@ -2144,6 +2146,7 @@
       const ports = [...getPlayerPorts(player.id)].map(port => port === 'generic' ? '3:1' : `${RESOURCES[port].short} 2:1`).join(', ') || 'No port';
       return `
         <div class="player-row ${getInteractionPlayer()?.id === player.id ? 'active' : ''}" style="color:${player.color}">
+          <img class="player-crest" src="${player.crest}" alt="">
           <strong>${escapeHtml(player.name)} - ${victoryPoints(player)} pts</strong>
           <span>${sumResources(player.resources)} resources, ${player.devCards.length} cards</span>
           <span>Road ${player.longestRoad}, Army ${player.knights}, ${ports}</span>
