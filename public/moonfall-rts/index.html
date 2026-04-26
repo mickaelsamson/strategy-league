@@ -45,10 +45,10 @@
       </div>
 
       <div class="resource-bar">
-        <span><b id="crystalValue">0</b> crystal</span>
-        <span><b id="woodValue">0</b> wood</span>
-        <span><b id="foodValue">0</b> food</span>
-        <span><b id="popValue">0/0</b> pop</span>
+        <span><img src="/moonfall-rts/assets/ui/icon_crystal.png" alt=""><b id="crystalValue">0</b><small id="crystalRate">+0</small></span>
+        <span><img src="/moonfall-rts/assets/ui/icon_wood.png" alt=""><b id="woodValue">0</b><small id="woodRate">+0</small></span>
+        <span><img src="/moonfall-rts/assets/ui/icon_food.png" alt=""><b id="foodValue">0</b><small id="foodRate">+0</small></span>
+        <span><img src="/moonfall-rts/assets/ui/icon_population.png" alt=""><b id="popValue">0/0</b></span>
       </div>
 
       <div class="hud-actions">
@@ -60,25 +60,41 @@
     <div class="game-layout">
       <div class="viewport-wrap">
         <canvas id="gameCanvas" width="1280" height="720"></canvas>
+        <aside class="objectives-panel">
+          <h2>Objectifs</h2>
+          <p>Detruisez le Nexus ennemi</p>
+          <p>Protegez votre HQ</p>
+        </aside>
+        <aside class="versus-panel">
+          <strong>Watchers</strong>
+          <span>VS</span>
+          <strong>Shadows</strong>
+          <small>IA - Normal</small>
+        </aside>
         <div id="systemMessage" class="system-message"></div>
       </div>
 
       <aside class="command-panel">
-        <canvas id="minimap" width="220" height="150"></canvas>
+        <section class="minimap-panel">
+          <canvas id="minimap" width="220" height="150"></canvas>
+        </section>
 
         <section class="selected-card">
           <h2>Selection</h2>
-          <div id="selectedInfo" class="selected-info">Aucune unite selectionnee.</div>
+          <div class="selected-layout">
+            <div id="selectedPortrait" class="selected-portrait"></div>
+            <div id="selectedInfo" class="selected-info">Aucune unite selectionnee.</div>
+          </div>
         </section>
 
-        <section>
+        <section class="selection-roster">
+          <h2>Groupe</h2>
+          <div id="selectionGrid" class="selection-grid"></div>
+        </section>
+
+        <section class="actions-card">
           <h2>Actions</h2>
           <div id="actionButtons" class="action-buttons"></div>
-        </section>
-
-        <section class="help">
-          <h2>Controles</h2>
-          <p>Clic gauche selection / attaque / deplacement. Clic droit ordre rapide. WASD ou fleches pour la camera.</p>
         </section>
       </aside>
     </div>

@@ -21,7 +21,7 @@ export const BUILDING_DEFS = {
     },
     house: {
       name: 'House',
-      asset: '/moonfall-rts/assets/buildings/watchers/watchers_house.png',
+      asset: '/moonfall-rts/assets/buildings/watchers/watcher_house.png',
       hp: 420,
       size: { w: 96, h: 78 },
       footprint: 42,
@@ -30,7 +30,7 @@ export const BUILDING_DEFS = {
     },
     farm: {
       name: 'Farm',
-      asset: '/moonfall-rts/assets/buildings/watchers/watchers_farm.png',
+      asset: '/moonfall-rts/assets/buildings/watchers/watcher_farm.png',
       hp: 360,
       size: { w: 108, h: 82 },
       footprint: 46,
@@ -39,7 +39,7 @@ export const BUILDING_DEFS = {
     },
     tower: {
       name: 'Tower',
-      asset: '/moonfall-rts/assets/buildings/watchers/watchers_tower.png',
+      asset: '/moonfall-rts/assets/buildings/watchers/watcher_tower.png',
       hp: 620,
       size: { w: 82, h: 118 },
       footprint: 44,
@@ -71,7 +71,7 @@ export const BUILDING_DEFS = {
     },
     house: {
       name: 'Brood Nest',
-      asset: '/moonfall-rts/assets/buildings/shadows/shadows_house.png',
+      asset: '/moonfall-rts/assets/buildings/shadows/shadow_house.png',
       hp: 420,
       size: { w: 96, h: 78 },
       footprint: 42,
@@ -80,7 +80,7 @@ export const BUILDING_DEFS = {
     },
     farm: {
       name: 'Flesh Farm',
-      asset: '/moonfall-rts/assets/buildings/shadows/shadows_farm.png',
+      asset: '/moonfall-rts/assets/buildings/shadows/shadow_farm.png',
       hp: 360,
       size: { w: 108, h: 82 },
       footprint: 46,
@@ -89,7 +89,7 @@ export const BUILDING_DEFS = {
     },
     tower: {
       name: 'Spire',
-      asset: '/moonfall-rts/assets/buildings/shadows/shadows_tower.png',
+      asset: '/moonfall-rts/assets/buildings/shadows/shadow_spire.png',
       hp: 620,
       size: { w: 82, h: 118 },
       footprint: 44,

@@ -26,11 +26,31 @@ const START_RESOURCES = { crystal: 320, wood: 280, food: 180 };
 const GATHER_AMOUNT = 14;
 const GATHER_TIME = 0.85;
 const ASSET_PATHS = {
-  terrain: '/moonfall-rts/assets/tiles/shadow_realm_battlefield.png',
   resources: {
     crystal: '/moonfall-rts/assets/resources/crystal_node.png',
-    wood: '/moonfall-rts/assets/resources/wood_node.png',
-    food: '/moonfall-rts/assets/resources/food_cache.png'
+    wood: '/moonfall-rts/assets/resources/wood_tree.png',
+    food: '/moonfall-rts/assets/resources/food_source.png'
+  },
+  tiles: {
+    grass: '/moonfall-rts/assets/tiles/grass_tile.png',
+    dirt: '/moonfall-rts/assets/tiles/dirt_path_tile.png',
+    forest: '/moonfall-rts/assets/tiles/forest_tile.png',
+    corrupted: '/moonfall-rts/assets/tiles/corrupted_ground_tile.png',
+    rock: '/moonfall-rts/assets/tiles/rock_tile.png',
+    water: '/moonfall-rts/assets/tiles/water_tile.png'
+  },
+  decor: {
+    tree: '/moonfall-rts/assets/decor/tree_object.png',
+    rock: '/moonfall-rts/assets/decor/rock_object.png',
+    bush: '/moonfall-rts/assets/decor/bush_object.png',
+    crystal: '/moonfall-rts/assets/decor/crystal_decor.png'
+  },
+  fx: {
+    slash: '/moonfall-rts/assets/fx/fx_attack_slash.png',
+    arrow: '/moonfall-rts/assets/fx/fx_arrow.png',
+    magic: '/moonfall-rts/assets/fx/fx_magic_projectile.png',
+    hit: '/moonfall-rts/assets/fx/fx_hit.png',
+    death: '/moonfall-rts/assets/fx/fx_death.png'
   },
   ui: {
     crystal: '/moonfall-rts/assets/ui/icon_crystal.png',
@@ -39,9 +59,31 @@ const ASSET_PATHS = {
     population: '/moonfall-rts/assets/ui/icon_population.png',
     build: '/moonfall-rts/assets/ui/icon_build.png',
     train: '/moonfall-rts/assets/ui/icon_train.png',
-    attack: '/moonfall-rts/assets/ui/icon_attack.png'
+    move: '/moonfall-rts/assets/ui/icon_move.png',
+    attack: '/moonfall-rts/assets/ui/icon_attack.png',
+    stop: '/moonfall-rts/assets/ui/icon_stop.png',
+    house: '/moonfall-rts/assets/ui/icon_house.png',
+    farm: '/moonfall-rts/assets/ui/icon_farm.png',
+    barracks: '/moonfall-rts/assets/ui/icon_barracks.png',
+    hq: '/moonfall-rts/assets/ui/icon_hq.png'
   }
 };
+
+const DECOR_OBJECTS = [
+  { kind: 'tree', x: 250, y: 320, scale: 1.05 },
+  { kind: 'tree', x: 360, y: 505, scale: 0.9 },
+  { kind: 'tree', x: 1080, y: 260, scale: 0.95 },
+  { kind: 'tree', x: 1480, y: 1120, scale: 1.0 },
+  { kind: 'tree', x: 2280, y: 290, scale: 1.05 },
+  { kind: 'rock', x: 360, y: 1160, scale: 0.9 },
+  { kind: 'rock', x: 1230, y: 350, scale: 0.85 },
+  { kind: 'rock', x: 2150, y: 1120, scale: 1.0 },
+  { kind: 'bush', x: 580, y: 1180, scale: 0.85 },
+  { kind: 'bush', x: 1410, y: 760, scale: 0.8 },
+  { kind: 'bush', x: 2260, y: 915, scale: 0.9 },
+  { kind: 'crystal', x: 440, y: 890, scale: 0.8 },
+  { kind: 'crystal', x: 2060, y: 575, scale: 0.78 }
+];
 
 const dom = {
   home: document.getElementById('homeScreen'),
@@ -101,12 +143,10 @@ class AssetStore {
   }
 
   preload(){
-    this.load('terrain', ASSET_PATHS.terrain);
-    for(const [key, src] of Object.entries(ASSET_PATHS.resources)){
-      this.load(`resource-${key}`, src);
-    }
-    for(const [key, src] of Object.entries(ASSET_PATHS.ui)){
-      this.load(`ui-${key}`, src);
+    for(const [group, paths] of Object.entries(ASSET_PATHS)){
+      for(const [key, src] of Object.entries(paths)){
+        this.load(`${group}-${key}`, src);
+      }
     }
     for(const faction of Object.keys(UNIT_DEFS)){
       for(const [key, def] of Object.entries(UNIT_DEFS[faction])){
@@ -724,34 +764,78 @@ function draw(){
 }
 
 function drawTerrain(){
-  const bg = assets.get(ASSET_PATHS.terrain);
-  if(bg){
-    ctx.drawImage(bg, 0, 0, WORLD.width, WORLD.height);
-  }else{
-    drawFallbackTerrain();
-  }
-
+  drawTileMap();
+  drawDecor();
   drawBuildZone(760, 870, '#2e9dff');
   drawBuildZone(1900, 615, '#9b55ff');
   drawWorldVignette();
 }
 
-function drawFallbackTerrain(){
-  ctx.fillStyle = '#344c2d';
-  ctx.fillRect(0, 0, WORLD.width, WORLD.height);
-  const tile = 70;
+function drawTileMap(){
+  const tile = 64;
   const startX = Math.floor(state.camera.x / tile) * tile;
   const startY = Math.floor(state.camera.y / tile) * tile;
   const endX = state.camera.x + dom.canvas.width + tile;
   const endY = state.camera.y + dom.canvas.height + tile;
+
   for(let y = startY; y < endY; y += tile){
     for(let x = startX; x < endX; x += tile){
-      const n = noise(x, y);
-      ctx.fillStyle = n > 0.66 ? '#435f34' : n < 0.24 ? '#263824' : '#36512f';
+      const kind = tileKindAt(x, y);
+      const image = assets.get(ASSET_PATHS.tiles[kind]);
+      if(image){
+        ctx.drawImage(image, x - 1, y - 1, tile + 2, tile + 2);
+      }else{
+        ctx.fillStyle = fallbackTileColor(kind);
+        ctx.fillRect(x - 1, y - 1, tile + 2, tile + 2);
+      }
+      const shade = noise(x, y) > 0.74 ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.035)';
+      ctx.fillStyle = shade;
       ctx.fillRect(x, y, tile, tile);
     }
   }
-  drawDarkGround(1900, 615, 500, 320);
+}
+
+function tileKindAt(x, y){
+  const cx = x + 32;
+  const cy = y + 32;
+  const edge = cx < 128 || cy < 128 || cx > WORLD.width - 128 || cy > WORLD.height - 128;
+  const n = noise(Math.floor(x / 64) * 37, Math.floor(y / 64) * 53);
+  const pathY = 960 - (cx - 740) * 0.22 + Math.sin(cx * 0.006) * 70;
+  const onPath = Math.abs(cy - pathY) < 75 || Math.abs(cy - (790 + Math.sin(cx * 0.004) * 90)) < 46 && cx > 520 && cx < 2060;
+  const corrupted = cx > 1580 && (cy < 1190 || n > 0.34);
+  const forest = n > 0.78 && !onPath;
+  const rock = edge || (n < 0.08 && !onPath);
+  if(cy > WORLD.height - 100 && cx > 1700) return 'water';
+  if(rock) return 'rock';
+  if(onPath) return 'dirt';
+  if(corrupted) return 'corrupted';
+  if(forest) return 'forest';
+  return 'grass';
+}
+
+function fallbackTileColor(kind){
+  return {
+    grass: '#405f31',
+    dirt: '#6c5b3d',
+    forest: '#1f442a',
+    corrupted: '#39234f',
+    rock: '#3d4140',
+    water: '#1f6173'
+  }[kind] || '#405f31';
+}
+
+function drawDecor(){
+  const visible = DECOR_OBJECTS
+    .filter(item => item.x > state.camera.x - 180 && item.x < state.camera.x + dom.canvas.width + 180 && item.y > state.camera.y - 180 && item.y < state.camera.y + dom.canvas.height + 180)
+    .sort((a, b) => a.y - b.y);
+  for(const item of visible){
+    const image = assets.get(ASSET_PATHS.decor[item.kind]);
+    if(!image) continue;
+    const w = image.width * item.scale;
+    const h = image.height * item.scale;
+    drawShadow(item.x, item.y + 18, w * 0.3, 10);
+    ctx.drawImage(image, item.x - w / 2, item.y - h + 30, w, h);
+  }
 }
 
 function drawBuildZone(x, y, color){
@@ -837,6 +921,11 @@ function drawResources(){
 }
 
 function drawCrystal(resource){
+  const image = assets.get(ASSET_PATHS.resources.crystal);
+  if(image){
+    drawResourceSprite(resource, image, 118, 104);
+    return;
+  }
   ctx.save();
   ctx.translate(resource.x, resource.y);
   ctx.fillStyle = 'rgba(0,0,0,.22)';
@@ -868,6 +957,11 @@ function drawGem(x, y, size, color){
 }
 
 function drawForest(resource){
+  const image = assets.get(ASSET_PATHS.resources.wood);
+  if(image){
+    drawResourceSprite(resource, image, 132, 106);
+    return;
+  }
   ctx.save();
   ctx.translate(resource.x, resource.y);
   for(let i = 0; i < 8; i += 1){
@@ -876,6 +970,15 @@ function drawForest(resource){
     const y = Math.sin(angle) * (18 + (i % 2) * 10);
     drawTree(x, y);
   }
+  drawAmount(resource);
+  ctx.restore();
+}
+
+function drawResourceSprite(resource, image, width, height){
+  ctx.save();
+  ctx.translate(resource.x, resource.y);
+  drawShadow(0, resource.radius * 0.5, width * 0.32, 12);
+  ctx.drawImage(image, -width / 2, -height + resource.radius * 0.72, width, height);
   drawAmount(resource);
   ctx.restore();
 }
@@ -1083,19 +1186,61 @@ function updateUi(force = false){
   dom.wood.textContent = Math.floor(player.resources.wood);
   dom.food.textContent = Math.floor(player.resources.food);
   dom.pop.textContent = `${player.pop}/${player.popCap}`;
+  updateIncomeUi();
 
   const selected = selectedEntity();
   if(!selected){
     dom.selectedInfo.textContent = 'Aucune unite selectionnee.';
+    if(dom.selectedPortrait) dom.selectedPortrait.innerHTML = '';
   }else{
     dom.selectedInfo.innerHTML = `
       <strong>${selected.def.name}</strong>
       <span>${selected.owner === 'player' ? 'Player' : 'Enemy'} · ${Math.ceil(selected.hp)}/${selected.maxHp} HP</span>
+      <span>${selected.def.role || 'Building'}</span>
     `;
+    if(dom.selectedPortrait){
+      const src = selected.def.asset || (selected.entity === 'building' ? ASSET_PATHS.ui.hq : null);
+      dom.selectedPortrait.innerHTML = src ? `<img src="${src}" alt="">` : '';
+    }
   }
+  renderSelectionGrid();
 
   if(force || document.activeElement?.tagName !== 'BUTTON'){
     renderActionButtons(selected);
+  }
+}
+
+function updateIncomeUi(){
+  const income = { crystal: 0, wood: 0, food: 0 };
+  for(const unit of state.units.filter(item => item.owner === 'player' && item.def.canGather)){
+    const activeResource = unit.order.type === 'gather'
+      ? state.resources.find(item => item.id === unit.order.resourceId)
+      : state.resources.find(item => item.id === unit.lastResourceId);
+    if(activeResource?.kind === 'crystal') income.crystal += GATHER_AMOUNT / GATHER_TIME;
+    if(activeResource?.kind === 'wood') income.wood += GATHER_AMOUNT / GATHER_TIME;
+  }
+  for(const building of state.buildings.filter(item => item.owner === 'player' && item.def.foodRate)){
+    income.food += building.def.foodRate;
+  }
+  if(dom.crystalRate) dom.crystalRate.textContent = `+${Math.floor(income.crystal)}`;
+  if(dom.woodRate) dom.woodRate.textContent = `+${Math.floor(income.wood)}`;
+  if(dom.foodRate) dom.foodRate.textContent = `+${Math.floor(income.food)}`;
+}
+
+function renderSelectionGrid(){
+  if(!dom.selectionGrid || !state) return;
+  const playerUnits = state.units.filter(unit => unit.owner === 'player').slice(0, 12);
+  dom.selectionGrid.innerHTML = '';
+  for(const unit of playerUnits){
+    const slot = document.createElement('button');
+    slot.className = 'selection-slot';
+    slot.type = 'button';
+    slot.innerHTML = `<img src="${unit.def.asset}" alt="">`;
+    slot.addEventListener('click', () => {
+      state.selectedId = unit.id;
+      updateUi(true);
+    });
+    dom.selectionGrid.appendChild(slot);
   }
 }
 
@@ -1104,7 +1249,7 @@ function renderActionButtons(selected){
   if(selected?.owner === 'player' && selected.entity === 'building'){
     for(const unitKey of selected.def.trains || []){
       const def = UNIT_DEFS[selected.faction][unitKey];
-      buttons.push(actionButton(`Train ${def.name}`, () => trainUnit(selected, unitKey)));
+      buttons.push(actionButton(`Train ${def.name}`, () => trainUnit(selected, unitKey), def.asset));
     }
   }
   if(selected?.owner === 'player' && selected.entity === 'unit' && selected.def.canGather){
@@ -1112,14 +1257,15 @@ function renderActionButtons(selected){
     const prodKey = FACTIONS[faction].production;
     for(const key of [prodKey, ...BUILD_OPTIONS]){
       const def = BUILDING_DEFS[faction][key];
+      const icon = ASSET_PATHS.ui[key === prodKey ? 'barracks' : key] || ASSET_PATHS.ui.build;
       buttons.push(actionButton(`Build ${def.name}`, () => {
         state.buildMode = key;
         showMessage(`Place ${def.name} on the map.`);
-      }));
+      }, icon));
     }
   }
   if(selected?.owner === 'player' && selected.entity === 'unit'){
-    buttons.push(actionButton('Stop', () => { selected.order = { type: 'idle' }; }));
+    buttons.push(actionButton('Stop', () => { selected.order = { type: 'idle' }; }, ASSET_PATHS.ui.stop));
   }
   dom.actions.innerHTML = '';
   if(!buttons.length){
@@ -1132,10 +1278,18 @@ function renderActionButtons(selected){
   for(const button of buttons) dom.actions.appendChild(button);
 }
 
-function actionButton(label, handler){
+function actionButton(label, handler, icon){
   const button = document.createElement('button');
   button.type = 'button';
-  button.textContent = label;
+  if(icon){
+    const image = document.createElement('img');
+    image.src = icon;
+    image.alt = '';
+    button.appendChild(image);
+  }
+  const span = document.createElement('span');
+  span.textContent = label;
+  button.appendChild(span);
   button.addEventListener('click', handler);
   return button;
 }
