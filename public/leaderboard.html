@@ -4,159 +4,77 @@
 <link rel="stylesheet" href="/assets/styles/theme.css">
 <script defer src="/assets/scripts/site-shell.js"></script>
 <title>Leaderboard</title>
-
 <style>
-body{
-  margin:0;
-  text-align:center;
-}
-
-h2{
-  margin:0 0 20px;
-  font-size:42px;
-}
-
-.leaderboard-page{
-  max-width:780px;
-  margin:0 auto;
-}
-
-.tabs{
-  margin:0 0 22px;
-  display:flex;
-  justify-content:center;
-  gap:10px;
-  flex-wrap:wrap;
-}
-
-button{
-  min-height:42px;
-  padding:0 16px;
-  border-radius:8px;
-  border:1px solid var(--shell-line);
-  cursor:pointer;
-  background:rgba(255,82,104,0.1);
-  color:white;
-  transition:0.18s;
-}
-
-button:hover{
-  background:rgba(255,82,104,0.24);
-  border-color:var(--shell-line-strong);
-}
-
-.table{
-  width:100%;
-  margin:auto;
-  text-align:left;
-  padding:12px;
-  background:var(--shell-card);
-  border:1px solid var(--shell-line);
-  border-radius:8px;
-  box-shadow:0 18px 70px rgba(0,0,0,0.22);
-}
-
-.row{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:14px 16px;
-  border-bottom:1px solid rgba(255,91,105,0.14);
-  border-radius:8px;
-}
-
-.top{
-  font-weight:bold;
-}
-
-.me{
-  background:rgba(255,82,104,0.16);
-  border:1px solid var(--shell-line-strong);
-}
-
-.rank{
-  margin-top:20px;
-  font-size:18px;
-  color:var(--shell-red);
-}
-
-.loading{
-  margin-top:20px;
-  color:var(--shell-soft);
-}
-
-/* BADGES */
-.badge{
-  font-size:20px;
-  margin-right:6px;
-}
-.username-link{
-  color:var(--shell-text);
-  cursor:pointer;
-  text-decoration:none;
-  border-bottom:1px dashed transparent;
-}
-
-.username-link:hover{
-  color:#ffd1cc;
-  border-bottom-color:#ffd1cc;
-}
-
-.profile-tooltip{
-  position:fixed;
-  z-index:1000;
-  min-width:170px;
-  text-align:left;
-  background:linear-gradient(145deg, rgba(76,20,27,0.98), rgba(25,7,11,0.96));
-  border:1px solid var(--shell-line-strong);
-  border-radius:8px;
-  padding:10px;
-  box-shadow:0 10px 24px rgba(0,0,0,0.45);
-  font-size:13px;
-  line-height:1.5;
-  pointer-events:none;
-}
-
-.profile-tooltip strong{
-  color:#ffd1cc;
-}
-
-.hidden{display:none;}
+body{margin:0;text-align:center}
+h2{margin:0 0 20px;font-size:42px}
+.leaderboard-page{max-width:980px;margin:0 auto}
+.tabs{margin:0 0 22px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+button{min-height:42px;padding:0 16px;border-radius:8px;border:1px solid var(--shell-line);cursor:pointer;background:rgba(255,82,104,.1);color:white;transition:.18s}
+button:hover{background:rgba(255,82,104,.24);border-color:var(--shell-line-strong)}
+.table,.rules-card{width:100%;margin:auto;text-align:left;padding:16px;background:var(--shell-card);border:1px solid var(--shell-line);border-radius:8px;box-shadow:0 18px 70px rgba(0,0,0,.22)}
+.rules-card{margin-top:18px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid rgba(255,91,105,.14);border-radius:8px}
+.top{font-weight:700}
+.me{background:rgba(255,82,104,.16);border:1px solid var(--shell-line-strong)}
+.rank{margin-top:20px;font-size:18px;color:var(--shell-red)}
+.loading{margin-top:20px;color:var(--shell-soft)}
+.badge{font-size:20px;margin-right:6px}
+.username-link{color:var(--shell-text);cursor:pointer;text-decoration:none;border-bottom:1px dashed transparent}
+.username-link:hover{color:#ffd1cc;border-bottom-color:#ffd1cc}
+.profile-tooltip{position:fixed;z-index:1000;min-width:200px;text-align:left;background:linear-gradient(145deg,rgba(76,20,27,.98),rgba(25,7,11,.96));border:1px solid var(--shell-line-strong);border-radius:8px;padding:10px;box-shadow:0 10px 24px rgba(0,0,0,.45);font-size:13px;line-height:1.5;pointer-events:none}
+.profile-tooltip strong{color:#ffd1cc}
+.hidden{display:none}
+.rules-card h3{margin:0 0 12px}
+.rules-grid{display:grid;grid-template-columns:1.1fr repeat(3,120px);gap:10px}
+.rules-grid strong,.rules-grid span{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
+.rules-copy{margin:12px 0 0;color:var(--shell-soft);line-height:1.6}
+@media (max-width:760px){.rules-grid{grid-template-columns:1fr 100px 100px 120px}.row{gap:12px}}
 </style>
 </head>
-
 <body class="with-navbar">
-  
 <div id="navbar-container"></div>
-
 <main class="leaderboard-page">
   <h2>Leaderboard</h2>
-
-  <div class="tabs">
-    <button onclick="load('global')">Global XP</button>
-    <button onclick="load('chess')">ELO Chess</button>
-    <button onclick="load('othello')">ELO Othello</button>
-    <button onclick="load('azul')">ELO Azul</button>
-    <button onclick="load('strategy')">ELO World Conquest</button>
-  </div>
-
+  <div class="tabs" id="tabs"></div>
   <div id="table" class="table"></div>
   <div id="me"></div>
+
+  <section class="rules-card">
+    <h3>XP Rules</h3>
+    <div id="rulesGrid" class="rules-grid"></div>
+    <div id="levelRules" class="rules-copy"></div>
+  </section>
 </main>
 <div id="profileTooltip" class="profile-tooltip hidden"></div>
-  
-<script>
 
-const user = JSON.parse(localStorage.getItem("user"));
+<script>
+const user = JSON.parse(localStorage.getItem("user") || "null");
+if(!user){
+  window.location.href = "/login.html";
+}
+
+const leaderboardTypes = [
+  { key: "global", label: "Global XP" },
+  { key: "chess", label: "Chess" },
+  { key: "othello", label: "Othello" },
+  { key: "azul", label: "Azul" },
+  { key: "moonfall_p4", label: "Power 4" },
+  { key: "hexblitz", label: "Hexblitz" },
+  { key: "moonfall_settlers", label: "Settlers" },
+  { key: "moonfall_world_conquest", label: "World Conquest" },
+  { key: "moonfall_rts", label: "RTS" }
+];
+
 const profileCache = new Map();
 const tooltip = document.getElementById("profileTooltip");
-  
-function getBadge(i){
-  if(i===0) return "🥇";
-  if(i===1) return "🥈";
-  if(i===2) return "🥉";
-  return "#" + (i+1);
+
+function getBadge(index){
+  if(index === 0) return "🥇";
+  if(index === 1) return "🥈";
+  if(index === 2) return "🥉";
+  return "#" + (index + 1);
 }
+
 function escapeHtml(text){
   return String(text || "")
     .replaceAll("&", "&amp;")
@@ -166,24 +84,30 @@ function escapeHtml(text){
     .replaceAll("'", "&#039;");
 }
 
-function renderTooltipContent(profile){
-  const wins = profile?.stats?.wins || 0;
-  const losses = profile?.stats?.losses || 0;
-  const chessElo = profile?.chessElo ?? profile?.elo ?? 1000;
-  const othelloElo = profile?.othelloElo ?? 1000;
-  const azulElo = profile?.azulElo ?? 1000;
-  const strategyElo = profile?.strategyElo ?? 1000;
-  const xp = profile?.xp ?? 0;
+function renderTabs(){
+  document.getElementById("tabs").innerHTML = leaderboardTypes.map(type => `
+    <button type="button" data-type="${type.key}">${type.label}</button>
+  `).join("");
 
+  document.querySelectorAll("[data-type]").forEach(button => {
+    button.addEventListener("click", () => load(button.dataset.type));
+  });
+}
+
+function renderTooltipContent(profile){
+  const ratings = profile?.ratings || {};
   return `
     <div><strong>${escapeHtml(profile?.username || "Unknown")}</strong></div>
-    <div>Wins: ${wins}</div>
-    <div>Losses: ${losses}</div>
-    <div>ELO Chess: ${chessElo}</div>
-    <div>ELO Othello: ${othelloElo}</div>
-    <div>ELO Azul: ${azulElo}</div>
-    <div>ELO World Conquest: ${strategyElo}</div>
-    <div>XP: ${xp}</div>
+    <div>Level: ${profile?.level || profile?.levelInfo?.level || 1}</div>
+    <div>XP: ${profile?.xp ?? 0}</div>
+    <div>Chess: ${ratings.chess ?? profile?.chessElo ?? 1000}</div>
+    <div>Othello: ${ratings.othello ?? profile?.othelloElo ?? 1000}</div>
+    <div>Azul: ${ratings.azul ?? profile?.azulElo ?? 1000}</div>
+    <div>Power 4: ${ratings.moonfall_p4 ?? profile?.moonfallP4Elo ?? 1000}</div>
+    <div>Hexblitz: ${ratings.hexblitz ?? profile?.hexblitzElo ?? 1000}</div>
+    <div>Settlers: ${ratings.moonfall_settlers ?? profile?.moonfallSettlersElo ?? 1000}</div>
+    <div>World Conquest: ${ratings.moonfall_world_conquest ?? profile?.moonfallWorldConquestElo ?? 1000}</div>
+    <div>RTS: ${ratings.moonfall_rts ?? profile?.moonfallRtsElo ?? 1000}</div>
   `;
 }
 
@@ -191,18 +115,10 @@ function positionTooltip(event){
   const margin = 14;
   const tooltipWidth = tooltip.offsetWidth || 180;
   const tooltipHeight = tooltip.offsetHeight || 100;
-
   let left = event.clientX + margin;
   let top = event.clientY + margin;
-
-  if(left + tooltipWidth > window.innerWidth - 8){
-    left = event.clientX - tooltipWidth - margin;
-  }
-
-  if(top + tooltipHeight > window.innerHeight - 8){
-    top = event.clientY - tooltipHeight - margin;
-  }
-
+  if(left + tooltipWidth > window.innerWidth - 8) left = event.clientX - tooltipWidth - margin;
+  if(top + tooltipHeight > window.innerHeight - 8) top = event.clientY - tooltipHeight - margin;
   tooltip.style.left = `${Math.max(8, left)}px`;
   tooltip.style.top = `${Math.max(8, top)}px`;
 }
@@ -221,18 +137,15 @@ async function fetchProfile(username){
 }
 
 function bindUsernameInteractions(){
-  document.querySelectorAll(".username-link").forEach(el=>{
+  document.querySelectorAll(".username-link").forEach(el => {
     const username = el.dataset.username;
-
-    el.addEventListener("click", ()=>{
+    el.addEventListener("click", () => {
       window.location.href = `/profile.html?username=${encodeURIComponent(username)}`;
     });
-
-    el.addEventListener("mouseenter", async (event)=>{
+    el.addEventListener("mouseenter", async event => {
       tooltip.innerHTML = "Loading...";
       tooltip.classList.remove("hidden");
       positionTooltip(event);
-
       try{
         const profile = await fetchProfile(username);
         tooltip.innerHTML = renderTooltipContent(profile);
@@ -240,57 +153,88 @@ function bindUsernameInteractions(){
         tooltip.innerHTML = `<div><strong>${escapeHtml(username)}</strong></div><div>Profile unavailable</div>`;
       }
     });
-
     el.addEventListener("mousemove", positionTooltip);
     el.addEventListener("mouseleave", hideTooltip);
   });
 }
-  
-async function load(type){
 
+async function load(type){
   const table = document.getElementById("table");
   const meDiv = document.getElementById("me");
-
   table.innerHTML = "<div class='loading'>Loading...</div>";
   meDiv.innerHTML = "";
 
   try{
+    const response = await fetch(`/api/leaderboard/${type}/${encodeURIComponent(user.username)}`);
+    const data = await response.json();
+    if(!response.ok) throw new Error(data?.error || "Leaderboard unavailable");
 
-    const res = await fetch(`/api/leaderboard/${type}/${user.username}`);
-    const data = await res.json();
-
-    if(!data.top || data.top.length === 0){
+    if(!data.top || !data.top.length){
       table.innerHTML = "<div class='loading'>No players yet</div>";
       return;
     }
 
-    table.innerHTML = data.top.map((u,i)=>`
-      <div class="row ${i<3?'top':''} ${u.username===user.username?'me':''}">
+    table.innerHTML = data.top.map((entry, index) => `
+      <div class="row ${index < 3 ? "top" : ""} ${entry.username === user.username ? "me" : ""}">
         <span>
-          <span class="badge">${getBadge(i)}</span>
-          <span class="username-link" data-username="${escapeHtml(u.username)}">${escapeHtml(u.username)}</span>
-          </span>
-        <span>${u.value}</span>
+          <span class="badge">${getBadge(index)}</span>
+          <span class="username-link" data-username="${escapeHtml(entry.username)}">${escapeHtml(entry.username)}</span>
+        </span>
+        <span>${entry.value}</span>
       </div>
     `).join("");
 
     bindUsernameInteractions();
-    
-    if(data.me && data.me.rank > 10){
-      meDiv.innerHTML = `
-        <div class="rank">
-          You are ranked #${data.me.rank} (${data.me.value})
-        </div>
-      `;
-    }
 
-  }catch(e){
+    if(data.me && data.me.rank > 10){
+      meDiv.innerHTML = `<div class="rank">You are ranked #${data.me.rank} (${data.me.value})</div>`;
+    }
+  }catch(err){
     table.innerHTML = "<div class='loading'>Error loading leaderboard</div>";
   }
 }
 
-load("global");
+async function loadRules(){
+  try{
+    const response = await fetch("/api/progression");
+    const data = await response.json();
+    if(!response.ok) throw new Error("Rules unavailable");
 
+    const rules = data.xpRules || {};
+    const orderedKeys = ["moonfall_p4","othello","hexblitz","chess","azul","moonfall_settlers","moonfall_rts","moonfall_world_conquest"];
+    document.getElementById("rulesGrid").innerHTML = `
+      <strong>Game</strong>
+      <strong>Win</strong>
+      <strong>Loss</strong>
+      <strong>Abandon</strong>
+      ${orderedKeys.map(key => {
+        const rule = rules[key];
+        if(!rule) return "";
+        return `
+          <span>${escapeHtml(rule.gameName)}</span>
+          <span>${rule.win} XP</span>
+          <span>${rule.loss} XP</span>
+          <span>${rule.abandonPenalty} XP</span>
+        `;
+      }).join("")}
+    `;
+
+    const thresholds = Array.isArray(data.levelThresholds) ? data.levelThresholds : [];
+    const lastLevel = thresholds.length;
+    const lastXp = thresholds[thresholds.length - 1] || 0;
+    document.getElementById("levelRules").innerHTML = `
+      <p>Leveling uses fixed total XP thresholds from Level 1 to Level ${lastLevel}. Level 1 starts at 0 XP, and Level ${lastLevel} starts at ${lastXp} XP.</p>
+      <p>Game of the Week bonus: the first positive result of the day on the featured eligible game grants an extra reward equal to that game's normal XP gain.</p>
+      <p>Abandon always applies a ${Math.abs(rules.chess?.abandonPenalty || 10)} XP penalty, regardless of the game.</p>
+    `;
+  }catch(err){
+    document.getElementById("rulesGrid").innerHTML = "<span>Rules unavailable.</span>";
+  }
+}
+
+renderTabs();
+loadRules();
+load("global");
 </script>
 </body>
 </html>

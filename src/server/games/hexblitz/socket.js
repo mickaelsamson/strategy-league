@@ -145,7 +145,7 @@ function createHexblitzModule({ io, socket, state, updatePresence, isGameAllowed
 
   function register(){
     socket.on('create_hexblitz_lobby', ({ name, maxPlayers } = {}) => {
-      if(isGameAllowed && !isGameAllowed()) return;
+      if(isGameAllowed && !isGameAllowed('hexblitz', socket)) return;
       if(!socket.username) return;
       if(findLobbyByUsername(socket.username) || findGameByUsername(socket.username)) return;
 
@@ -163,7 +163,7 @@ function createHexblitzModule({ io, socket, state, updatePresence, isGameAllowed
     });
 
     socket.on('join_hexblitz_lobby', id => {
-      if(isGameAllowed && !isGameAllowed()) return;
+      if(isGameAllowed && !isGameAllowed('hexblitz', socket)) return;
       if(!socket.username) return;
       if(findLobbyByUsername(socket.username) || findGameByUsername(socket.username)) return;
 
@@ -186,7 +186,7 @@ function createHexblitzModule({ io, socket, state, updatePresence, isGameAllowed
     });
 
     socket.on('toggle_hexblitz_ready', id => {
-      if(isGameAllowed && !isGameAllowed()) return;
+      if(isGameAllowed && !isGameAllowed('hexblitz', socket)) return;
       const lobby = state.hexblitzLobbies[id];
       if(!lobby) return;
       const player = lobby.players.find(entry => entry.username === socket.username);

@@ -4,259 +4,116 @@
 <link rel="stylesheet" href="/assets/styles/theme.css">
 <script defer src="/assets/scripts/site-shell.js"></script>
 <title>Games</title>
-
 <style>
-body{
-  margin:0;
-}
-
-.games-page{
-  max-width:1120px;
-  margin:0 auto;
-}
-
-.games-header{
-  margin-bottom:24px;
-}
-
-.games-header h1{
-  margin:0 0 8px;
-  font-size:42px;
-}
-
-.games-header p{
-  margin:0;
-  color:var(--shell-soft);
-}
-
-.games-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit, minmax(clamp(190px, 28vw, 250px), 1fr));
-  gap:clamp(14px, 2vw, 20px);
-}
-
-.game-tile{
-  min-height:clamp(300px, 38vw, 430px);
-  position:relative;
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
-  justify-content:flex-end;
-  padding:24px;
-  color:white;
-  text-decoration:none;
-  border-radius:8px;
-  border:1px solid var(--shell-line);
-  background:#2b1015;
-  transition:transform .2s ease, border-color .2s ease;
-}
-
-.game-tile:hover{
-  transform:translateY(-6px);
-  border-color:var(--shell-line-strong);
-}
-
-.game-tile::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  background:linear-gradient(180deg, rgba(0,0,0,0.05), rgba(14,4,7,0.94));
-}
-
-.game-tile.chess{
-  background:url("/chess/board.png") center/cover;
-}
-
-.game-tile.othello{
-  background:
-    radial-gradient(circle at 28% 28%, #f7efe8 0 42px, transparent 43px),
-    radial-gradient(circle at 68% 42%, #111 0 46px, transparent 47px),
-    radial-gradient(circle at 42% 72%, #121212 0 44px, transparent 45px),
-    linear-gradient(135deg, #163d32, #0b211d 52%, #3a1018);
-}
-
-.game-tile.azul{
-  background:
-    radial-gradient(circle at 28% 26%, #f7f1df 0 36px, transparent 37px),
-    radial-gradient(circle at 65% 34%, #0196b3 0 18px, transparent 19px),
-    radial-gradient(circle at 72% 54%, #f24f58 0 18px, transparent 19px),
-    radial-gradient(circle at 38% 70%, #f0b84f 0 18px, transparent 19px),
-    linear-gradient(135deg, #082f44, #123d55 44%, #42111a);
-}
-
-.game-tile.strategy{
-  background:url("/moonfall-world-conquest/map.svg") center/cover;
-}
-
-.game-tile.moonfall-settlers{
-  background:
-    linear-gradient(30deg, transparent 0 24%, rgba(255,255,255,.08) 24% 26%, transparent 26% 50%),
-    radial-gradient(circle at 64% 34%, #f4e6bd 0 28px, transparent 29px),
-    linear-gradient(135deg, #173039, #2c1a21 48%, #123a35);
-}
-
-.game-tile.moonfall{
-  background:
-    radial-gradient(circle at 72% 32%, #ff5d92 0 28px, transparent 30px),
-    radial-gradient(circle at 35% 58%, #5dd8ff 0 34px, transparent 36px),
-    radial-gradient(circle at 58% 70%, #71d579 0 22px, transparent 24px),
-    linear-gradient(135deg, #10272a, #24161b 54%, #141126);
-}
-
-.game-tile.moonfall-p4{
-  background:
-    radial-gradient(circle at 70% 28%, rgba(247,239,209,.9) 0 30px, transparent 31px),
-    radial-gradient(circle at 28% 60%, rgba(239,73,85,.72) 0 34px, transparent 35px),
-    linear-gradient(135deg, #0f1d2a, #2a1418 52%, #1a0f1d);
-}
-
-.game-tile.hexblitz{
-  background:
-    linear-gradient(30deg, transparent 0 35%, rgba(255,255,255,.08) 35% 37%, transparent 37% 100%),
-    radial-gradient(circle at 62% 35%, rgba(255,226,198,.92) 0 26px, transparent 27px),
-    linear-gradient(135deg, #2a0f16, #1a2437 45%, #0d1523);
-}
-
-.game-tile > *{
-  position:relative;
-  z-index:1;
-}
-
-.game-tag{
-  position:absolute;
-  top:18px;
-  left:18px;
-  z-index:1;
-  padding:8px 12px;
-  border-radius:999px;
-  background:rgba(255,82,104,0.22);
-  border:1px solid rgba(255,82,104,0.28);
-  color:#ffe2de;
-  font-weight:800;
-  font-size:13px;
-}
-
-.game-tile h2{
-  margin:0 0 8px;
-  font-size:32px;
-}
-
-.game-tile p{
-  margin:0 0 18px;
-  color:#edd3cf;
-  line-height:1.45;
-}
-
-.play-button{
-  width:max-content;
-  min-height:46px;
-  padding:0 20px;
-  border-radius:8px;
-  display:inline-flex;
-  align-items:center;
-  background:linear-gradient(135deg, var(--shell-red), var(--shell-red-dark));
-  font-weight:900;
-}
-
-#adminBtn{
-  margin-top:22px;
-  min-height:44px;
-  padding:0 18px;
-  border:1px solid rgba(255,82,104,0.25);
-  border-radius:8px;
-  background:rgba(255,82,104,0.12);
-  color:#fff;
-  cursor:pointer;
-}
-
-@media (max-width:700px){
-  .game-tile{
-    min-height:310px;
-  }
-}
+body{margin:0}
+.games-page{max-width:1120px;margin:0 auto}
+.games-header{margin-bottom:24px}
+.games-header h1{margin:0 0 8px;font-size:42px}
+.games-header p{margin:0;color:var(--shell-soft)}
+.games-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(clamp(190px,28vw,250px),1fr));gap:clamp(14px,2vw,20px)}
+.game-tile{min-height:clamp(300px,38vw,430px);position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:24px;color:white;text-decoration:none;border-radius:8px;border:1px solid var(--shell-line);background:#2b1015;transition:transform .2s ease,border-color .2s ease}
+.game-tile:hover{transform:translateY(-6px);border-color:var(--shell-line-strong)}
+.game-tile.locked{cursor:not-allowed;opacity:.9}
+.game-tile.locked:hover{transform:none}
+.game-tile::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(14,4,7,.94))}
+.game-tile.chess{background:url("/chess/board.png") center/cover}
+.game-tile.othello{background:radial-gradient(circle at 28% 28%,#f7efe8 0 42px,transparent 43px),radial-gradient(circle at 68% 42%,#111 0 46px,transparent 47px),radial-gradient(circle at 42% 72%,#121212 0 44px,transparent 45px),linear-gradient(135deg,#163d32,#0b211d 52%,#3a1018)}
+.game-tile.azul{background:radial-gradient(circle at 28% 26%,#f7f1df 0 36px,transparent 37px),radial-gradient(circle at 65% 34%,#0196b3 0 18px,transparent 19px),radial-gradient(circle at 72% 54%,#f24f58 0 18px,transparent 19px),radial-gradient(circle at 38% 70%,#f0b84f 0 18px,transparent 19px),linear-gradient(135deg,#082f44,#123d55 44%,#42111a)}
+.game-tile.strategy{background:url("/moonfall-world-conquest/map.svg") center/cover}
+.game-tile.moonfall-settlers{background:linear-gradient(30deg,transparent 0 24%,rgba(255,255,255,.08) 24% 26%,transparent 26% 50%),radial-gradient(circle at 64% 34%,#f4e6bd 0 28px,transparent 29px),linear-gradient(135deg,#173039,#2c1a21 48%,#123a35)}
+.game-tile.moonfall{background:radial-gradient(circle at 72% 32%,#ff5d92 0 28px,transparent 30px),radial-gradient(circle at 35% 58%,#5dd8ff 0 34px,transparent 36px),radial-gradient(circle at 58% 70%,#71d579 0 22px,transparent 24px),linear-gradient(135deg,#10272a,#24161b 54%,#141126)}
+.game-tile.moonfall-p4{background:radial-gradient(circle at 70% 28%,rgba(247,239,209,.9) 0 30px,transparent 31px),radial-gradient(circle at 28% 60%,rgba(239,73,85,.72) 0 34px,transparent 35px),linear-gradient(135deg,#0f1d2a,#2a1418 52%,#1a0f1d)}
+.game-tile.hexblitz{background:linear-gradient(30deg,transparent 0 35%,rgba(255,255,255,.08) 35% 37%,transparent 37% 100%),radial-gradient(circle at 62% 35%,rgba(255,226,198,.92) 0 26px,transparent 27px),linear-gradient(135deg,#2a0f16,#1a2437 45%,#0d1523)}
+.game-tile>*{position:relative;z-index:1}
+.tag-row{position:absolute;top:18px;left:18px;right:18px;z-index:1;display:flex;gap:8px;flex-wrap:wrap}
+.game-tag{padding:8px 12px;border-radius:999px;background:rgba(255,82,104,.22);border:1px solid rgba(255,82,104,.28);color:#ffe2de;font-weight:800;font-size:13px}
+.game-tag.alt{background:rgba(17,24,39,.55);border-color:rgba(255,255,255,.18)}
+.game-tile h2{margin:0 0 8px;font-size:32px}
+.game-tile p{margin:0 0 18px;color:#edd3cf;line-height:1.45}
+.play-button{width:max-content;min-height:46px;padding:0 20px;border-radius:8px;display:inline-flex;align-items:center;background:linear-gradient(135deg,var(--shell-red),var(--shell-red-dark));font-weight:900}
+.play-button.locked{background:rgba(17,24,39,.74);border:1px solid rgba(255,255,255,.16)}
+.notice{margin-top:18px;color:var(--shell-soft)}
+@media (max-width:700px){.game-tile{min-height:310px}}
 </style>
 </head>
-
 <body class="with-navbar">
 <div id="navbar-container"></div>
-
 <main class="games-page">
   <header class="games-header">
     <h1>Games Hub</h1>
-    <p>Choose a ranked arena, create a lobby, and start climbing.</p>
+    <p>Choose a ranked arena, create a lobby, and start climbing. Coming soon titles stay admin-only until they are safe for students.</p>
   </header>
-
-  <section class="games-grid">
-    <a class="game-tile chess" href="/chess/index.html">
-      <span class="game-tag">Ranked ELO Chess</span>
-      <h2>Chess</h2>
-      <p>Fast lobbies, time controls, XP gains, rematches and full match history.</p>
-      <span class="play-button">Play Now</span>
-    </a>
-
-    <a class="game-tile othello" href="/othello/index.html">
-      <span class="game-tag">Classic Board</span>
-      <h2>Othello</h2>
-      <p>Flip the board, build your Othello ELO, and track every XP gain.</p>
-      <span class="play-button">Play Now</span>
-    </a>
-
-    <a class="game-tile azul" href="/azul/index.html">
-      <span class="game-tag">Tile Drafting</span>
-      <h2>Azul Arena</h2>
-      <p>Draft tiles, complete pattern lines, score walls and chase endgame bonuses.</p>
-      <span class="play-button">Play Now</span>
-    </a>
-
-    <a class="game-tile strategy" href="/moonfall-world-conquest/index.html">
-      <span class="game-tag">World Conquest</span>
-      <h2>Moonfall World Conquest</h2>
-      <p>Risklike turns, territory cards, region bonuses, dice battles and AI opponents on the Moonfall map.</p>
-      <span class="play-button">Play Now</span>
-    </a>
-
-    <a class="game-tile moonfall-settlers" href="/moonfall-settlers/index.html">
-      <span class="game-tag">Catan-like</span>
-      <h2>Moonfall Settlers</h2>
-      <p>Hexes, ports, colonies, cities, dev cards and a moonlit Oni twist in a clean strategy board.</p>
-      <span class="play-button">Play Now</span>
-    </a>
-
-    <a class="game-tile moonfall" href="/moonfall-rts/index.html">
-      <span class="game-tag">Real Time Strategy</span>
-      <h2>Moonfall RTS</h2>
-      <p>Harvest resources, build a base, command Chasseurs or Demons, and fight team battles up to 8 slots.</p>
-      <span class="play-button">Play Now</span>
-    </a>
-
-    <a class="game-tile moonfall-p4" href="/moonfall-p4/index.html">
-      <span class="game-tag">Connect 4 Duel</span>
-      <h2>Moonfall Power 4</h2>
-      <p>Drop orbs, block lines, and connect four first in local or online duels.</p>
-      <span class="play-button">Play Now</span>
-    </a>
-
-    <a class="game-tile hexblitz" href="/hexblitz_moonfall/index.html">
-      <span class="game-tag">Hex Path Battle</span>
-      <h2>Hexblitz Moonfall</h2>
-      <p>Claim hexes to build a full path across the board, with local and online mode.</p>
-      <span class="play-button">Play Now</span>
-    </a>
-  </section>
-
-  <button id="adminBtn" style="display:none;" onclick="window.location.href='/admin.html'">Admin Panel</button>
+  <section id="gamesGrid" class="games-grid"></section>
+  <p id="gamesNotice" class="notice"></p>
 </main>
 
 <script>
-const user = JSON.parse(localStorage.getItem("user"));
-
+const user = JSON.parse(localStorage.getItem("user") || "null");
 if(!user){
   window.location.href = "/login.html";
 }
 
-if(user && user.isAdmin){
-  document.getElementById("adminBtn").style.display = "inline-block";
+const catalog = [
+  { key: "chess", className: "chess", title: "Chess", copy: "Fast lobbies, time controls, XP gains, rematches and full match history.", href: "/chess/index.html", primaryTag: "Ranked ELO Chess" },
+  { key: "othello", className: "othello", title: "Othello", copy: "Flip the board, build your Othello ELO, and track every XP gain.", href: "/othello/index.html", primaryTag: "Classic Board" },
+  { key: "azul", className: "azul", title: "Azul Arena", copy: "Draft tiles, complete pattern lines, score walls and chase endgame bonuses.", href: "/azul/index.html", primaryTag: "Tile Drafting" },
+  { key: "moonfall_world_conquest", className: "strategy", title: "Moonfall World Conquest", copy: "Risk-like turns, territory cards, region bonuses, dice battles and AI opponents on the Moonfall map.", href: "/moonfall-world-conquest/index.html", primaryTag: "World Conquest" },
+  { key: "moonfall_settlers", className: "moonfall-settlers", title: "Moonfall Settlers", copy: "Hexes, ports, colonies, cities, dev cards and a moonlit Oni twist in a clean strategy board.", href: "/moonfall-settlers/index.html", primaryTag: "Catan-like" },
+  { key: "moonfall_rts", className: "moonfall", title: "Moonfall RTS", copy: "Harvest resources, build a base, command clans, and test real-time strategy battles.", href: "/moonfall-rts/index.html", primaryTag: "Real Time Strategy" },
+  { key: "moonfall_p4", className: "moonfall-p4", title: "Moonfall Power 4", copy: "Drop orbs, block lines, and connect four first in local or online duels.", href: "/moonfall-p4/index.html", primaryTag: "Connect 4 Duel" },
+  { key: "hexblitz", className: "hexblitz", title: "Hexblitz Moonfall", copy: "Claim hexes to build a full path across the board, with local and online mode.", href: "/hexblitz_moonfall/index.html", primaryTag: "Hex Path Battle" }
+];
+
+function tileMarkup(game, config){
+  const enabled = Boolean(config?.allowed);
+  const adminPreview = Boolean(user?.isAdmin && (config?.comingSoon || config?.adminOnly || config?.enabled === false));
+  const stateTags = [game.primaryTag];
+  if(config?.comingSoon) stateTags.push("Coming Soon");
+  if(config?.adminOnly) stateTags.push("Admin Only");
+  if(config?.enabled === false) stateTags.push("Public Off");
+
+  const actionLabel = enabled ? (adminPreview ? "Admin Preview" : "Play Now") : "Locked";
+  const href = enabled ? game.href : "#";
+
+  return `
+    <a class="game-tile ${game.className} ${enabled ? "" : "locked"}" href="${href}" data-game="${game.key}">
+      <div class="tag-row">
+        ${stateTags.map((tag, index) => `<span class="game-tag ${index ? "alt" : ""}">${tag}</span>`).join("")}
+      </div>
+      <h2>${game.title}</h2>
+      <p>${game.copy}</p>
+      <span class="play-button ${enabled ? "" : "locked"}">${actionLabel}</span>
+    </a>
+  `;
 }
+
+async function loadGames(){
+  const response = await fetch("/api/games/catalog");
+  const data = await response.json();
+  if(!response.ok) throw new Error(data?.error || "Games unavailable");
+
+  const access = data.access || {};
+  document.getElementById("gamesGrid").innerHTML = catalog.map(game => tileMarkup(game, access[game.key])).join("");
+
+  document.querySelectorAll("[data-game]").forEach(tile => {
+    tile.addEventListener("click", event => {
+      const gameKey = tile.dataset.game;
+      const config = access[gameKey];
+      if(config?.allowed) return;
+      event.preventDefault();
+      const message = config?.comingSoon
+        ? "This game is marked as coming soon and is currently admin-only."
+        : config?.adminOnly
+          ? "This game is currently restricted to admins."
+          : "This game is currently disabled for students.";
+      document.getElementById("gamesNotice").textContent = message;
+    });
+  });
+}
+
+loadGames().catch(err => {
+  document.getElementById("gamesNotice").textContent = err.message || "Unable to load games.";
+});
 </script>
 </body>
 </html>

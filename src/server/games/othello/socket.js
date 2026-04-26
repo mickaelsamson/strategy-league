@@ -105,7 +105,7 @@ function createOthelloModule({ io, socket, state, updatePresence, applyOthelloRe
 
   function register(){
     socket.on('create_othello_lobby', ({ name })=>{
-      if(isGameAllowed && !isGameAllowed()) return;
+      if(isGameAllowed && !isGameAllowed('othello', socket)) return;
       const existing = Object.values(state.othelloLobbies).find(l =>
         l.players.some(p => p.username === socket.username)
       );
@@ -122,7 +122,7 @@ function createOthelloModule({ io, socket, state, updatePresence, applyOthelloRe
     });
 
     socket.on('join_othello_lobby', id => {
-      if(isGameAllowed && !isGameAllowed()) return;
+      if(isGameAllowed && !isGameAllowed('othello', socket)) return;
       const lobby = state.othelloLobbies[id];
       if(!lobby || lobby.players.length >= 2) return;
 
@@ -136,7 +136,7 @@ function createOthelloModule({ io, socket, state, updatePresence, applyOthelloRe
     });
 
     socket.on('toggle_othello_ready', id => {
-      if(isGameAllowed && !isGameAllowed()) return;
+      if(isGameAllowed && !isGameAllowed('othello', socket)) return;
       const lobby = state.othelloLobbies[id];
       if(!lobby) return;
 

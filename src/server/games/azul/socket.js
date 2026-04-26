@@ -450,7 +450,7 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult, 
 
   function register(){
     socket.on('create_azul_lobby', ({ name, maxPlayers } = {})=>{
-      if(isGameAllowed && !isGameAllowed()) return;
+      if(isGameAllowed && !isGameAllowed('azul', socket)) return;
       const existing = Object.values(state.azulLobbies).find(l =>
         l.players.some(p => p.username === socket.username)
       );
@@ -469,7 +469,7 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult, 
     });
 
     socket.on('join_azul_lobby', id => {
-      if(isGameAllowed && !isGameAllowed()) return;
+      if(isGameAllowed && !isGameAllowed('azul', socket)) return;
       const lobby = state.azulLobbies[id];
       if(!lobby || lobby.players.length >= (lobby.maxPlayers || MIN_PLAYERS)) return;
 
@@ -483,7 +483,7 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult, 
     });
 
     socket.on('toggle_azul_ready', id => {
-      if(isGameAllowed && !isGameAllowed()) return;
+      if(isGameAllowed && !isGameAllowed('azul', socket)) return;
       const lobby = state.azulLobbies[id];
       if(!lobby) return;
 

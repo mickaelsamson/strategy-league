@@ -36,8 +36,12 @@
     if(link === 'admin') window.location.href = '/admin.html';
 
     if(link === 'logout'){
-      localStorage.removeItem('user');
-      window.location.href = '/login.html';
+      fetch('/api/logout', { method: 'POST' })
+        .catch(()=>null)
+        .finally(()=>{
+          localStorage.removeItem('user');
+          window.location.href = '/login.html';
+        });
     }
   }
 
@@ -204,7 +208,7 @@
       .then(()=>{
         if(onlineSocket || !window.io) return;
         onlineSocket = window.io();
-        onlineSocket.emit('register_online', user.username);
+        onlineSocket.emit('register_online', { username: user.username });
         onlineSocket.on('online_users', renderOnlinePlayers);
         bindSharedSocketEvents(onlineSocket);
       })
@@ -233,7 +237,7 @@
         });
         bindSharedSocketEvents(socket);
         if(user?.username && typeof socket.emit === 'function'){
-          socket.emit('register_online', user.username);
+          socket.emit('register_online', { username: user.username });
         }
       }
 
@@ -296,6 +300,10 @@
     });
 
     socket.on('active_game_status', renderActiveGameBanner);
+    socket.on('auth_required', () => {
+      localStorage.removeItem('user');
+      window.location.href = '/login.html';
+    });
   }
 
   function acceptRematch(socket, gameKey){
@@ -494,8 +502,8 @@
     const total = wins + losses + draws;
     const winrate = total ? Math.round((wins / total) * 100) : 0;
     const xp = player.xp || 0;
-    const level = Math.floor(xp / 100) + 1;
-    const progress = Math.max(8, Math.min(100, xp % 100));
+    const level = player.level || player.levelInfo?.level || 1;
+    const progress = Math.max(8, Math.min(100, player.levelInfo?.progress || 0));
 
     card.innerHTML = `
       <div class="shell-card-head">

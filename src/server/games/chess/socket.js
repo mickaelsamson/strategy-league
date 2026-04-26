@@ -51,7 +51,7 @@ function createChessModule({ io, socket, state, updatePresence, applyRankedResul
 
   function register(){
     socket.on('create_lobby', ({ name, time })=>{
-      if(isGameAllowed && !isGameAllowed()) return;
+      if(isGameAllowed && !isGameAllowed('chess', socket)) return;
       const parsedTime = Number(time);
       if(!CHESS_TIME_CONTROLS.includes(parsedTime)) return;
 
@@ -72,7 +72,7 @@ function createChessModule({ io, socket, state, updatePresence, applyRankedResul
     });
 
     socket.on('join_lobby', id => {
-      if(isGameAllowed && !isGameAllowed()) return;
+      if(isGameAllowed && !isGameAllowed('chess', socket)) return;
       const lobby = state.lobbies[id];
       if(!lobby) return;
 
@@ -86,7 +86,7 @@ function createChessModule({ io, socket, state, updatePresence, applyRankedResul
     });
 
     socket.on('toggle_ready', id => {
-      if(isGameAllowed && !isGameAllowed()) return;
+      if(isGameAllowed && !isGameAllowed('chess', socket)) return;
       const lobby = state.lobbies[id];
       if(!lobby) return;
 

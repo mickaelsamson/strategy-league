@@ -1,7 +1,16 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const { getGameOfWeek, getLeaderboard } = require('../services/user-service');
+const { GAME_ACCESS_DEFAULTS, GAME_CATALOG } = require('../config/constants');
+const { authCookieHeader, clearAuthCookieHeader, createAuthToken } = require('../services/auth-service');
+const {
+  applyXpDelta,
+  getGameOfWeek,
+  getLeaderboard,
+  getLeaderboardValue,
+  getProgressionData,
+  getPublicProfile
+} = require('../services/user-service');
 
 const AVATAR_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg']);
 
@@ -15,25 +24,76 @@ function listAvailableAvatars(){
     .map(file => `/avatars/${encodeURIComponent(file)}`);
 }
 
-function getLeaderboardValue(user, type){
-  if(type === 'chess') return user.chessElo || user.elo || 1000;
-  if(type === 'strategy') return user.strategyElo || user.strategyPoints || 1000;
-  if(type === 'othello') return user.othelloElo || user.othelloPoints || 1000;
-  if(type === 'azul') return user.azulElo || user.azulPoints || 1000;
-  return user.xp || 0;
-}
-
 function countUniquePlayers(entries){
   const usernames = new Set();
-
   entries.forEach(entry => {
     const players = Array.isArray(entry?.players) ? entry.players : [];
     players.forEach(player => {
       if(player?.username) usernames.add(player.username);
     });
   });
-
   return usernames.size;
+}
+
+function isAdminRequest(req){
+  return Boolean(req.authUser?.isAdmin);
+}
+
+function clearAllLobbies(state, io){
+  state.lobbies = {};
+  state.othelloLobbies = {};
+  state.azulLobbies = {};
+  state.moonfallSettlersLobbies = {};
+  state.moonfallP4Lobbies = {};
+  state.hexblitzLobbies = {};
+
+  if(io){
+    io.emit('lobbies_update', state.lobbies);
+    io.emit('othello_lobbies_update', state.othelloLobbies);
+    io.emit('azul_lobbies_update', state.azulLobbies);
+    io.emit('moonfall_settlers_lobbies_update', state.moonfallSettlersLobbies);
+    io.emit('moonfall_p4_lobbies_update', state.moonfallP4Lobbies);
+    io.emit('hexblitz_lobbies_update', state.hexblitzLobbies);
+  }
+}
+
+function clearGameLobbies(state, io, gameKey){
+  const emitMap = {
+    chess: ['lobbies', 'lobbies_update'],
+    othello: ['othelloLobbies', 'othello_lobbies_update'],
+    azul: ['azulLobbies', 'azul_lobbies_update'],
+    moonfall_settlers: ['moonfallSettlersLobbies', 'moonfall_settlers_lobbies_update'],
+    moonfall_p4: ['moonfallP4Lobbies', 'moonfall_p4_lobbies_update'],
+    hexblitz: ['hexblitzLobbies', 'hexblitz_lobbies_update']
+  };
+
+  const entry = emitMap[gameKey];
+  if(!entry) return;
+
+  const [stateKey, eventName] = entry;
+  state[stateKey] = {};
+  if(io){
+    io.emit(eventName, state[stateKey]);
+  }
+}
+
+function createAccessResponse(state, isGameAllowed, actor){
+  const access = Object.keys(GAME_ACCESS_DEFAULTS).reduce((acc, gameKey) => {
+    const config = {
+      ...GAME_ACCESS_DEFAULTS[gameKey],
+      ...(state.gameAccess[gameKey] || {})
+    };
+    acc[gameKey] = {
+      ...config,
+      allowed: isGameAllowed(gameKey, actor)
+    };
+    return acc;
+  }, {});
+
+  return {
+    enabled: state.manualOverride !== false,
+    access
+  };
 }
 
 function createApiRouter({ User, state, isGameAllowed, io }){
@@ -47,7 +107,24 @@ function createApiRouter({ User, state, isGameAllowed, io }){
         return res.status(400).json({ error: 'User already exists' });
       }
 
-      const user = new User({ username, email, password, elo: 1000, chessElo: 1000, othelloElo: 1000, azulElo: 1000, strategyElo: 1000, xp: 0, isAdmin: false });
+      const user = new User({
+        username,
+        email,
+        password,
+        elo: 1000,
+        chessElo: 1000,
+        othelloElo: 1000,
+        azulElo: 1000,
+        strategyElo: 1000,
+        moonfallP4Elo: 1000,
+        hexblitzElo: 1000,
+        moonfallSettlersElo: 1000,
+        moonfallWorldConquestElo: 1000,
+        moonfallRtsElo: 1000,
+        xp: 0,
+        isAdmin: false
+      });
+
       await user.save();
       res.json({ success: true });
     }catch(err){
@@ -68,16 +145,26 @@ function createApiRouter({ User, state, isGameAllowed, io }){
         return res.status(400).json({ error: 'Invalid credentials' });
       }
 
+      res.setHeader('Set-Cookie', authCookieHeader(createAuthToken(user)));
+      const profile = getPublicProfile(user);
       res.json({
-        username: user.username,
+        username: profile.username,
         email: user.email,
-        avatar: user.avatar || '',
-        elo: user.chessElo || user.elo,
-        chessElo: user.chessElo || user.elo || 1000,
-        othelloElo: user.othelloElo || user.othelloPoints || 1000,
-        azulElo: user.azulElo || user.azulPoints || 1000,
-        strategyElo: user.strategyElo || user.strategyPoints || 1000,
-        xp: user.xp,
+        avatar: profile.avatar,
+        elo: profile.elo,
+        chessElo: profile.chessElo,
+        othelloElo: profile.othelloElo,
+        azulElo: profile.azulElo,
+        strategyElo: profile.strategyElo,
+        moonfallP4Elo: profile.moonfallP4Elo,
+        hexblitzElo: profile.hexblitzElo,
+        moonfallSettlersElo: profile.moonfallSettlersElo,
+        moonfallWorldConquestElo: profile.moonfallWorldConquestElo,
+        moonfallRtsElo: profile.moonfallRtsElo,
+        xp: profile.xp,
+        level: profile.level,
+        levelInfo: profile.levelInfo,
+        ratings: profile.ratings,
         isAdmin: user.isAdmin
       });
     }catch(err){
@@ -86,8 +173,25 @@ function createApiRouter({ User, state, isGameAllowed, io }){
     }
   });
 
+  router.post('/logout', (_req, res)=>{
+    res.setHeader('Set-Cookie', clearAuthCookieHeader());
+    res.json({ success: true });
+  });
+
   router.get('/games/status', (req, res)=>{
-    res.json({ enabled: isGameAllowed() });
+    const actor = req.authUser || null;
+    const status = createAccessResponse(state, isGameAllowed, actor);
+    const requestedGameKey = String(req.query.gameKey || '').trim();
+
+    if(requestedGameKey){
+      return res.json({
+        ...status,
+        enabled: isGameAllowed(requestedGameKey, actor),
+        gameKey: requestedGameKey
+      });
+    }
+
+    res.json(status);
   });
 
   router.get('/games/playing', (req, res)=>{
@@ -101,6 +205,11 @@ function createApiRouter({ User, state, isGameAllowed, io }){
       ...Object.values(state.othelloGames || {}).filter(game => !game?.ended)
     ]);
 
+    const azul = countUniquePlayers([
+      ...Object.values(state.azulLobbies || {}),
+      ...Object.values(state.azulGames || {}).filter(game => !game?.ended)
+    ]);
+
     const strategy = countUniquePlayers([
       ...Object.values(state.moonfallSettlersLobbies || {}),
       ...Object.values(state.moonfallSettlersGames || {}).filter(game => !game?.ended),
@@ -108,10 +217,6 @@ function createApiRouter({ User, state, isGameAllowed, io }){
       ...Object.values(state.moonfallP4Games || {}).filter(game => !game?.ended),
       ...Object.values(state.hexblitzLobbies || {}),
       ...Object.values(state.hexblitzGames || {}).filter(game => !game?.ended)
-    ]);
-    const azul = countUniquePlayers([
-      ...Object.values(state.azulLobbies || {}),
-      ...Object.values(state.azulGames || {}).filter(game => !game?.ended)
     ]);
 
     res.json({
@@ -123,35 +228,41 @@ function createApiRouter({ User, state, isGameAllowed, io }){
     });
   });
 
-  router.get('/games/game-of-week', (req, res)=>{
+  router.get('/games/game-of-week', (_req, res)=>{
     res.json(getGameOfWeek());
+  });
+
+  router.get('/progression', (_req, res)=>{
+    res.json(getProgressionData());
+  });
+
+  router.get('/games/catalog', (req, res)=>{
+    const actor = req.authUser || null;
+    const status = createAccessResponse(state, isGameAllowed, actor);
+    const games = Object.values(GAME_CATALOG).map(game => ({
+      key: game.key,
+      name: game.name,
+      shortName: game.shortName,
+      url: game.url,
+      gameUrl: game.gameUrl,
+      leaderboardLabel: game.leaderboardLabel,
+      access: status.access[game.key]
+    }));
+
+    res.json({ games, ...status });
   });
 
   router.post('/admin/override', async (req, res)=>{
     try{
-      const { adminEmail, enabled } = req.body;
-      const adminUser = await User.findOne({ email: adminEmail });
-      if(!adminUser || !adminUser.isAdmin){
+      if(!isAdminRequest(req)){
         return res.status(403).json({ error: 'Admin required' });
       }
 
-      state.manualOverride = Boolean(enabled);
+      state.manualOverride = Boolean(req.body.enabled);
       if(!state.manualOverride){
-        state.lobbies = {};
-        state.othelloLobbies = {};
-        state.azulLobbies = {};
-        state.moonfallSettlersLobbies = {};
-        state.moonfallP4Lobbies = {};
-        state.hexblitzLobbies = {};
-        if(io){
-          io.emit('lobbies_update', state.lobbies);
-          io.emit('othello_lobbies_update', state.othelloLobbies);
-          io.emit('azul_lobbies_update', state.azulLobbies);
-          io.emit('moonfall_settlers_lobbies_update', state.moonfallSettlersLobbies);
-          io.emit('moonfall_p4_lobbies_update', state.moonfallP4Lobbies);
-          io.emit('hexblitz_lobbies_update', state.hexblitzLobbies);
-        }
+        clearAllLobbies(state, io);
       }
+
       res.json({ success: true, enabled: state.manualOverride });
     }catch(err){
       console.error(err);
@@ -159,20 +270,62 @@ function createApiRouter({ User, state, isGameAllowed, io }){
     }
   });
 
-  router.post('/admin/bonus-xp', async (req, res)=>{
+  router.get('/admin/game-access', async (req, res)=>{
+    if(!isAdminRequest(req)){
+      return res.status(403).json({ error: 'Admin required' });
+    }
+
+    res.json(createAccessResponse(state, isGameAllowed, req.authUser));
+  });
+
+  router.post('/admin/game-access', async (req, res)=>{
     try{
-      const { adminEmail, username, xp, reason } = req.body;
-      const adminUser = await User.findOne({ email: adminEmail });
-      if(!adminUser || !adminUser.isAdmin){
+      if(!isAdminRequest(req)){
         return res.status(403).json({ error: 'Admin required' });
       }
 
-      const amount = Math.floor(Number(xp));
-      if(!username || !Number.isFinite(amount) || amount <= 0){
-        return res.status(400).json({ error: 'Enter a player and a positive XP amount.' });
+      const gameKey = String(req.body.gameKey || '').trim();
+      if(!GAME_ACCESS_DEFAULTS[gameKey]){
+        return res.status(400).json({ error: 'Unknown game.' });
       }
 
-      const cleanReason = String(reason || '').trim();
+      state.gameAccess[gameKey] = {
+        ...(state.gameAccess[gameKey] || GAME_ACCESS_DEFAULTS[gameKey]),
+        enabled: typeof req.body.enabled === 'boolean' ? req.body.enabled : GAME_ACCESS_DEFAULTS[gameKey].enabled,
+        adminOnly: typeof req.body.adminOnly === 'boolean' ? req.body.adminOnly : GAME_ACCESS_DEFAULTS[gameKey].adminOnly,
+        comingSoon: typeof req.body.comingSoon === 'boolean' ? req.body.comingSoon : GAME_ACCESS_DEFAULTS[gameKey].comingSoon
+      };
+
+      if(state.gameAccess[gameKey].enabled === false){
+        clearGameLobbies(state, io, gameKey);
+      }
+
+      res.json({
+        success: true,
+        gameKey,
+        config: state.gameAccess[gameKey],
+        access: createAccessResponse(state, isGameAllowed, req.authUser).access
+      });
+    }catch(err){
+      console.error('Game access update error:', err);
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+
+  router.post('/admin/adjust-xp', async (req, res)=>{
+    try{
+      if(!isAdminRequest(req)){
+        return res.status(403).json({ error: 'Admin required' });
+      }
+
+      const username = String(req.body.username || '').trim();
+      const amount = Math.round(Number(req.body.amount));
+      const cleanReason = String(req.body.reason || '').trim();
+
+      if(!username || !Number.isFinite(amount) || amount === 0){
+        return res.status(400).json({ error: 'Enter a player and a non-zero XP amount.' });
+      }
+
       if(cleanReason.length < 3){
         return res.status(400).json({ error: 'Reason is required.' });
       }
@@ -182,24 +335,30 @@ function createApiRouter({ User, state, isGameAllowed, io }){
         return res.status(404).json({ error: 'Player not found.' });
       }
 
-      target.xp = (target.xp || 0) + amount;
+      const xpResult = applyXpDelta(target, 'chess', amount, { allowBonus: false });
       target.matchHistory = target.matchHistory || [];
       target.matchHistory.unshift({
-        result: 'draw',
-        opponent: adminUser.username || 'Admin',
-        xpChange: amount,
-        reason: `Admin bonus: ${cleanReason.slice(0, 120)}`,
+        result: amount >= 0 ? 'draw' : 'loss',
+        opponent: req.authUser.username || 'Admin',
+        xpChange: xpResult.total,
+        reason: `Admin adjustment: ${cleanReason.slice(0, 120)}`,
         gameKey: 'admin',
-        gameName: 'Bonus XP',
+        gameName: amount >= 0 ? 'Admin XP Bonus' : 'Admin XP Penalty',
         scoreFinal: '',
         eloChange: 0
       });
       target.matchHistory = target.matchHistory.slice(0, 20);
       await target.save();
 
-      res.json({ success: true, username: target.username, xp: target.xp, amount, reason: cleanReason });
+      res.json({
+        success: true,
+        username: target.username,
+        xp: target.xp,
+        amount: xpResult.total,
+        reason: cleanReason
+      });
     }catch(err){
-      console.error('Bonus XP error:', err);
+      console.error('Adjust XP error:', err);
       res.status(500).json({ error: 'Server error' });
     }
   });
@@ -209,8 +368,13 @@ function createApiRouter({ User, state, isGameAllowed, io }){
       const { type, username } = req.params;
       const users = await getLeaderboard(User, type);
 
-      const list = users.map((u, index) => ({ username: u.username, value: getLeaderboardValue(u, type), rank: index + 1 }));
-      const me = list.find(u => u.username === username) || null;
+      const list = users.map((user, index) => ({
+        username: user.username,
+        value: getLeaderboardValue(user, type),
+        rank: index + 1
+      }));
+
+      const me = list.find(user => user.username === username) || null;
       const top = list.slice(0, 10).map(({ username: entryUsername, value }) => ({ username: entryUsername, value }));
 
       res.json({ top, me: me ? { rank: me.rank, value: me.value } : null });
@@ -222,44 +386,29 @@ function createApiRouter({ User, state, isGameAllowed, io }){
 
   router.get('/profile/:username', async (req, res)=>{
     try{
-      const { username } = req.params;
-      const user = await User.findOne({ username }).lean();
+      const user = await User.findOne({ username: req.params.username }).lean();
       if(!user){
         return res.status(404).json({ error: 'User not found' });
       }
 
-      const wins = user.wins || 0;
-      const losses = user.losses || 0;
-      const draws = user.draws || 0;
-      const total = wins + losses + draws;
-      const winrate = total ? Math.round((wins / total) * 100) : 0;
-
-      res.json({
-        username: user.username,
-        avatar: user.avatar || '',
-        elo: user.chessElo || user.elo || 1000,
-        chessElo: user.chessElo || user.elo || 1000,
-        othelloElo: user.othelloElo || user.othelloPoints || 1000,
-        azulElo: user.azulElo || user.azulPoints || 1000,
-        strategyElo: user.strategyElo || user.strategyPoints || 1000,
-        xp: user.xp || 0,
-        level: Math.floor((user.xp || 0) / 100) + 1,
-        stats: { wins, losses, draws, total, winrate },
-        matchHistory: (user.matchHistory || []).slice(0, 5)
-      });
+      res.json(getPublicProfile(user));
     }catch(err){
       console.error('Profile error:', err);
       res.status(500).json({ error: 'Profile unavailable' });
     }
   });
 
-  router.get('/avatars', (req, res)=>{
+  router.get('/avatars', (_req, res)=>{
     res.json({ avatars: listAvailableAvatars() });
   });
 
   router.post('/profile/:username/avatar', async (req, res)=>{
     try{
       const { username } = req.params;
+      if(req.authUser?.username !== username){
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+
       const { avatar } = req.body;
       const availableAvatars = listAvailableAvatars();
 

@@ -145,7 +145,7 @@ function createMoonfallP4Module({ io, socket, state, updatePresence, isGameAllow
 
   function register(){
     socket.on('create_moonfall_p4_lobby', ({ name, maxPlayers } = {}) => {
-      if(isGameAllowed && !isGameAllowed()) return;
+      if(isGameAllowed && !isGameAllowed('moonfall_p4', socket)) return;
       if(!socket.username) return;
       if(findLobbyByUsername(socket.username) || findGameByUsername(socket.username)) return;
 
@@ -163,7 +163,7 @@ function createMoonfallP4Module({ io, socket, state, updatePresence, isGameAllow
     });
 
     socket.on('join_moonfall_p4_lobby', id => {
-      if(isGameAllowed && !isGameAllowed()) return;
+      if(isGameAllowed && !isGameAllowed('moonfall_p4', socket)) return;
       if(!socket.username) return;
       if(findLobbyByUsername(socket.username) || findGameByUsername(socket.username)) return;
 
@@ -186,7 +186,7 @@ function createMoonfallP4Module({ io, socket, state, updatePresence, isGameAllow
     });
 
     socket.on('toggle_moonfall_p4_ready', id => {
-      if(isGameAllowed && !isGameAllowed()) return;
+      if(isGameAllowed && !isGameAllowed('moonfall_p4', socket)) return;
       const lobby = state.moonfallP4Lobbies[id];
       if(!lobby) return;
       const player = lobby.players.find(entry => entry.username === socket.username);

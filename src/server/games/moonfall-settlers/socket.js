@@ -165,7 +165,7 @@ function createMoonfallSettlersModule({ io, socket, state, updatePresence, isGam
 
   function register(){
     socket.on('create_moonfall_settlers_lobby', ({ name, maxPlayers, boardMode, targetScore } = {}) => {
-      if(isGameAllowed && !isGameAllowed()) return;
+      if(isGameAllowed && !isGameAllowed('moonfall_settlers', socket)) return;
       if(!socket.username) return;
       if(findLobbyByUsername(socket.username) || findGameByUsername(socket.username)) return;
 
@@ -184,7 +184,7 @@ function createMoonfallSettlersModule({ io, socket, state, updatePresence, isGam
     });
 
     socket.on('join_moonfall_settlers_lobby', id => {
-      if(isGameAllowed && !isGameAllowed()) return;
+      if(isGameAllowed && !isGameAllowed('moonfall_settlers', socket)) return;
       if(!socket.username) return;
       if(findLobbyByUsername(socket.username) || findGameByUsername(socket.username)) return;
 
@@ -207,7 +207,7 @@ function createMoonfallSettlersModule({ io, socket, state, updatePresence, isGam
     });
 
     socket.on('toggle_moonfall_settlers_ready', id => {
-      if(isGameAllowed && !isGameAllowed()) return;
+      if(isGameAllowed && !isGameAllowed('moonfall_settlers', socket)) return;
       const lobby = state.moonfallSettlersLobbies[id];
       if(!lobby) return;
       const player = lobby.players.find(entry => entry.username === socket.username);

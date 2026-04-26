@@ -202,7 +202,7 @@ input, select{
 
 async function checkGamesAccess(){
   try{
-    const res = await fetch("/api/games/status");
+    const res = await fetch("/api/games/status?gameKey=chess");
     const data = await res.json();
 
     if(!data.enabled){

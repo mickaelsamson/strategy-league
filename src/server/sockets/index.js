@@ -5,6 +5,8 @@ const { createMoonfallSettlersModule } = require('../games/moonfall-settlers/soc
 const { createMoonfallP4Module } = require('../games/moonfall-p4/socket');
 const { createHexblitzModule } = require('../games/hexblitz/socket');
 const { DISCONNECT_FORFEIT_MS } = require('../config/constants');
+const { AUTH_COOKIE_NAME, parseCookieHeader, verifyAuthToken } = require('../services/auth-service');
+const { buildRatingsPayload, getLevelInfo } = require('../services/user-service');
 
 function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, applyOthelloResult, applyAzulResult }){
   const GAME_META = {
@@ -17,41 +19,41 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
   };
 
   function socketsForUsername(username){
-    return [...io.sockets.sockets.values()].filter(s => s.username === username);
+    return [...io.sockets.sockets.values()].filter(socket => socket.username === username);
   }
 
   function emitToUsername(username, event, payload){
-    socketsForUsername(username).forEach(s => s.emit(event, payload));
+    socketsForUsername(username).forEach(socket => socket.emit(event, payload));
   }
 
   function activeGameForUsername(username){
     const chessEntry = Object.entries(state.chessGames).find(([, game]) =>
-      game && !game.ended && game.players?.some(p => p.username === username)
+      game && !game.ended && game.players?.some(player => player.username === username)
     );
     if(chessEntry) return { gameKey: 'chess', gameId: chessEntry[0], label: GAME_META.chess.label, url: GAME_META.chess.gameUrl };
 
     const othelloEntry = Object.entries(state.othelloGames).find(([, game]) =>
-      game && !game.ended && game.players?.some(p => p.username === username)
+      game && !game.ended && game.players?.some(player => player.username === username)
     );
     if(othelloEntry) return { gameKey: 'othello', gameId: othelloEntry[0], label: GAME_META.othello.label, url: GAME_META.othello.gameUrl };
 
     const azulEntry = Object.entries(state.azulGames).find(([, game]) =>
-      game && !game.ended && game.players?.some(p => p.username === username)
+      game && !game.ended && game.players?.some(player => player.username === username)
     );
     if(azulEntry) return { gameKey: 'azul', gameId: azulEntry[0], label: GAME_META.azul.label, url: GAME_META.azul.gameUrl };
 
     const moonfallEntry = Object.entries(state.moonfallSettlersGames).find(([, game]) =>
-      game && !game.ended && game.players?.some(p => p.username === username)
+      game && !game.ended && game.players?.some(player => player.username === username)
     );
     if(moonfallEntry) return { gameKey: 'moonfall', gameId: moonfallEntry[0], label: GAME_META.moonfall.label, url: GAME_META.moonfall.gameUrl };
 
     const moonfallP4Entry = Object.entries(state.moonfallP4Games).find(([, game]) =>
-      game && !game.ended && game.players?.some(p => p.username === username)
+      game && !game.ended && game.players?.some(player => player.username === username)
     );
     if(moonfallP4Entry) return { gameKey: 'moonfall_p4', gameId: moonfallP4Entry[0], label: GAME_META.moonfall_p4.label, url: GAME_META.moonfall_p4.gameUrl };
 
     const hexblitzEntry = Object.entries(state.hexblitzGames).find(([, game]) =>
-      game && !game.ended && game.players?.some(p => p.username === username)
+      game && !game.ended && game.players?.some(player => player.username === username)
     );
     if(hexblitzEntry) return { gameKey: 'hexblitz', gameId: hexblitzEntry[0], label: GAME_META.hexblitz.label, url: GAME_META.hexblitz.gameUrl };
 
@@ -69,18 +71,28 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
     for(const id in state.onlineUsers){
       const username = state.onlineUsers[id];
       const user = await User.findOne({ username });
+      const ratings = buildRatingsPayload(user || {});
+      const levelInfo = getLevelInfo(user?.xp || 0);
+
       users[username] = {
         username,
         avatar: user?.avatar || '',
         xp: user?.xp || 0,
+        level: levelInfo.level,
+        levelInfo,
         wins: user?.wins || 0,
         losses: user?.losses || 0,
         draws: user?.draws || 0,
-        elo: user?.chessElo || user?.elo || 1000,
-        chessElo: user?.chessElo || user?.elo || 1000,
-        othelloElo: user?.othelloElo || user?.othelloPoints || 1000,
-        azulElo: user?.azulElo || user?.azulPoints || 1000,
-        strategyElo: user?.strategyElo || user?.strategyPoints || 1000
+        elo: ratings.chess || 1000,
+        chessElo: ratings.chess || 1000,
+        othelloElo: ratings.othello || 1000,
+        azulElo: ratings.azul || 1000,
+        strategyElo: ratings.moonfall_world_conquest || 1000,
+        moonfallP4Elo: ratings.moonfall_p4 || 1000,
+        hexblitzElo: ratings.hexblitz || 1000,
+        moonfallSettlersElo: ratings.moonfall_settlers || 1000,
+        moonfallWorldConquestElo: ratings.moonfall_world_conquest || 1000,
+        moonfallRtsElo: ratings.moonfall_rts || 1000
       };
     }
 
@@ -91,7 +103,7 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
     io.emit('moonfall_settlers_lobbies_update', state.moonfallSettlersLobbies);
     io.emit('moonfall_p4_lobbies_update', state.moonfallP4Lobbies);
     io.emit('hexblitz_lobbies_update', state.hexblitzLobbies);
-    io.sockets.sockets.forEach(s => emitActiveGame(s));
+    io.sockets.sockets.forEach(socket => emitActiveGame(socket));
   }
 
   function clearPendingDisconnectForUsername(username){
@@ -99,6 +111,16 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
     clearTimeout(state.pendingDisconnects[username]);
     delete state.pendingDisconnects[username];
   }
+
+  io.use((socket, next)=>{
+    try{
+      const cookies = parseCookieHeader(socket.handshake?.headers?.cookie || '');
+      socket.authUser = verifyAuthToken(cookies[AUTH_COOKIE_NAME] || null);
+      next();
+    }catch(err){
+      next(err);
+    }
+  });
 
   io.on('connection', socket => {
     const chess = createChessModule({
@@ -135,6 +157,7 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
       updatePresence,
       isGameAllowed
     });
+
     const moonfallP4 = createMoonfallP4Module({
       io,
       socket,
@@ -142,6 +165,7 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
       updatePresence,
       isGameAllowed
     });
+
     const hexblitz = createHexblitzModule({
       io,
       socket,
@@ -150,16 +174,23 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
       isGameAllowed
     });
 
-    socket.on('register_online', username => {
-      socket.username = username;
-      clearPendingDisconnectForUsername(username);
-      state.onlineUsers[socket.id] = username;
+    socket.on('register_online', payload => {
+      const requestedUsername = typeof payload === 'string' ? payload : payload?.username;
+      if(!socket.authUser?.username || socket.authUser.username !== requestedUsername){
+        socket.emit('auth_required', { message: 'Authentication required.' });
+        return;
+      }
+
+      socket.username = socket.authUser.username;
+      socket.isAdmin = Boolean(socket.authUser.isAdmin);
+      clearPendingDisconnectForUsername(socket.username);
+      state.onlineUsers[socket.id] = socket.username;
 
       for(const gameId in state.chessGames){
         const game = state.chessGames[gameId];
         if(!game || game.ended) continue;
 
-        const player = game.players.find(p => p.username === username);
+        const player = game.players.find(entry => entry.username === socket.username);
         if(!player) continue;
 
         const previousSocketId = player.id;
@@ -176,8 +207,8 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
           fen: game.fen,
           timeControl: game.timeControl,
           players: {
-            white: game.players.find(pl => pl.color === 'w').username,
-            black: game.players.find(pl => pl.color === 'b').username
+            white: game.players.find(entry => entry.color === 'w').username,
+            black: game.players.find(entry => entry.color === 'b').username
           }
         });
       }
@@ -186,7 +217,7 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
         const game = state.othelloGames[gameId];
         if(!game || game.ended) continue;
 
-        const player = game.players.find(p => p.username === username);
+        const player = game.players.find(entry => entry.username === socket.username);
         if(!player) continue;
 
         const previousSocketId = player.id;
@@ -204,7 +235,7 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
         const game = state.azulGames[gameId];
         if(!game || game.ended) continue;
 
-        const player = game.players.find(p => p.username === username);
+        const player = game.players.find(entry => entry.username === socket.username);
         if(!player) continue;
 
         const previousSocketId = player.id;
@@ -237,6 +268,7 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
       if(!socket.username || !toUsername || toUsername === socket.username) return;
       const meta = GAME_META[gameKey];
       if(!meta) return;
+
       const targets = socketsForUsername(toUsername);
       if(!targets.length){
         socket.emit('game_notice', { message: `${toUsername} is not online.` });
@@ -281,13 +313,12 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
             const activeGame = state.chessGames[gameId];
             if(!activeGame || activeGame.ended) return;
 
-            const disconnected = activeGame.players.find(p => p.username === socket.username);
+            const disconnected = activeGame.players.find(player => player.username === socket.username);
             if(!disconnected) return;
 
-            const winner = activeGame.players.find(p => p.username !== socket.username);
-
+            const winner = activeGame.players.find(player => player.username !== socket.username);
             applyRankedResult(User, activeGame, winner?.username || null, 'disconnect')
-              .then(result=>{
+              .then(result => {
                 chess.emitGameOver(gameId, {
                   reason: 'disconnect',
                   message: `${socket.username} disconnected for more than 1 minute.`,
@@ -312,17 +343,17 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
       delete state.onlineUsers[socket.id];
 
       for(const id in state.lobbies){
-        state.lobbies[id].players = state.lobbies[id].players.filter(p => p.id !== socket.id);
+        state.lobbies[id].players = state.lobbies[id].players.filter(player => player.id !== socket.id);
         if(state.lobbies[id].players.length === 0) delete state.lobbies[id];
       }
 
       for(const id in state.othelloLobbies){
-        state.othelloLobbies[id].players = state.othelloLobbies[id].players.filter(p => p.id !== socket.id);
+        state.othelloLobbies[id].players = state.othelloLobbies[id].players.filter(player => player.id !== socket.id);
         if(state.othelloLobbies[id].players.length === 0) delete state.othelloLobbies[id];
       }
 
       for(const id in state.azulLobbies){
-        state.azulLobbies[id].players = state.azulLobbies[id].players.filter(p => p.id !== socket.id);
+        state.azulLobbies[id].players = state.azulLobbies[id].players.filter(player => player.id !== socket.id);
         if(state.azulLobbies[id].players.length === 0) delete state.azulLobbies[id];
       }
 

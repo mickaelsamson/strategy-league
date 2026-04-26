@@ -75,7 +75,7 @@ function openInvitePicker(){
 
 async function checkGamesAccess(){
   try{
-    const res = await fetch("/api/games/status");
+    const res = await fetch("/api/games/status?gameKey=azul");
     const data = await res.json();
     gamesEnabled = Boolean(data.enabled);
     const blocked = document.getElementById("blockedScreen");

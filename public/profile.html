@@ -4,273 +4,97 @@
 <link rel="stylesheet" href="/assets/style/theme.css">
 <script defer src="/assets/scripts/site-shell.js"></script>
 <title>Profile</title>
-
 <style>
-body{
-  margin:0;
-  color:var(--shell-text);
-  display:flex;
-  justify-content:center;
-}
-
-.container{
-  width:100%;
-  max-width:900px;
-  padding:20px;
-}
-
-/* HEADER */
-.header{
-  display:flex;
-  align-items:center;
-  gap:20px;
-  margin-bottom:20px;
-}
-
-.avatar{
-  width:80px;
-  height:80px;
-  border-radius:50%;
-  background:#1f2937;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:30px;
-  overflow:hidden;
-  border:2px solid #334155;
-  flex:0 0 auto;
-}
-
-.avatar img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-}
-
-.username{
-  font-size:24px;
-  font-weight:bold;
-}
-
-.elo-grid{
-  display:grid;
-  grid-template-columns:repeat(4, minmax(120px, 1fr));
-  gap:10px;
-  margin:18px 0 20px;
-}
-
-.elo-card{
-  min-height:76px;
-  padding:12px;
-  border-radius:8px;
-  background:linear-gradient(145deg, rgba(28,8,12,0.88), rgba(49,14,20,0.72));
-  border:1px solid var(--shell-line);
-}
-
-.elo-card span{
-  display:block;
-  color:var(--shell-soft);
-  font-size:12px;
-  font-weight:800;
-}
-
-.elo-card strong{
-  display:block;
-  margin-top:5px;
-  font-size:24px;
-}
-
-/* CARD */
-.card{
-  background:var(--shell-card);
-  border:1px solid var(--shell-line);
-  padding:20px;
-  border-radius:8px;
-  margin-bottom:20px;
-  box-shadow:0 0 10px rgba(0,0,0,0.4);
-}
-
-.avatar-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill, minmax(64px, 1fr));
-  gap:10px;
-  margin-top:12px;
-}
-
-.avatar-option{
-  width:64px;
-  height:64px;
-  border:2px solid #334155;
-  border-radius:50%;
-  padding:0;
-  background:#0f172a;
-  cursor:pointer;
-  overflow:hidden;
-}
-
-.avatar-option img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-}
-
-.avatar-option.selected{
-  border-color:#22c55e;
-  box-shadow:0 0 0 3px rgba(34,197,94,0.2);
-}
-
-.avatar-empty{
-  color:#94a3b8;
-  margin:0;
-}
-
-/* XP BAR */
-.xp-bar{
-  background:#1f2937;
-  border-radius:10px;
-  overflow:hidden;
-  margin-top:10px;
-}
-
-.xp-fill{
-  height:12px;
-  background:#22c55e;
-  width:40%;
-}
-
-/* STATS */
-.stats{
-  display:flex;
-  justify-content:space-around;
-  text-align:center;
-}
-
-.stat h3{
-  margin:5px 0;
-}
-
-/* MATCHES */
-.match{
-  display:flex;
-  justify-content:space-between;
-  gap:14px;
-  padding:12px 0;
-  border-bottom:1px solid #1f2937;
-  align-items:flex-start;
-}
-
-.match-main{
-  display:flex;
-  flex-direction:column;
-  gap:4px;
-}
-
-.match-title{
-  font-weight:bold;
-}
-
-.match-meta{
-  color:#94a3b8;
-  font-size:13px;
-}
-
-.match-xp{
-  font-weight:bold;
-  white-space:nowrap;
-}
-
-.win{color:#22c55e;}
-.loss{color:#ef4444;}
-.draw{color:#facc15;}
-
-@media (max-width:620px){
-  .header{
-    align-items:flex-start;
-  }
-
-  .stats{
-    gap:10px;
-  }
-
-  .match{
-    flex-direction:column;
-  }
-
-  .elo-grid{
-    grid-template-columns:repeat(2, minmax(0, 1fr));
-  }
-}
+body{margin:0;color:var(--shell-text);display:flex;justify-content:center}
+.container{width:100%;max-width:1040px;padding:20px}
+.header{display:flex;align-items:center;gap:20px;margin-bottom:20px}
+.avatar{width:84px;height:84px;border-radius:50%;background:#1f2937;display:flex;align-items:center;justify-content:center;font-size:30px;overflow:hidden;border:2px solid #334155;flex:0 0 auto}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.username{font-size:28px;font-weight:900}
+.subtitle{margin-top:6px;color:var(--shell-soft)}
+.elo-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0 20px}
+.elo-card{min-height:78px;padding:12px;border-radius:8px;background:linear-gradient(145deg,rgba(28,8,12,.88),rgba(49,14,20,.72));border:1px solid var(--shell-line)}
+.elo-card span{display:block;color:var(--shell-soft);font-size:12px;font-weight:800}
+.elo-card strong{display:block;margin-top:5px;font-size:24px}
+.card{background:var(--shell-card);border:1px solid var(--shell-line);padding:20px;border-radius:8px;margin-bottom:20px;box-shadow:0 0 10px rgba(0,0,0,.4)}
+.avatar-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:10px;margin-top:12px}
+.avatar-option{width:64px;height:64px;border:2px solid #334155;border-radius:50%;padding:0;background:#0f172a;cursor:pointer;overflow:hidden}
+.avatar-option img{width:100%;height:100%;object-fit:cover}
+.avatar-option.selected{border-color:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.2)}
+.avatar-empty{color:#94a3b8;margin:0}
+.xp-bar{background:#1f2937;border-radius:10px;overflow:hidden;margin-top:10px}
+.xp-fill{height:12px;background:#22c55e;width:0}
+.xp-meta{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:10px;color:var(--shell-soft)}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;text-align:center}
+.stat h3{margin:5px 0}
+.match{display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid #1f2937;align-items:flex-start}
+.match-main{display:flex;flex-direction:column;gap:4px}
+.match-title{font-weight:700}
+.match-meta{color:#94a3b8;font-size:13px}
+.match-xp{font-weight:700;white-space:nowrap}
+.win{color:#22c55e}
+.loss{color:#ef4444}
+.draw{color:#facc15}
+@media (max-width:900px){.elo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:620px){.header{align-items:flex-start}.match{flex-direction:column}}
 </style>
 </head>
-
 <body class="with-navbar">
-
 <div id="navbar-container"></div>
-  
 <div class="container">
-
-<!-- HEADER -->
-<div class="header">
-  <div class="avatar" id="avatarPreview">♟️</div>
-  <div>
-    <div class="username" id="username">Player</div>
+  <div class="header">
+    <div class="avatar" id="avatarPreview">♟️</div>
+    <div>
+      <div class="username" id="username">Player</div>
+      <div class="subtitle" id="subtitle">Track ratings, level progress, and recent results.</div>
+    </div>
   </div>
-</div>
 
-<section class="elo-grid" aria-label="Game ELO ratings">
-  <div class="elo-card"><span>Chess ELO</span><strong id="chessElo">1000</strong></div>
-  <div class="elo-card"><span>Othello ELO</span><strong id="othelloElo">1000</strong></div>
-  <div class="elo-card"><span>Azul ELO</span><strong id="azulElo">1000</strong></div>
-  <div class="elo-card"><span>World Conquest ELO</span><strong id="strategyElo">1000</strong></div>
-</section>
+  <section class="elo-grid" aria-label="Game ELO ratings">
+    <div class="elo-card"><span>Chess ELO</span><strong id="chessElo">1000</strong></div>
+    <div class="elo-card"><span>Othello ELO</span><strong id="othelloElo">1000</strong></div>
+    <div class="elo-card"><span>Azul ELO</span><strong id="azulElo">1000</strong></div>
+    <div class="elo-card"><span>Power 4 ELO</span><strong id="moonfallP4Elo">1000</strong></div>
+    <div class="elo-card"><span>Hexblitz ELO</span><strong id="hexblitzElo">1000</strong></div>
+    <div class="elo-card"><span>Settlers ELO</span><strong id="moonfallSettlersElo">1000</strong></div>
+    <div class="elo-card"><span>World Conquest ELO</span><strong id="moonfallWorldConquestElo">1000</strong></div>
+    <div class="elo-card"><span>RTS ELO</span><strong id="moonfallRtsElo">1000</strong></div>
+  </section>
 
-<!-- AVATAR PICKER -->
-<div class="card" id="avatarCard" hidden>
-  <h3>Avatar</h3>
-  <div id="avatarGrid" class="avatar-grid"></div>
-</div>
-
-<!-- LEVEL -->
-<div class="card">
-  <h3>⭐ Level</h3>
-  <div>Level <span id="level">1</span></div>
-  <div class="xp-bar">
-    <div id="xpFill" class="xp-fill"></div>
+  <div class="card" id="avatarCard" hidden>
+    <h3>Avatar</h3>
+    <div id="avatarGrid" class="avatar-grid"></div>
   </div>
-  <div><span id="xp">0</span> / <span id="xpNext">100</span> XP</div>
-</div>
 
-<!-- STATS -->
-<div class="card stats">
-  <div class="stat">
-    <h3 id="wins">0</h3>
-    <p>Wins</p>
+  <div class="card">
+    <h3>Level Progress</h3>
+    <div>Level <span id="level">1</span></div>
+    <div class="xp-bar"><div id="xpFill" class="xp-fill"></div></div>
+    <div class="xp-meta">
+      <span><b id="xp">0</b> XP total</span>
+      <span><b id="xpCurrent">0</b> / <b id="xpNext">100</b> toward next level</span>
+    </div>
   </div>
-  <div class="stat">
-    <h3 id="losses">0</h3>
-    <p>Losses</p>
-  </div>
-  <div class="stat">
-    <h3 id="winrate">0%</h3>
-    <p>Winrate</p>
-  </div>
-</div>
 
-<!-- MATCH HISTORY -->
-<div class="card">
-  <h3>📜 Recent Matches</h3>
-  <div id="matches"></div>
-</div>
+  <div class="card stats">
+    <div class="stat"><h3 id="wins">0</h3><p>Wins</p></div>
+    <div class="stat"><h3 id="losses">0</h3><p>Losses</p></div>
+    <div class="stat"><h3 id="draws">0</h3><p>Draws</p></div>
+    <div class="stat"><h3 id="winrate">0%</h3><p>Winrate</p></div>
+  </div>
 
+  <div class="card">
+    <h3>Recent Matches</h3>
+    <div id="matches"></div>
+  </div>
 </div>
 
 <script>
-
-const user = JSON.parse(localStorage.getItem("user"));
-
+const user = JSON.parse(localStorage.getItem("user") || "null");
 if(!user){
   window.location.href = "/login.html";
 }
+
 const params = new URLSearchParams(window.location.search);
 const requestedUsername = params.get("username");
 const profileUsername = requestedUsername || user.username;
@@ -288,19 +112,16 @@ function escapeHtml(text){
 
 function renderAvatar(avatar){
   const preview = document.getElementById("avatarPreview");
-  preview.innerHTML = avatar
-    ? `<img src="${escapeHtml(avatar)}" alt="Avatar">`
-    : "♟️";
+  preview.innerHTML = avatar ? `<img src="${escapeHtml(avatar)}" alt="Avatar">` : "♟️";
 }
 
 function resultLabel(match){
-  if(match.gameKey === "admin") return match.reason || "Bonus XP";
+  if(match.gameKey === "admin") return match.reason || "Admin adjustment";
   const result = match.result || "draw";
   const reason = match.reason || "game_end";
-
-  if(reason === "resign") return result === "loss" ? "Resigned" : "Victory by resignation";
-  if(reason === "disconnect") return result === "loss" ? "Disconnected" : "Victory by disconnect";
-  if(reason === "timeout") return result === "loss" ? "Timed out" : "Victory on time";
+  if(["resign","disconnect","timeout","abandon","surrender"].includes(reason)){
+    return result === "loss" ? "Abandon penalty" : "Victory after abandon";
+  }
   if(result === "win") return "Victory";
   if(result === "loss") return "Defeat";
   return "Draw";
@@ -310,8 +131,7 @@ function formatPlayedAt(value){
   if(!value) return "";
   const date = new Date(value);
   if(Number.isNaN(date.getTime())) return "";
-
-  return new Intl.DateTimeFormat("fr-FR", {
+  return new Intl.DateTimeFormat("en-GB", {
     weekday: "short",
     day: "2-digit",
     month: "2-digit",
@@ -324,21 +144,21 @@ function renderAvatarGrid(selectedAvatar){
   const card = document.getElementById("avatarCard");
   const grid = document.getElementById("avatarGrid");
   if(!isOwnProfile) return;
-
   card.hidden = false;
+
   if(!availableAvatars.length){
     grid.innerHTML = "<p class=\"avatar-empty\">Add images to public/avatars to see them here.</p>";
     return;
   }
 
-  grid.innerHTML = availableAvatars.map(avatar=>`
+  grid.innerHTML = availableAvatars.map(avatar => `
     <button class="avatar-option ${avatar === selectedAvatar ? "selected" : ""}" type="button" data-avatar="${escapeHtml(avatar)}" title="Choose this avatar">
       <img src="${escapeHtml(avatar)}" alt="Avatar">
     </button>
   `).join("");
 
-  grid.querySelectorAll(".avatar-option").forEach(button=>{
-    button.addEventListener("click", async ()=>{
+  grid.querySelectorAll(".avatar-option").forEach(button => {
+    button.addEventListener("click", async () => {
       const avatar = button.dataset.avatar;
       await saveAvatar(avatar);
       renderAvatar(avatar);
@@ -353,67 +173,69 @@ async function saveAvatar(avatar){
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ avatar })
   });
-
-  if(!response.ok){
-    throw new Error("Avatar unavailable");
-  }
-
+  if(!response.ok) throw new Error("Avatar unavailable");
   const updated = await response.json();
   localStorage.setItem("user", JSON.stringify({
-    ...JSON.parse(localStorage.getItem("user")),
+    ...JSON.parse(localStorage.getItem("user") || "{}"),
     avatar: updated.avatar || ""
   }));
 }
-  
+
+function setText(id, value){
+  document.getElementById(id).innerText = value;
+}
+
 function renderProfile(profile){
-  document.getElementById("username").innerText = profile.username || profileUsername;
-  document.getElementById("chessElo").innerText = profile.chessElo ?? profile.elo ?? 1000;
-  document.getElementById("othelloElo").innerText = profile.othelloElo ?? 1000;
-  document.getElementById("azulElo").innerText = profile.azulElo ?? 1000;
-  document.getElementById("strategyElo").innerText = profile.strategyElo ?? 1000;
+  setText("username", profile.username || profileUsername);
+  document.getElementById("subtitle").textContent = isOwnProfile ? "Your current ladder snapshot." : `${profile.username}'s current ladder snapshot.`;
   renderAvatar(profile.avatar || "");
   renderAvatarGrid(profile.avatar || "");
 
-  const wins = profile?.stats?.wins || 0;
-  const losses = profile?.stats?.losses || 0;
-  const winrate = profile?.stats?.winrate || 0;
-  const xp = profile?.xp || 0;
+  const ratings = profile.ratings || {};
+  setText("chessElo", ratings.chess ?? profile.chessElo ?? profile.elo ?? 1000);
+  setText("othelloElo", ratings.othello ?? profile.othelloElo ?? 1000);
+  setText("azulElo", ratings.azul ?? profile.azulElo ?? 1000);
+  setText("moonfallP4Elo", ratings.moonfall_p4 ?? profile.moonfallP4Elo ?? 1000);
+  setText("hexblitzElo", ratings.hexblitz ?? profile.hexblitzElo ?? 1000);
+  setText("moonfallSettlersElo", ratings.moonfall_settlers ?? profile.moonfallSettlersElo ?? 1000);
+  setText("moonfallWorldConquestElo", ratings.moonfall_world_conquest ?? profile.moonfallWorldConquestElo ?? 1000);
+  setText("moonfallRtsElo", ratings.moonfall_rts ?? profile.moonfallRtsElo ?? 1000);
 
-  document.getElementById("wins").innerText = wins;
-  document.getElementById("losses").innerText = losses;
-  document.getElementById("winrate").innerText = `${winrate}%`;
+  const stats = profile.stats || {};
+  const levelInfo = profile.levelInfo || {};
+  const xp = profile.xp || 0;
+  const currentXp = levelInfo.currentXp || 0;
+  const nextXp = levelInfo.nextXp || currentXp;
+  const delta = Math.max(0, xp - currentXp);
+  setText("wins", stats.wins || 0);
+  setText("losses", stats.losses || 0);
+  setText("draws", stats.draws || 0);
+  setText("winrate", `${stats.winrate || 0}%`);
+  setText("level", profile.level || levelInfo.level || 1);
+  setText("xp", xp);
+  setText("xpCurrent", delta);
+  setText("xpNext", Math.max(0, nextXp - currentXp));
+  document.getElementById("xpFill").style.width = `${levelInfo.progress || 0}%`;
 
-  const level = Math.floor(xp / 100) + 1;
-  const nextXp = level * 100;
-  const prevXp = (level - 1) * 100;
-  const progress = Math.max(0, Math.min(100, ((xp - prevXp) / (nextXp - prevXp)) * 100));
-
-  document.getElementById("level").innerText = level;
-  document.getElementById("xp").innerText = xp;
-  document.getElementById("xpNext").innerText = nextXp;
-  document.getElementById("xpFill").style.width = `${progress}%`;
-
-  const matches = Array.isArray(profile.matchHistory) ? profile.matchHistory.slice(0, 5) : [];
-  document.getElementById("matches").innerHTML = matches.length
-    ? matches.map(m=>{
-        const result = m.result || "draw";
-        const xpChange = Number.isFinite(m.xpChange) ? m.xpChange : 0;
-        const sign = xpChange >= 0 ? "+" : "";
-        const eloChange = Number.isFinite(m.eloChange) ? m.eloChange : 0;
-        const eloText = eloChange ? ` · ELO ${eloChange > 0 ? "+" : ""}${eloChange}` : "";
-        const playedAt = formatPlayedAt(m.playedAt);
-        const score = m.scoreFinal ? ` · Score ${escapeHtml(m.scoreFinal)}` : "";
-        return `
-          <div class="match ${result}">
-            <div class="match-main">
-              <span class="match-title">${escapeHtml(resultLabel(m))} · ${escapeHtml(m.gameName || "Game")} vs ${escapeHtml(m.opponent || "Unknown")}</span>
-              <span class="match-meta">${escapeHtml(playedAt)}${score}${eloText}</span>
-            </div>
-            <span class="match-xp">${sign}${xpChange} XP</span>
-          </div>
-        `;
-      }).join("")
-    : "<div class=\"match\"><span>No match history yet.</span><span>—</span></div>";
+  const matches = Array.isArray(profile.matchHistory) ? profile.matchHistory.slice(0, 8) : [];
+  document.getElementById("matches").innerHTML = matches.length ? matches.map(match => {
+    const result = match.result || "draw";
+    const xpChange = Number.isFinite(match.xpChange) ? match.xpChange : 0;
+    const sign = xpChange >= 0 ? "+" : "";
+    const eloChange = Number.isFinite(match.eloChange) ? match.eloChange : 0;
+    const eloText = eloChange ? ` · ELO ${eloChange > 0 ? "+" : ""}${eloChange}` : "";
+    const score = match.scoreFinal ? ` · Score ${escapeHtml(match.scoreFinal)}` : "";
+    const bonus = match.gameOfWeekBonus ? ` · Bonus +${match.gameOfWeekBonus}` : "";
+    return `
+      <div class="match ${result}">
+        <div class="match-main">
+          <span class="match-title">${escapeHtml(resultLabel(match))} · ${escapeHtml(match.gameName || "Game")} vs ${escapeHtml(match.opponent || "Unknown")}</span>
+          <span class="match-meta">${escapeHtml(formatPlayedAt(match.playedAt))}${score}${eloText}${bonus}</span>
+        </div>
+        <span class="match-xp">${sign}${xpChange} XP</span>
+      </div>
+    `;
+  }).join("") : "<div class=\"match\"><span>No match history yet.</span><span>-</span></div>";
 }
 
 async function loadAvatars(){
@@ -431,11 +253,9 @@ async function loadProfile(){
   try{
     await loadAvatars();
     const response = await fetch(`/api/profile/${encodeURIComponent(profileUsername)}`);
-    if(!response.ok){
-      throw new Error("Profile unavailable");
-    }
-
+    if(!response.ok) throw new Error("Profile unavailable");
     const profile = await response.json();
+
     if(profile.username === user.username){
       localStorage.setItem("user", JSON.stringify({
         ...user,
@@ -445,7 +265,15 @@ async function loadProfile(){
         othelloElo: profile.othelloElo,
         azulElo: profile.azulElo,
         strategyElo: profile.strategyElo,
-        xp: profile.xp
+        moonfallP4Elo: profile.moonfallP4Elo,
+        hexblitzElo: profile.hexblitzElo,
+        moonfallSettlersElo: profile.moonfallSettlersElo,
+        moonfallWorldConquestElo: profile.moonfallWorldConquestElo,
+        moonfallRtsElo: profile.moonfallRtsElo,
+        ratings: profile.ratings,
+        xp: profile.xp,
+        level: profile.level,
+        levelInfo: profile.levelInfo
       }));
     }
 
@@ -454,22 +282,18 @@ async function loadProfile(){
     console.error(err);
     renderProfile({
       username: profileUsername,
-      elo: user.elo || 1000,
-      chessElo: user.chessElo || user.elo || 1000,
-      othelloElo: user.othelloElo || 1000,
-      azulElo: user.azulElo || 1000,
-      strategyElo: user.strategyElo || 1000,
       avatar: user.avatar || "",
       xp: user.xp || 0,
-      stats: { wins: 0, losses: 0, winrate: 0 },
+      ratings: user.ratings || {},
+      level: user.level || 1,
+      levelInfo: user.levelInfo || { currentXp: 0, nextXp: 100, progress: 0, level: 1 },
+      stats: { wins: 0, losses: 0, draws: 0, winrate: 0 },
       matchHistory: []
     });
   }
 }
 
 loadProfile();
-
 </script>
-
 </body>
 </html>

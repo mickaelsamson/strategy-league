@@ -4,336 +4,259 @@
 <link rel="stylesheet" href="/assets/styles/theme.css">
 <script defer src="/assets/scripts/site-shell.js"></script>
 <title>Admin Panel</title>
-
 <style>
-body {
-  color: var(--shell-text);
-  text-align: left;
-  margin: 0;
-}
-
-.admin-page{
-  width:min(980px, 100%);
-  margin:0 auto;
-}
-
-.admin-hero{
-  margin-bottom:22px;
-}
-
-.admin-hero h1{
-  margin:2px 0 8px;
-  font-size:42px;
-}
-
-.admin-hero p{
-  margin:0;
-  color:var(--shell-soft);
-}
-
-.admin-kicker{
-  color:var(--shell-red);
-  font-weight:900;
-}
-
-.admin-grid{
-  display:grid;
-  grid-template-columns:minmax(280px, 360px) 1fr;
-  gap:18px;
-  align-items:start;
-}
-
-.admin-card{
-  background:var(--shell-card);
-  border:1px solid var(--shell-line);
-  border-radius:8px;
-  padding:22px;
-  box-shadow:0 18px 70px rgba(0,0,0,0.22);
-}
-
-.admin-card h2{
-  margin:0 0 10px;
-}
-
-.admin-card p{
-  color:var(--shell-soft);
-  line-height:1.45;
-}
-
-.switch-wrap {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.switch {
-  position: relative;
-  width: 64px;
-  height: 36px;
-  display: inline-block;
-}
-
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  inset: 0;
-  background-color: #64748b;
-  transition: .2s;
-  border-radius: 999px;
-}
-
-.slider:before {
-  content: "";
-  position: absolute;
-  height: 28px;
-  width: 28px;
-  left: 4px;
-  top: 4px;
-  background-color: white;
-  transition: .2s;
-  border-radius: 50%;
-}
-
-input:checked + .slider {
-  background-color: #10b981;
-}
-
-input:checked + .slider:before {
-  transform: translateX(28px);
-}
-
-#status {
-  margin-top: 18px;
-  opacity: 0.9;
-  color:var(--shell-soft);
-}
-
-button{
-  min-height:42px;
-  padding:0 15px;
-  border:1px solid var(--shell-line);
-  border-radius:8px;
-  cursor:pointer;
-  background:linear-gradient(135deg, var(--shell-red), var(--shell-red-dark));
-  color:var(--shell-text);
-}
-
-.ghost-btn{
-  background:rgba(255,82,104,0.1);
-}
-
-button:hover{
-  filter:brightness(1.08);
-}
-
-.bonus-form{
-  display:grid;
-  gap:12px;
-}
-
-.bonus-form label{
-  display:grid;
-  gap:6px;
-  color:var(--shell-soft);
-  font-weight:800;
-  font-size:13px;
-}
-
-.bonus-form input,
-.bonus-form textarea{
-  width:100%;
-  box-sizing:border-box;
-  border:1px solid var(--shell-line);
-  border-radius:8px;
-  background:rgba(28,8,12,0.68);
-  color:var(--shell-text);
-  padding:11px 12px;
-  font-size:14px;
-}
-
-.bonus-form textarea{
-  min-height:92px;
-  resize:vertical;
-}
-
-#bonusStatus{
-  min-height:20px;
-  color:var(--shell-soft);
-  margin:0;
-}
-
-@media (max-width:820px){
-  .admin-grid{
-    grid-template-columns:1fr;
-  }
-}
+body{margin:0;color:var(--shell-text)}
+.admin-page{width:min(1180px,100%);margin:0 auto}
+.admin-hero{margin-bottom:22px}
+.admin-hero h1{margin:4px 0 8px;font-size:42px}
+.admin-hero p{margin:0;color:var(--shell-soft)}
+.admin-kicker{color:var(--shell-red);font-weight:900}
+.admin-grid{display:grid;grid-template-columns:minmax(280px,360px) 1fr;gap:18px;align-items:start}
+.admin-card{background:var(--shell-card);border:1px solid var(--shell-line);border-radius:10px;padding:22px;box-shadow:0 18px 70px rgba(0,0,0,.22)}
+.admin-card h2{margin:0 0 10px}
+.admin-card p{color:var(--shell-soft);line-height:1.5}
+.switch-wrap,.status-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.switch{position:relative;width:64px;height:36px;display:inline-block}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;cursor:pointer;background:#64748b;transition:.2s;border-radius:999px}
+.slider:before{content:"";position:absolute;height:28px;width:28px;left:4px;top:4px;background:#fff;transition:.2s;border-radius:50%}
+input:checked + .slider{background:#10b981}
+input:checked + .slider:before{transform:translateX(28px)}
+#status,#adjustStatus,#accessStatus{min-height:20px;color:var(--shell-soft);margin:14px 0 0}
+button{min-height:42px;padding:0 15px;border:1px solid var(--shell-line);border-radius:8px;cursor:pointer;background:linear-gradient(135deg,var(--shell-red),var(--shell-red-dark));color:var(--shell-text)}
+button:hover{filter:brightness(1.08)}
+.ghost-btn{background:rgba(255,82,104,.1)}
+.form-grid,.game-access-grid{display:grid;gap:12px}
+label{display:grid;gap:6px;color:var(--shell-soft);font-weight:800;font-size:13px}
+input,textarea{width:100%;box-sizing:border-box;border:1px solid var(--shell-line);border-radius:8px;background:rgba(28,8,12,.68);color:var(--shell-text);padding:11px 12px;font-size:14px}
+textarea{min-height:92px;resize:vertical}
+.game-row{display:grid;grid-template-columns:minmax(180px,1.1fr) repeat(3,120px);gap:10px;align-items:center;padding:14px;border:1px solid rgba(255,91,105,.14);border-radius:10px;background:rgba(16,4,7,.34)}
+.game-row strong{display:block}
+.game-row small{display:block;color:var(--shell-soft);margin-top:3px}
+.pill{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:0 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);font-size:12px;font-weight:800}
+.pill.live{color:#c7ffe5;border-color:rgba(16,185,129,.34);background:rgba(16,185,129,.1)}
+.pill.locked{color:#ffd7d1;border-color:rgba(255,82,104,.34);background:rgba(255,82,104,.12)}
+.toggle-cell{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.toggle-cell span{font-size:12px;color:var(--shell-soft);font-weight:800}
+@media (max-width:980px){.admin-grid{grid-template-columns:1fr}.game-row{grid-template-columns:1fr}.toggle-cell{justify-content:flex-start}}
 </style>
 </head>
-
 <body class="with-navbar">
-  
-<!-- NAVBAR -->
 <div id="navbar-container"></div>
-
 <main class="admin-page">
   <header class="admin-hero">
     <span class="admin-kicker">Control Room</span>
     <h1>Admin Panel</h1>
-    <p>Manage live access and grant manual XP rewards.</p>
+    <p>Lock games down server-side, manage coming soon access, and adjust student XP with an audit reason.</p>
   </header>
 
   <section class="admin-grid">
     <article class="admin-card">
-      <h2>Game Access</h2>
-      <p>Turning this off blocks new lobby creation, joins, and ready-up across all games.</p>
+      <h2>Global Access</h2>
+      <p>Turning this off blocks new public lobby creation and ready-up across the platform. Admins keep access for moderation and testing.</p>
       <div class="switch-wrap">
-        <span>All games</span>
+        <span>Public games</span>
         <label class="switch">
-          <input id="gamesSwitch" type="checkbox" />
+          <input id="gamesSwitch" type="checkbox">
           <span class="slider"></span>
         </label>
-        <strong id="switchLabel">OFF</strong>
+        <strong id="switchLabel">ON</strong>
       </div>
       <p id="status">Loading status...</p>
     </article>
 
     <article class="admin-card">
-      <h2>Bonus XP</h2>
-      <form id="bonusForm" class="bonus-form">
+      <h2>XP Adjustment</h2>
+      <p>Use positive XP for rewards and negative XP for penalties. A reason is mandatory and stored in match history.</p>
+      <form id="adjustForm" class="form-grid">
         <label>
           <span>Player username</span>
-          <input id="bonusUsername" autocomplete="off" placeholder="Username">
+          <input id="adjustUsername" autocomplete="off" placeholder="Username">
         </label>
         <label>
           <span>XP amount</span>
-          <input id="bonusAmount" type="number" min="1" step="1" placeholder="25">
+          <input id="adjustAmount" type="number" step="1" placeholder="-10 or 25">
         </label>
         <label>
           <span>Reason</span>
-          <textarea id="bonusReason" placeholder="Tournament reward, moderation compensation..."></textarea>
+          <textarea id="adjustReason" placeholder="Late arrival, fair play reward, manual correction..."></textarea>
         </label>
-        <button type="submit">Give Bonus XP</button>
-        <p id="bonusStatus"></p>
+        <button type="submit">Apply XP Adjustment</button>
+        <p id="adjustStatus"></p>
       </form>
     </article>
   </section>
 
-  <button class="ghost-btn" onclick="goMain()">Back to Main Menu</button>
+  <section class="admin-card" style="margin-top:18px">
+    <div class="status-row">
+      <h2 style="margin:0">Game Access Matrix</h2>
+      <span class="pill live">Server enforced</span>
+    </div>
+    <p>Each toggle updates the server source of truth. `Enabled` controls public access, `Admin only` restricts to admins, and `Coming soon` marks the game in the hub and leaderboard copy.</p>
+    <div id="gameAccessGrid" class="game-access-grid"></div>
+    <p id="accessStatus"></p>
+  </section>
+
+  <button class="ghost-btn" onclick="window.location.href='/'">Back to Home</button>
 </main>
 
 <script>
+const labels = {
+  chess: { title: "Chess", copy: "Ranked chess ladder" },
+  othello: { title: "Othello", copy: "Classic board ladder" },
+  azul: { title: "Azul Arena", copy: "Tile drafting ladder" },
+  moonfall_p4: { title: "Moonfall Power 4", copy: "Connect 4 duels" },
+  hexblitz: { title: "Hexblitz", copy: "Hex path battles" },
+  moonfall_settlers: { title: "Moonfall Settlers", copy: "Catan-like strategy board" },
+  moonfall_world_conquest: { title: "Moonfall World Conquest", copy: "Risk-like campaign" },
+  moonfall_rts: { title: "Moonfall RTS", copy: "Real-time strategy prototype" }
+};
 
-const user = JSON.parse(localStorage.getItem("user"));
 const gamesSwitch = document.getElementById("gamesSwitch");
 const switchLabel = document.getElementById("switchLabel");
 const statusEl = document.getElementById("status");
-const bonusForm = document.getElementById("bonusForm");
-const bonusStatus = document.getElementById("bonusStatus");
+const adjustForm = document.getElementById("adjustForm");
+const adjustStatus = document.getElementById("adjustStatus");
+const accessGrid = document.getElementById("gameAccessGrid");
+const accessStatus = document.getElementById("accessStatus");
+let latestAccess = {};
 
-function render(enabled){
+function renderGlobal(enabled){
   gamesSwitch.checked = enabled;
   switchLabel.textContent = enabled ? "ON" : "OFF";
-  statusEl.textContent = enabled
-    ? "Games are enabled"
-    : "Games are disabled";
+  statusEl.textContent = enabled ? "Public access is enabled." : "Public access is disabled. Admin bypass stays active.";
 }
 
-async function fetchGamesStatus(){
-  try {
-    const res = await fetch("/api/games/status");
-    const data = await res.json();
-    render(Boolean(data.enabled));
-  } catch (err) {
-    statusEl.textContent = "Unable to load game status.";
-    console.error(err);
-  }
+function rowMarkup(gameKey, config){
+  const label = labels[gameKey] || { title: gameKey, copy: "" };
+  return `
+    <div class="game-row" data-game="${gameKey}">
+      <div>
+        <strong>${label.title}</strong>
+        <small>${label.copy}</small>
+        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+          <span class="pill ${config.enabled ? "live" : "locked"}">${config.enabled ? "Enabled" : "Disabled"}</span>
+          ${config.adminOnly ? '<span class="pill locked">Admin only</span>' : ''}
+          ${config.comingSoon ? '<span class="pill locked">Coming soon</span>' : ''}
+        </div>
+      </div>
+      <label class="toggle-cell">
+        <span>Enabled</span>
+        <span class="switch">
+          <input type="checkbox" data-field="enabled" ${config.enabled ? "checked" : ""}>
+          <span class="slider"></span>
+        </span>
+      </label>
+      <label class="toggle-cell">
+        <span>Admin only</span>
+        <span class="switch">
+          <input type="checkbox" data-field="adminOnly" ${config.adminOnly ? "checked" : ""}>
+          <span class="slider"></span>
+        </span>
+      </label>
+      <label class="toggle-cell">
+        <span>Coming soon</span>
+        <span class="switch">
+          <input type="checkbox" data-field="comingSoon" ${config.comingSoon ? "checked" : ""}>
+          <span class="slider"></span>
+        </span>
+      </label>
+    </div>
+  `;
 }
 
-async function setGames(enabled){
-
-  if (!user?.email) {
-    statusEl.textContent = "Admin user not found.";
-    gamesSwitch.checked = !enabled;
-    return;
-  }
-
-  try {
-    const res = await fetch("/api/admin/override", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        adminEmail: user.email,
-        enabled
-      })
+function renderAccess(access){
+  latestAccess = access || {};
+  accessGrid.innerHTML = Object.entries(latestAccess).map(([gameKey, config]) => rowMarkup(gameKey, config)).join("");
+  accessGrid.querySelectorAll("input[data-field]").forEach(input => {
+    input.addEventListener("change", async event => {
+      const row = event.target.closest("[data-game]");
+      const gameKey = row?.dataset.game;
+      if(!gameKey) return;
+      const nextConfig = {
+        ...latestAccess[gameKey],
+        [event.target.dataset.field]: event.target.checked
+      };
+      await saveAccess(gameKey, nextConfig);
     });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      statusEl.textContent = data?.error || "Update rejected.";
-      gamesSwitch.checked = !enabled;
-      return;
-    }
-
-    render(enabled);
-
-  } catch (err) {
-    statusEl.textContent = "Server error.";
-    gamesSwitch.checked = !enabled;
-    console.error(err);
-  }
+  });
 }
 
-gamesSwitch.addEventListener("change", (e) => {
-  setGames(e.target.checked);
-});
+async function fetchAccess(){
+  const response = await fetch("/api/admin/game-access");
+  const data = await response.json();
+  if(!response.ok) throw new Error(data?.error || "Access unavailable");
+  renderGlobal(Boolean(data.enabled));
+  renderAccess(data.access || {});
+}
 
-bonusForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  if(!user?.email){
-    bonusStatus.textContent = "Admin user not found.";
-    return;
-  }
-
-  bonusStatus.textContent = "Sending bonus...";
+async function saveAccess(gameKey, config){
+  accessStatus.textContent = `Saving ${labels[gameKey]?.title || gameKey}...`;
   try{
-    const res = await fetch("/api/admin/bonus-xp", {
+    const response = await fetch("/api/admin/game-access", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        adminEmail: user.email,
-        username: document.getElementById("bonusUsername").value.trim(),
-        xp: Number(document.getElementById("bonusAmount").value),
-        reason: document.getElementById("bonusReason").value.trim()
-      })
+      body: JSON.stringify({ gameKey, ...config })
     });
-    const data = await res.json();
-    if(!res.ok){
-      bonusStatus.textContent = data?.error || "Bonus rejected.";
-      return;
+    const data = await response.json();
+    if(!response.ok){
+      throw new Error(data?.error || "Update rejected");
     }
-    bonusStatus.textContent = `+${data.amount} XP sent to ${data.username}. New total: ${data.xp}.`;
-    bonusForm.reset();
+    renderAccess(data.access || latestAccess);
+    accessStatus.textContent = `${labels[gameKey]?.title || gameKey} updated.`;
   }catch(err){
-    bonusStatus.textContent = "Server error.";
-    console.error(err);
+    accessStatus.textContent = err.message || "Server error.";
+    fetchAccess().catch(()=>null);
+  }
+}
+
+gamesSwitch.addEventListener("change", async event => {
+  statusEl.textContent = "Updating global access...";
+  try{
+    const response = await fetch("/api/admin/override", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: event.target.checked })
+    });
+    const data = await response.json();
+    if(!response.ok){
+      throw new Error(data?.error || "Update rejected");
+    }
+    renderGlobal(Boolean(data.enabled));
+  }catch(err){
+    gamesSwitch.checked = !event.target.checked;
+    statusEl.textContent = err.message || "Server error.";
   }
 });
 
-function goMain(){
-  window.location.href = "/";
-}
+adjustForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  adjustStatus.textContent = "Applying XP adjustment...";
+  try{
+    const response = await fetch("/api/admin/adjust-xp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: document.getElementById("adjustUsername").value.trim(),
+        amount: Number(document.getElementById("adjustAmount").value),
+        reason: document.getElementById("adjustReason").value.trim()
+      })
+    });
+    const data = await response.json();
+    if(!response.ok){
+      throw new Error(data?.error || "Adjustment rejected");
+    }
+    adjustStatus.textContent = `${data.amount > 0 ? "+" : ""}${data.amount} XP applied to ${data.username}. New total: ${data.xp}.`;
+    adjustForm.reset();
+  }catch(err){
+    adjustStatus.textContent = err.message || "Server error.";
+  }
+});
 
-fetchGamesStatus();
-
+fetchAccess().catch(err => {
+  statusEl.textContent = err.message || "Unable to load admin controls.";
+  accessStatus.textContent = err.message || "Unable to load game access.";
+});
 </script>
-
 </body>
 </html>

@@ -759,7 +759,7 @@ function updateLocalProfile(profile){
   const losses = stats.losses || 0;
   const total = stats.total || wins + losses + (stats.draws || 0);
   const winrate = stats.winrate || 0;
-  const level = profile.level || Math.floor(xp / 100) + 1;
+  const level = profile.level || profile.levelInfo?.level || 1;
 
   document.getElementById("heroUsername").textContent = profile.username || user.username;
   document.getElementById("wins").textContent = wins;
@@ -781,6 +781,12 @@ function updateLocalProfile(profile){
     othelloElo: profile.othelloElo,
     azulElo: profile.azulElo,
     strategyElo: profile.strategyElo,
+    moonfallP4Elo: profile.moonfallP4Elo,
+    hexblitzElo: profile.hexblitzElo,
+    moonfallSettlersElo: profile.moonfallSettlersElo,
+    moonfallWorldConquestElo: profile.moonfallWorldConquestElo,
+    moonfallRtsElo: profile.moonfallRtsElo,
+    ratings: profile.ratings,
     xp: profile.xp
   }));
 }
