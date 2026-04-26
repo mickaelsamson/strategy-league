@@ -988,11 +988,18 @@
 
       if(image?.complete && image.naturalWidth){
         const ratio = image.naturalWidth / image.naturalHeight;
-        const drawWidth = length * 1.08;
-        const drawHeight = Math.min(drawWidth / ratio, Math.max(28, state.view.scale * .5));
+        const drawWidth = length * .92;
+        const drawHeight = Math.min(drawWidth / ratio, Math.max(22, state.view.scale * .38));
         ctx.save();
-        ctx.shadowColor = 'rgba(0,0,0,.34)';
-        ctx.shadowBlur = 12;
+        ctx.shadowColor = 'rgba(0,0,0,.46)';
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetY = 2;
+        ctx.globalAlpha = 1;
+        ctx.drawImage(image, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+        ctx.restore();
+
+        ctx.save();
+        ctx.globalAlpha = 1;
         ctx.drawImage(image, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
         ctx.restore();
       }else{
@@ -1027,12 +1034,23 @@
     ctx.fill();
 
     if(image?.complete && image.naturalWidth){
-      const drawHeight = kind === 'city' ? 86 : 68;
+      const drawHeight = kind === 'city' ? 72 : 56;
       const drawWidth = drawHeight * (image.naturalWidth / image.naturalHeight);
+      const drawY = -drawHeight + size * .24;
+
       ctx.save();
-      ctx.shadowColor = 'rgba(0,0,0,.38)';
-      ctx.shadowBlur = 16;
-      ctx.drawImage(image, -drawWidth / 2, -drawHeight + size * .75, drawWidth, drawHeight);
+      ctx.shadowColor = 'rgba(0,0,0,.6)';
+      ctx.shadowBlur = 18;
+      ctx.shadowOffsetY = 4;
+      ctx.globalAlpha = 1;
+      ctx.drawImage(image, -drawWidth / 2, drawY, drawWidth, drawHeight);
+      ctx.restore();
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(240,192,109,.24)';
+      ctx.shadowBlur = 8;
+      ctx.globalAlpha = 1;
+      ctx.drawImage(image, -drawWidth / 2, drawY, drawWidth, drawHeight);
       ctx.restore();
       ctx.restore();
       return;
