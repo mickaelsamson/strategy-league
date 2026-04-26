@@ -5,7 +5,7 @@ function randomId(){
   return Math.random().toString(36).slice(2, 11);
 }
 
-function createMoonfallSettlersModule({ io, socket, state, updatePresence, isGameAllowed }){
+function createMoonfallSettlersModule({ io, socket, state, updatePresence, isGameAllowed, applyStructuredGameResult }){
   function findLobbyByUsername(username){
     return Object.values(state.moonfallSettlersLobbies).find(lobby =>
       lobby.players.some(player => player.username === username)
@@ -76,6 +76,32 @@ function createMoonfallSettlersModule({ io, socket, state, updatePresence, isGam
     }
 
     emitToGame(game, 'moonfall_settlers_state', payload);
+  }
+
+  function getSettlersPoints(player){
+    const settlementPoints = Number(player?.pieces?.settlements || 0);
+    const cityPoints = Number(player?.pieces?.cities || 0) * 2;
+    const devPoints = Array.isArray(player?.devCards)
+      ? player.devCards.filter(card => card?.type === 'vp' || card === 'vp').length
+      : 0;
+    const longestRoadPoints = player?.hasLongestRoad ? 2 : 0;
+    const largestArmyPoints = player?.hasLargestArmy ? 2 : 0;
+    return settlementPoints + cityPoints + devPoints + longestRoadPoints + largestArmyPoints;
+  }
+
+  function settlersScoreFinal(snapshot){
+    if(!Array.isArray(snapshot?.players)) return '';
+    return snapshot.players
+      .map(player => `${player.username || player.name} ${getSettlersPoints(player)}`)
+      .join(' - ');
+  }
+
+  function winnerFromSnapshot(game, snapshot){
+    if(snapshot?.winner === null || snapshot?.winner === undefined) return null;
+    const winnerPlayer = Array.isArray(snapshot?.players) ? snapshot.players[snapshot.winner] : null;
+    if(winnerPlayer?.username) return winnerPlayer.username;
+    if(winnerPlayer?.name) return winnerPlayer.name;
+    return game.players[snapshot.winner]?.username || null;
   }
 
   function startLobbyGame(lobby){
@@ -253,7 +279,27 @@ function createMoonfallSettlersModule({ io, socket, state, updatePresence, isGam
       game.snapshot = snapshot;
       game.ended = Boolean(snapshot?.winner !== null && snapshot?.winner !== undefined) || snapshot?.phase === 'ended';
       emitState(game);
-      updatePresence();
+      if(!game.ended || game.rated || !applyStructuredGameResult){
+        updatePresence();
+        return;
+      }
+
+      const usernames = game.players.map(player => player.username);
+      game.rated = true;
+      applyStructuredGameResult({
+        gameKey: 'moonfall_settlers',
+        usernames,
+        winnerUsername: winnerFromSnapshot(game, snapshot),
+        reason: snapshot?.winner !== null && snapshot?.winner !== undefined ? 'game_end' : 'draw',
+        scoreFinal: settlersScoreFinal(snapshot)
+      })
+        .then(result => {
+          game.result = result?.result || null;
+        })
+        .catch(err => {
+          console.error('Moonfall Settlers result update error:', err);
+        })
+        .finally(()=>updatePresence());
     });
   }
 

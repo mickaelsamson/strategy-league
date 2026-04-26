@@ -8,7 +8,7 @@ const User = require('./models/User');
 const { state, isGameAllowed } = require('./src/server/state');
 const { createApiRouter } = require('./src/server/routes/api');
 const { registerSockets } = require('./src/server/sockets');
-const { applyRankedResult, applyOthelloResult, applyAzulResult } = require('./src/server/services/user-service');
+const { applyRankedResult, applyOthelloResult, applyAzulResult, applyStructuredGameResult } = require('./src/server/services/user-service');
 const { attachAuthUser } = require('./src/server/services/auth-service');
 const { PROTECTED_PAGE_RULES } = require('./src/server/config/constants');
 
@@ -45,7 +45,7 @@ app.get('/admin.html', (req, res)=>{
   res.sendFile(path.join(process.cwd(), 'public', 'admin.html'));
 });
 
-registerSockets({ io, User, state, isGameAllowed, applyRankedResult, applyOthelloResult, applyAzulResult });
+registerSockets({ io, User, state, isGameAllowed, applyRankedResult, applyOthelloResult, applyAzulResult, applyStructuredGameResult });
 
 async function startServer(){
   await mongoose.connect(process.env.MONGO_URI);

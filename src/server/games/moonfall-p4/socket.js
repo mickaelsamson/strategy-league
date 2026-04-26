@@ -5,7 +5,7 @@ function randomId(){
   return Math.random().toString(36).slice(2, 11);
 }
 
-function createMoonfallP4Module({ io, socket, state, updatePresence, isGameAllowed }){
+function createMoonfallP4Module({ io, socket, state, updatePresence, isGameAllowed, applyStructuredGameResult }){
   function findLobbyByUsername(username){
     return Object.values(state.moonfallP4Lobbies).find(lobby =>
       lobby.players.some(player => player.username === username)
@@ -57,6 +57,13 @@ function createMoonfallP4Module({ io, socket, state, updatePresence, isGameAllow
     }
 
     emitToGame(game, 'moonfall_p4_state', payload);
+  }
+
+  function winnerFromSnapshot(game, snapshot){
+    const players = Array.isArray(snapshot?.players) && snapshot.players.length ? snapshot.players : game.players.map(player => player.username);
+    if(snapshot?.winner === 1) return players[0] || null;
+    if(snapshot?.winner === 2) return players[1] || null;
+    return null;
   }
 
   function startLobbyGame(lobby){
@@ -222,6 +229,10 @@ function createMoonfallP4Module({ io, socket, state, updatePresence, isGameAllow
         username: socket.username,
         action
       });
+
+      if(action.type === 'surrender'){
+        game.pendingResultReason = 'surrender';
+      }
     });
 
     socket.on('moonfall_p4_sync_state', ({ gameId, snapshot } = {}) => {
@@ -232,7 +243,29 @@ function createMoonfallP4Module({ io, socket, state, updatePresence, isGameAllow
       game.snapshot = snapshot;
       game.ended = Boolean(snapshot?.gameOver);
       emitState(game);
-      updatePresence();
+      if(!game.ended || game.rated || !applyStructuredGameResult){
+        if(!game.ended) game.pendingResultReason = null;
+        updatePresence();
+        return;
+      }
+
+      const usernames = game.players.map(player => player.username);
+      game.rated = true;
+      applyStructuredGameResult({
+        gameKey: 'moonfall_p4',
+        usernames,
+        winnerUsername: winnerFromSnapshot(game, snapshot),
+        reason: game.pendingResultReason || (snapshot?.winner ? 'game_end' : 'draw'),
+        scoreFinal: snapshot?.winner ? `Turn ${snapshot.turn || 0}` : 'Draw'
+      })
+        .then(result => {
+          game.result = result?.result || null;
+          game.pendingResultReason = null;
+        })
+        .catch(err => {
+          console.error('Moonfall P4 result update error:', err);
+        })
+        .finally(()=>updatePresence());
     });
   }
 

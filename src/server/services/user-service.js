@@ -421,6 +421,105 @@ async function applyAzulResult(User, game, winnerUsername, reason = 'game_end'){
   return { players: payload };
 }
 
+async function applyStructuredGameResult(User, options = {}){
+  const {
+    gameKey,
+    usernames = [],
+    winnerUsername = null,
+    reason = 'game_end',
+    scoreFinal = ''
+  } = options;
+
+  const meta = getGameMeta(gameKey);
+  if(!meta || !Array.isArray(usernames) || usernames.length < 2){
+    return null;
+  }
+
+  const users = await Promise.all(usernames.map(username => User.findOne({ username })));
+  if(users.some(user => !user)) return null;
+
+  const payload = {};
+
+  if(!winnerUsername){
+    users.forEach(user => {
+      const xp = resolveMatchXp(user, gameKey, 'draw');
+      user.draws = (user.draws || 0) + 1;
+      const opponents = users.filter(other => other.username !== user.username).map(other => other.username).join(', ') || 'Table';
+      pushHistoryEntry(user, {
+        result: 'draw',
+        opponent: opponents,
+        xpChange: xp.total,
+        reason,
+        gameKey,
+        gameName: meta.shortName || meta.name,
+        scoreFinal,
+        eloChange: 0,
+        gameOfWeekBonus: xp.bonus
+      });
+      payload[user.username] = resultPayload(user.username, 'draw', xp.total, 0, xp.bonus);
+    });
+
+    await Promise.all(users.map(user => user.save()));
+    return { players: payload, result: { winner: null, losers: [], reason, eloDelta: 0 } };
+  }
+
+  const winnerUser = users.find(user => user.username === winnerUsername);
+  if(!winnerUser) return null;
+
+  const loserUsers = users.filter(user => user.username !== winnerUsername);
+  const winnerElo = getUserElo(winnerUser, gameKey);
+  const eloDelta = Math.max(8, Math.round(
+    loserUsers.reduce((total, loserUser) => total + computeEloDelta(winnerElo, getUserElo(loserUser, gameKey)), 0) /
+    Math.max(1, loserUsers.length)
+  ));
+
+  setUserElo(winnerUser, gameKey, winnerElo + eloDelta);
+  const winnerXp = resolveMatchXp(winnerUser, gameKey, 'win');
+  winnerUser.wins = (winnerUser.wins || 0) + 1;
+  pushHistoryEntry(winnerUser, {
+    result: 'win',
+    opponent: loserUsers.map(user => user.username).join(', ') || 'Table',
+    xpChange: winnerXp.total,
+    reason,
+    gameKey,
+    gameName: meta.shortName || meta.name,
+    scoreFinal,
+    eloChange: eloDelta,
+    gameOfWeekBonus: winnerXp.bonus
+  });
+  payload[winnerUser.username] = resultPayload(winnerUser.username, 'win', winnerXp.total, eloDelta, winnerXp.bonus);
+
+  loserUsers.forEach(loserUser => {
+    const loserElo = getUserElo(loserUser, gameKey);
+    setUserElo(loserUser, gameKey, loserElo - eloDelta);
+    const loserXp = resolveMatchXp(loserUser, gameKey, isAbandonReason(reason) ? 'abandon' : 'loss');
+    loserUser.losses = (loserUser.losses || 0) + 1;
+    pushHistoryEntry(loserUser, {
+      result: 'loss',
+      opponent: winnerUser.username,
+      xpChange: loserXp.total,
+      reason,
+      gameKey,
+      gameName: meta.shortName || meta.name,
+      scoreFinal,
+      eloChange: -eloDelta,
+      gameOfWeekBonus: loserXp.bonus
+    });
+    payload[loserUser.username] = resultPayload(loserUser.username, 'loss', loserXp.total, -eloDelta, loserXp.bonus);
+  });
+
+  await Promise.all(users.map(user => user.save()));
+  return {
+    players: payload,
+    result: {
+      winner: winnerUser.username,
+      losers: loserUsers.map(user => user.username),
+      reason,
+      eloDelta
+    }
+  };
+}
+
 function getLeaderboardField(type){
   const meta = getGameMeta(type);
   return meta?.eloField || null;
@@ -464,6 +563,7 @@ module.exports = {
   applyAzulResult,
   applyOthelloResult,
   applyRankedResult,
+  applyStructuredGameResult,
   applyXpDelta,
   buildRatingsPayload,
   getGameOfWeek,

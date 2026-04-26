@@ -8,7 +8,7 @@ const { DISCONNECT_FORFEIT_MS } = require('../config/constants');
 const { AUTH_COOKIE_NAME, parseCookieHeader, verifyAuthToken } = require('../services/auth-service');
 const { buildRatingsPayload, getLevelInfo } = require('../services/user-service');
 
-function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, applyOthelloResult, applyAzulResult }){
+function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, applyOthelloResult, applyAzulResult, applyStructuredGameResult }){
   const GAME_META = {
     chess: { label: 'Chess', lobbyUrl: '/chess/index.html', gameUrl: '/chess/chess-game.html' },
     othello: { label: 'Othello', lobbyUrl: '/othello/index.html', gameUrl: '/othello/game.html' },
@@ -155,7 +155,8 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
       socket,
       state,
       updatePresence,
-      isGameAllowed
+      isGameAllowed,
+      applyStructuredGameResult: options => applyStructuredGameResult(User, options)
     });
 
     const moonfallP4 = createMoonfallP4Module({
@@ -163,7 +164,8 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
       socket,
       state,
       updatePresence,
-      isGameAllowed
+      isGameAllowed,
+      applyStructuredGameResult: options => applyStructuredGameResult(User, options)
     });
 
     const hexblitz = createHexblitzModule({
@@ -171,7 +173,8 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
       socket,
       state,
       updatePresence,
-      isGameAllowed
+      isGameAllowed,
+      applyStructuredGameResult: options => applyStructuredGameResult(User, options)
     });
 
     socket.on('register_online', payload => {
