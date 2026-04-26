@@ -6,7 +6,7 @@ body{
   --azul-center-size:44%;
   --azul-tile-size:26px;
   --azul-cell-size:27px;
-  --azul-board-width:min(580px, 100%);
+  --azul-board-width:min(700px, 100%);
   --azul-board-slot-size:24px;
   --azul-board-gap:4px;
 }
@@ -17,7 +17,7 @@ body[data-azul-players="3"]{
   --azul-center-size:46%;
   --azul-tile-size:23px;
   --azul-cell-size:24px;
-  --azul-board-width:min(530px, 100%);
+  --azul-board-width:min(640px, 100%);
   --azul-board-slot-size:22px;
   --azul-board-gap:3px;
 }
@@ -28,7 +28,7 @@ body[data-azul-players="4"]{
   --azul-center-size:48%;
   --azul-tile-size:21px;
   --azul-cell-size:22px;
-  --azul-board-width:min(480px, 100%);
+  --azul-board-width:min(580px, 100%);
   --azul-board-slot-size:20px;
   --azul-board-gap:3px;
 }
@@ -48,7 +48,7 @@ body[data-azul-players="4"]{
 
 .azul-container,
 .azul-game{
-  width:min(1260px, 100%);
+  width:min(1540px, 100%);
   margin:0 auto;
 }
 
@@ -234,8 +234,8 @@ button:disabled{
 
 .azul-table{
   display:grid;
-  grid-template-columns:minmax(280px, var(--azul-table-size)) minmax(300px, 1fr);
-  gap:18px;
+  grid-template-columns:minmax(300px, var(--azul-table-size)) minmax(820px, 1fr);
+  gap:26px;
   align-items:start;
 }
 
@@ -247,7 +247,8 @@ button:disabled{
 }
 
 .boards{
-  grid-template-columns:repeat(auto-fit, minmax(min(100%, 300px), max-content));
+  grid-template-columns:repeat(auto-fit, minmax(min(100%, var(--azul-board-width)), max-content));
+  gap:24px;
   justify-content:center;
 }
 
@@ -485,7 +486,7 @@ body.app-shell-active .azul-game .tile-stack{
 }
 
 .player-board{
-  padding:16px 16px 20px;
+  padding:20px 20px 24px;
   overflow:hidden;
   position:relative;
   width:min(100%, var(--azul-board-width));
@@ -521,29 +522,29 @@ body.app-shell-active .azul-game .tile-stack{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  margin-bottom:10px;
+  margin-bottom:14px;
 }
 
 .player-board header span{
   display:block;
   color:#6b4d33;
-  font-size:12px;
+  font-size:15px;
 }
 
 .player-board header strong{
-  font-size:17px;
+  font-size:22px;
   color:#1e130d;
 }
 
 .player-board header b{
-  min-width:44px;
-  height:34px;
+  min-width:64px;
+  height:52px;
   display:grid;
   place-items:center;
   border-radius:8px;
   background:rgba(60,43,24,0.14);
   border:1px solid rgba(125,88,48,0.28);
-  font-size:18px;
+  font-size:24px;
 }
 
 .board-surface{
