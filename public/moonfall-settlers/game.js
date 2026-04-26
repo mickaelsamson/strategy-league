@@ -20,6 +20,26 @@
     pieceSettlement: '/moonfall-settlers/assets/generated/piece-settlement-board.png',
     pieceCity: '/moonfall-settlers/assets/generated/piece-city-board.png',
     pieceDev: '/moonfall-settlers/assets/generated/piece-dev-card-board.png',
+    boardPieces: {
+      roads: [
+        '/moonfall-settlers/assets/player-pieces/road-red.svg',
+        '/moonfall-settlers/assets/player-pieces/road-blue.svg',
+        '/moonfall-settlers/assets/player-pieces/road-green.svg',
+        '/moonfall-settlers/assets/player-pieces/road-gold.svg'
+      ],
+      settlements: [
+        '/moonfall-settlers/assets/player-pieces/settlement-red.svg',
+        '/moonfall-settlers/assets/player-pieces/settlement-blue.svg',
+        '/moonfall-settlers/assets/player-pieces/settlement-green.svg',
+        '/moonfall-settlers/assets/player-pieces/settlement-gold.svg'
+      ],
+      cities: [
+        '/moonfall-settlers/assets/player-pieces/city-red.svg',
+        '/moonfall-settlers/assets/player-pieces/city-blue.svg',
+        '/moonfall-settlers/assets/player-pieces/city-green.svg',
+        '/moonfall-settlers/assets/player-pieces/city-gold.svg'
+      ]
+    },
     crests: [
       '/moonfall-settlers/assets/generated/crest-red-cutout.png',
       '/moonfall-settlers/assets/generated/crest-blue-cutout.png',
@@ -163,6 +183,9 @@
     loadImage('pieceSettlement', ASSETS.pieceSettlement);
     loadImage('pieceCity', ASSETS.pieceCity);
     loadImage('pieceDev', ASSETS.pieceDev);
+    ASSETS.boardPieces.roads.forEach((src, index) => loadImage(`board-road-${index}`, src));
+    ASSETS.boardPieces.settlements.forEach((src, index) => loadImage(`board-settlement-${index}`, src));
+    ASSETS.boardPieces.cities.forEach((src, index) => loadImage(`board-city-${index}`, src));
     ASSETS.crests.forEach((src, index) => loadImage(`crest-${index}`, src));
     RESOURCE_KEYS.forEach(key => {
       loadImage(`tile-${key}`, RESOURCES[key].texture);
@@ -980,7 +1003,7 @@
       const dy = b.y - a.y;
       const length = Math.hypot(dx, dy);
       const angle = Math.atan2(dy, dx);
-      const image = images.pieceRoad;
+      const image = images[`board-road-${player.id}`] || images.pieceRoad;
 
       ctx.save();
       ctx.translate((a.x + b.x) / 2, (a.y + b.y) / 2);
@@ -988,17 +1011,12 @@
 
       if(image?.complete && image.naturalWidth){
         const ratio = image.naturalWidth / image.naturalHeight;
-        const drawWidth = length * .92;
-        const drawHeight = Math.min(drawWidth / ratio, Math.max(22, state.view.scale * .38));
+        const drawWidth = length * .78;
+        const drawHeight = Math.min(drawWidth / ratio, Math.max(16, state.view.scale * .22));
         ctx.save();
         ctx.shadowColor = 'rgba(0,0,0,.46)';
-        ctx.shadowBlur = 10;
-        ctx.shadowOffsetY = 2;
-        ctx.globalAlpha = 1;
-        ctx.drawImage(image, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
-        ctx.restore();
-
-        ctx.save();
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetY = 1;
         ctx.globalAlpha = 1;
         ctx.drawImage(image, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
         ctx.restore();
@@ -1025,7 +1043,7 @@
 
   function drawBuilding(x, y, player, kind){
     const size = kind === 'city' ? 18 : 14;
-    const image = kind === 'city' ? images.pieceCity : images.pieceSettlement;
+    const image = kind === 'city' ? (images[`board-city-${player.id}`] || images.pieceCity) : (images[`board-settlement-${player.id}`] || images.pieceSettlement);
     ctx.save();
     ctx.translate(x, y);
     ctx.fillStyle = 'rgba(0,0,0,.44)';
@@ -1034,21 +1052,21 @@
     ctx.fill();
 
     if(image?.complete && image.naturalWidth){
-      const drawHeight = kind === 'city' ? 72 : 56;
+      const drawHeight = kind === 'city' ? 54 : 42;
       const drawWidth = drawHeight * (image.naturalWidth / image.naturalHeight);
-      const drawY = -drawHeight + size * .24;
+      const drawY = kind === 'city' ? -drawHeight + 8 : -drawHeight + 6;
 
       ctx.save();
       ctx.shadowColor = 'rgba(0,0,0,.6)';
-      ctx.shadowBlur = 18;
-      ctx.shadowOffsetY = 4;
+      ctx.shadowBlur = 14;
+      ctx.shadowOffsetY = 3;
       ctx.globalAlpha = 1;
       ctx.drawImage(image, -drawWidth / 2, drawY, drawWidth, drawHeight);
       ctx.restore();
 
       ctx.save();
-      ctx.shadowColor = 'rgba(240,192,109,.24)';
-      ctx.shadowBlur = 8;
+      ctx.shadowColor = player.accent;
+      ctx.shadowBlur = 6;
       ctx.globalAlpha = 1;
       ctx.drawImage(image, -drawWidth / 2, drawY, drawWidth, drawHeight);
       ctx.restore();
