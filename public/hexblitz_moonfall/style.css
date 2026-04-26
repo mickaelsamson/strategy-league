@@ -100,6 +100,12 @@ body.hexblitz-page [hidden],
 
 .setup-copy { color: #d8d0c9; }
 
+.setup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .setup-grid {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -313,12 +319,16 @@ input {
 }
 
 .hex.p1::before {
-  background-image: url("./assets/tiles/hex_crimson.png");
+  background:
+    radial-gradient(circle at 35% 25%, rgba(255,180,184,.95), rgba(239,64,84,.94) 34%, rgba(103,16,26,.96) 76%) center / 54% 47% no-repeat,
+    url("./assets/tiles/hex_empty.png") center / contain no-repeat;
   filter: drop-shadow(0 0 14px rgba(239,64,84,.78));
 }
 
 .hex.p2::before {
-  background-image: url("./assets/tiles/hex_ivory.png");
+  background:
+    radial-gradient(circle at 35% 25%, rgba(255,255,255,.98), rgba(214,208,200,.96) 42%, rgba(71,77,86,.94) 86%) center / 54% 47% no-repeat,
+    url("./assets/tiles/hex_empty.png") center / contain no-repeat;
   filter: drop-shadow(0 0 14px rgba(255,245,220,.6));
 }
 
@@ -345,8 +355,8 @@ input {
 
 .edge-left { left: 0; top: 50%; transform: rotate(-90deg); color: var(--hb-red); }
 .edge-right { right: 0; top: 50%; transform: rotate(90deg); color: var(--hb-red); }
-.edge-top { top: 18px; color: var(--hb-ivory); }
-.edge-bottom { bottom: 18px; color: var(--hb-ivory); }
+.edge-top { left: 50%; top: 18px; transform: translateX(-50%); color: var(--hb-ivory); }
+.edge-bottom { left: 50%; bottom: 18px; transform: translateX(-50%); color: var(--hb-ivory); }
 
 .bottom-controls {
   margin-top: 20px;

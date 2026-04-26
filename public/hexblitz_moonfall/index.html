@@ -29,7 +29,10 @@
 
         <section id="localSetupPanel">
           <p class="setup-copy">Play a local duel on one screen.</p>
-          <button id="startLocalBtn" type="button" class="primary-btn">Start Local Game</button>
+          <div class="setup-actions">
+            <button id="startLocalBtn" type="button" class="primary-btn">Start Local Game</button>
+            <button type="button" class="secondary-btn" onclick="window.location.href='/tutorial/index.html?game=hexblitz'">TUTORIAL</button>
+          </div>
         </section>
 
         <section id="onlineSetupPanel" class="is-hidden" hidden>
@@ -40,6 +43,7 @@
             <div class="online-cta-group">
               <button id="createOnlineLobbyBtn" type="button" class="primary-btn">Create lobby</button>
               <button id="refreshOnlineBtn" type="button" class="secondary-btn">Refresh</button>
+              <button type="button" class="secondary-btn" onclick="window.location.href='/tutorial/index.html?game=hexblitz'">TUTORIAL</button>
             </div>
           </div>
 

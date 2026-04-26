@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Strategy League Tutorial</title>
+  <link rel="stylesheet" href="/assets/styles/theme.css">
+  <link rel="stylesheet" href="/tutorial/tutorial.css">
+  <script defer src="/assets/scripts/site-shell.js"></script>
+  <script defer src="/tutorial/tutorial.js"></script>
+</head>
+<body class="with-navbar tutorial-page">
+  <div id="navbar-container"></div>
+
+  <main class="tutorial-app">
+    <section class="tutorial-hero">
+      <div>
+        <span id="gameEyebrow" class="eyebrow">Tutorial</span>
+        <h1 id="gameTitle">Tutorial</h1>
+        <p id="gameIntro">Learn the game against a coach AI.</p>
+      </div>
+      <div class="hero-actions">
+        <button id="resetBtn" type="button" class="ghost-btn">Restart Tutorial</button>
+        <button id="backBtn" type="button">Back to Lobby</button>
+      </div>
+    </section>
+
+    <section id="unsupportedView" class="unsupported-view" hidden>
+      <h2>Tutorial unavailable</h2>
+      <p>This game is still in construction, so its tutorial is intentionally disabled for now.</p>
+      <button type="button" onclick="window.location.href='/games.html'">Back to Games</button>
+    </section>
+
+    <section id="tutorialView" class="tutorial-layout">
+      <aside class="lesson-panel">
+        <div class="progress-card">
+          <span id="stepCount">Step 1 / 1</span>
+          <strong id="stepTitle">First move</strong>
+          <div class="progress-track"><i id="progressFill"></i></div>
+        </div>
+
+        <article class="coach-card">
+          <span class="eyebrow">Coach AI</span>
+          <p id="coachText"></p>
+          <p id="objectiveText" class="objective-text"></p>
+        </article>
+
+        <article class="rules-card">
+          <details open>
+            <summary>Rules and options</summary>
+            <ul id="rulesList"></ul>
+          </details>
+          <details>
+            <summary>Tips to win</summary>
+            <ul id="tipsList"></ul>
+          </details>
+        </article>
+      </aside>
+
+      <section class="board-stage">
+        <div id="boardLabel" class="board-label"></div>
+        <div id="board" class="tutorial-board"></div>
+        <div id="aiLog" class="ai-log" aria-live="polite"></div>
+      </section>
+
+      <aside class="choices-panel">
+        <span class="eyebrow">Your move</span>
+        <div id="choices" class="choices"></div>
+        <div id="feedback" class="feedback" aria-live="polite"></div>
+        <button id="nextBtn" type="button" class="next-btn" disabled>Next challenge</button>
+      </aside>
+    </section>
+  </main>
+</body>
+</html>
