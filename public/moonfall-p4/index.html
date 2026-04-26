@@ -3,55 +3,116 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Moonfall — Power 4</title>
-  <link rel="stylesheet" href="./style.css" />
+  <title>Moonfall Power 4</title>
+  <link rel="stylesheet" href="/assets/styles/theme.css" />
+  <link rel="stylesheet" href="/moonfall-p4/style.css" />
+  <script defer src="/assets/scripts/site-shell.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script defer src="/moonfall-p4/game.js"></script>
 </head>
-<body>
-  <main class="moonfall-app">
-    <section class="left-panel panel">
-      <div class="brand-kana">月落</div>
-      <p class="eyebrow">Moonfall Power 4</p>
-      <div class="divider"></div>
-      <p class="tagline">A battle of wits.<br />Align 4 orbs before your opponent.</p>
+<body class="with-navbar moonfall-p4-page">
+  <div id="navbar-container"></div>
 
-      <div class="feature-list">
-        <article>
-          <span>🧠</span>
-          <div>
-            <strong>Strategy Game</strong>
-            <p>Outthink your rival and control the board.</p>
+  <main class="moonfall-app">
+    <section id="setupView" class="setup-view">
+      <article class="setup-art panel-skin">
+        <p class="eyebrow">Moonfall Duel</p>
+        <h1>Power 4</h1>
+        <p>Align 4 moon orbs before your rival. Local face-off or online lobby with the site shell.</p>
+        <div class="preview-grid" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+        </div>
+      </article>
+
+      <article class="setup-card panel-skin">
+        <div class="setup-mode-tabs" role="tablist" aria-label="Game mode">
+          <button id="localModeBtn" type="button" class="setup-mode-tab is-active">Local</button>
+          <button id="onlineModeBtn" type="button" class="setup-mode-tab">Online</button>
+        </div>
+
+        <section id="localSetupPanel">
+          <p class="setup-copy">Play instantly on one screen.</p>
+          <div class="setup-actions">
+            <button id="startLocalBtn" type="button" class="primary-btn">Start Local Game</button>
           </div>
-        </article>
-        <article>
-          <span>📘</span>
-          <div>
-            <strong>Simple Rules</strong>
-            <p>Easy to learn, hard to master.</p>
+        </section>
+
+        <section id="onlineSetupPanel" class="is-hidden" hidden>
+          <div class="setup-grid">
+            <label>Lobby name
+              <input id="onlineLobbyName" value="Moonfall P4 Lobby" />
+            </label>
+            <div class="online-cta-group">
+              <button id="createOnlineLobbyBtn" type="button" class="primary-btn">Create lobby</button>
+              <button id="refreshOnlineBtn" type="button" class="secondary-btn">Refresh</button>
+            </div>
           </div>
-        </article>
-        <article>
-          <span>🏆</span>
-          <div>
-            <strong>Ranked Ready</strong>
-            <p>Designed for XP and leaderboard integration.</p>
+
+          <div class="online-status-card">
+            <span class="eyebrow">Lobby status</span>
+            <strong id="onlineLobbyStatus">Create a lobby or join one.</strong>
+            <span id="onlineLobbyMeta">Online mode is 1v1 (2 players).</span>
           </div>
-        </article>
-      </div>
+
+          <div id="onlineLobbyList" class="online-lobby-list"></div>
+        </section>
+      </article>
     </section>
 
-    <section class="game-panel">
-      <div class="topbar">
-        <button id="backBtn" class="icon-btn" title="Back to site">←</button>
+    <section id="gameView" class="game-view is-hidden" hidden>
+      <header class="topbar panel-skin">
+        <button id="backBtn" class="icon-btn" type="button" title="Back to setup">←</button>
         <div id="status" class="turn-banner">YOUR TURN</div>
-        <button id="resetBtn" class="icon-btn" title="Reset game">↻</button>
-      </div>
+        <button id="resetBtn" class="icon-btn" type="button" title="Reset game">↻</button>
+      </header>
 
-      <div id="board" class="board" aria-label="Moonfall Power 4 board"></div>
+      <div class="play-layout">
+        <aside class="left-panel panel-skin">
+          <div class="info-box">
+            <h3>Game info</h3>
+            <p><span>Time</span><b id="timer">00:00</b></p>
+            <p><span>Turn</span><b id="turnCount">1</b></p>
+            <p><span>Mode</span><b id="modeLabel">Local</b></p>
+          </div>
+          <button id="surrenderBtn" type="button" class="secondary-btn">Surrender</button>
+        </aside>
 
-      <div class="controls">
-        <button class="arrow" id="leftSelect">◀</button>
-        <div class="selected-orb" id="selectedOrb"></div>
-        <button class="arrow" id="rightSelect">▶</button>
+        <section class="board-panel panel-skin">
+          <div id="board" class="board" aria-label="Moonfall Power 4 board"></div>
+          <div class="controls">
+            <button class="arrow" id="leftSelect" type="button">◀</button>
+            <div class="selected-orb" id="selectedOrb"></div>
+            <button class="arrow" id="rightSelect" type="button">▶</button>
+          </div>
+        </section>
+
+        <aside class="right-panel panel-skin">
+          <h3>Players</h3>
+          <div class="player-card enemy">
+            <div class="avatar">☾</div>
+            <div>
+              <strong id="enemyName">RIVAL</strong>
+              <p id="enemyRole">Player 2</p>
+            </div>
+          </div>
+
+          <div class="vs">VS</div>
+
+          <div class="player-card you">
+            <div class="avatar">●</div>
+            <div>
+              <strong id="youName">YOU</strong>
+              <p id="youRole">Player 1</p>
+            </div>
+          </div>
+
+          <div class="how-box">
+            <h3>How to win</h3>
+            <p>Connect 4 orbs horizontally, vertically, or diagonally.</p>
+          </div>
+        </aside>
       </div>
 
       <div class="win-card hidden" id="winCard">
@@ -59,49 +120,11 @@
         <h3 id="winTitle">VICTORY</h3>
         <p id="winText">You have defeated your opponent.</p>
         <div class="win-actions">
-          <button id="playAgainBtn">Play again</button>
-          <button id="menuBtn">Back to menu</button>
+          <button id="playAgainBtn" type="button">Play again</button>
+          <button id="menuBtn" type="button">Back to setup</button>
         </div>
       </div>
     </section>
-
-    <aside class="right-panel panel">
-      <h3>OPPONENT</h3>
-      <div class="player-card enemy">
-        <div class="avatar">☾</div>
-        <div>
-          <strong>RIVAL</strong>
-          <p>Rank: Novice</p>
-          <p>Wins: 12</p>
-        </div>
-      </div>
-
-      <div class="vs">VS</div>
-
-      <div class="player-card you">
-        <div class="avatar">●</div>
-        <div>
-          <strong>YOU</strong>
-          <p>Rank: Apprentice</p>
-          <p>Wins: 27</p>
-        </div>
-      </div>
-
-      <div class="info-box">
-        <h3>GAME INFO</h3>
-        <p><span>⏱ Time</span><b id="timer">00:00</b></p>
-        <p><span>↻ Turn</span><b id="turnCount">1</b></p>
-        <p><span>⚙ Mode</span><b id="modeLabel">Local PvP</b></p>
-      </div>
-
-      <div class="how-box">
-        <h3>HOW TO WIN</h3>
-        <p>Be the first to connect 4 orbs in a row: horizontal, vertical or diagonal.</p>
-      </div>
-    </aside>
   </main>
-
-
-  <script src="./game.js"></script>
 </body>
 </html>

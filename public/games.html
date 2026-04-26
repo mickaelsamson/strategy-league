@@ -103,6 +103,20 @@ body{
     linear-gradient(135deg, #10272a, #24161b 54%, #141126);
 }
 
+.game-tile.moonfall-p4{
+  background:
+    radial-gradient(circle at 70% 28%, rgba(247,239,209,.9) 0 30px, transparent 31px),
+    radial-gradient(circle at 28% 60%, rgba(239,73,85,.72) 0 34px, transparent 35px),
+    linear-gradient(135deg, #0f1d2a, #2a1418 52%, #1a0f1d);
+}
+
+.game-tile.hexblitz{
+  background:
+    linear-gradient(30deg, transparent 0 35%, rgba(255,255,255,.08) 35% 37%, transparent 37% 100%),
+    radial-gradient(circle at 62% 35%, rgba(255,226,198,.92) 0 26px, transparent 27px),
+    linear-gradient(135deg, #2a0f16, #1a2437 45%, #0d1523);
+}
+
 .game-tile > *{
   position:relative;
   z-index:1;
@@ -212,6 +226,20 @@ body{
       <span class="game-tag">Real Time Strategy</span>
       <h2>Moonfall RTS</h2>
       <p>Harvest resources, build a base, command Chasseurs or Demons, and fight team battles up to 8 slots.</p>
+      <span class="play-button">Play Now</span>
+    </a>
+
+    <a class="game-tile moonfall-p4" href="/moonfall-p4/index.html">
+      <span class="game-tag">Connect 4 Duel</span>
+      <h2>Moonfall Power 4</h2>
+      <p>Drop orbs, block lines, and connect four first in local or online duels.</p>
+      <span class="play-button">Play Now</span>
+    </a>
+
+    <a class="game-tile hexblitz" href="/hexblitz_moonfall/index.html">
+      <span class="game-tag">Hex Path Battle</span>
+      <h2>Hexblitz Moonfall</h2>
+      <p>Claim hexes to build a full path across the board, with local and online mode.</p>
       <span class="play-button">Play Now</span>
     </a>
   </section>

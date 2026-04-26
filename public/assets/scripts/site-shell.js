@@ -217,7 +217,7 @@
 
   function isSocketOwnedByPage(){
     const path = window.location.pathname;
-    return path.includes('/chess') || path.includes('/othello') || path.includes('/azul');
+    return path.includes('/chess') || path.includes('/othello') || path.includes('/azul') || path.includes('/moonfall-settlers') || path.includes('/moonfall-p4') || path.includes('/hexblitz_moonfall');
   }
 
   function waitForPageSocket(){
@@ -248,6 +248,9 @@
     if(path.includes('/chess')) return 'chess';
     if(path.includes('/othello')) return 'othello';
     if(path.includes('/azul')) return 'azul';
+    if(path.includes('/moonfall-settlers')) return 'moonfall';
+    if(path.includes('/moonfall-p4')) return 'moonfall_p4';
+    if(path.includes('/hexblitz_moonfall')) return 'hexblitz';
     return null;
   }
 
@@ -255,7 +258,10 @@
     return {
       chess: '/chess/chess-game.html',
       othello: '/othello/game.html',
-      azul: '/azul/game.html'
+      azul: '/azul/game.html',
+      moonfall: '/moonfall-settlers/index.html',
+      moonfall_p4: '/moonfall-p4/index.html',
+      hexblitz: '/hexblitz_moonfall/index.html'
     }[gameKey] || '/games.html';
   }
 

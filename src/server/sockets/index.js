@@ -2,6 +2,8 @@ const { createChessModule } = require('../games/chess/socket');
 const { createOthelloModule } = require('../games/othello/socket');
 const { createAzulModule } = require('../games/azul/socket');
 const { createMoonfallSettlersModule } = require('../games/moonfall-settlers/socket');
+const { createMoonfallP4Module } = require('../games/moonfall-p4/socket');
+const { createHexblitzModule } = require('../games/hexblitz/socket');
 const { DISCONNECT_FORFEIT_MS } = require('../config/constants');
 
 function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, applyOthelloResult, applyAzulResult }){
@@ -9,7 +11,9 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
     chess: { label: 'Chess', lobbyUrl: '/chess/index.html', gameUrl: '/chess/chess-game.html' },
     othello: { label: 'Othello', lobbyUrl: '/othello/index.html', gameUrl: '/othello/game.html' },
     azul: { label: 'Azul Arena', lobbyUrl: '/azul/index.html', gameUrl: '/azul/game.html' },
-    moonfall: { label: 'Moonfall Settlers', lobbyUrl: '/moonfall-settlers/index.html', gameUrl: '/moonfall-settlers/index.html' }
+    moonfall: { label: 'Moonfall Settlers', lobbyUrl: '/moonfall-settlers/index.html', gameUrl: '/moonfall-settlers/index.html' },
+    moonfall_p4: { label: 'Moonfall Power 4', lobbyUrl: '/moonfall-p4/index.html', gameUrl: '/moonfall-p4/index.html' },
+    hexblitz: { label: 'Hexblitz Moonfall', lobbyUrl: '/hexblitz_moonfall/index.html', gameUrl: '/hexblitz_moonfall/index.html' }
   };
 
   function socketsForUsername(username){
@@ -40,6 +44,16 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
       game && !game.ended && game.players?.some(p => p.username === username)
     );
     if(moonfallEntry) return { gameKey: 'moonfall', gameId: moonfallEntry[0], label: GAME_META.moonfall.label, url: GAME_META.moonfall.gameUrl };
+
+    const moonfallP4Entry = Object.entries(state.moonfallP4Games).find(([, game]) =>
+      game && !game.ended && game.players?.some(p => p.username === username)
+    );
+    if(moonfallP4Entry) return { gameKey: 'moonfall_p4', gameId: moonfallP4Entry[0], label: GAME_META.moonfall_p4.label, url: GAME_META.moonfall_p4.gameUrl };
+
+    const hexblitzEntry = Object.entries(state.hexblitzGames).find(([, game]) =>
+      game && !game.ended && game.players?.some(p => p.username === username)
+    );
+    if(hexblitzEntry) return { gameKey: 'hexblitz', gameId: hexblitzEntry[0], label: GAME_META.hexblitz.label, url: GAME_META.hexblitz.gameUrl };
 
     return null;
   }
@@ -75,6 +89,8 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
     io.emit('othello_lobbies_update', state.othelloLobbies);
     io.emit('azul_lobbies_update', state.azulLobbies);
     io.emit('moonfall_settlers_lobbies_update', state.moonfallSettlersLobbies);
+    io.emit('moonfall_p4_lobbies_update', state.moonfallP4Lobbies);
+    io.emit('hexblitz_lobbies_update', state.hexblitzLobbies);
     io.sockets.sockets.forEach(s => emitActiveGame(s));
   }
 
@@ -113,6 +129,20 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
     });
 
     const moonfall = createMoonfallSettlersModule({
+      io,
+      socket,
+      state,
+      updatePresence,
+      isGameAllowed
+    });
+    const moonfallP4 = createMoonfallP4Module({
+      io,
+      socket,
+      state,
+      updatePresence,
+      isGameAllowed
+    });
+    const hexblitz = createHexblitzModule({
       io,
       socket,
       state,
@@ -189,6 +219,8 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
       }
 
       moonfall.rebindForUsername(socket.username);
+      moonfallP4.rebindForUsername(socket.username);
+      hexblitz.rebindForUsername(socket.username);
 
       emitActiveGame(socket);
       updatePresence();
@@ -198,6 +230,8 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
     othello.register();
     azul.register();
     moonfall.register();
+    moonfallP4.register();
+    hexblitz.register();
 
     socket.on('send_game_invite', ({ toUsername, gameKey } = {})=>{
       if(!socket.username || !toUsername || toUsername === socket.username) return;
@@ -293,6 +327,8 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
       }
 
       moonfall.handleDisconnect();
+      moonfallP4.handleDisconnect();
+      hexblitz.handleDisconnect();
 
       io.emit('othello_lobbies_update', state.othelloLobbies);
       io.emit('azul_lobbies_update', state.azulLobbies);

@@ -101,7 +101,14 @@ function createApiRouter({ User, state, isGameAllowed, io }){
       ...Object.values(state.othelloGames || {}).filter(game => !game?.ended)
     ]);
 
-    const strategy = 0;
+    const strategy = countUniquePlayers([
+      ...Object.values(state.moonfallSettlersLobbies || {}),
+      ...Object.values(state.moonfallSettlersGames || {}).filter(game => !game?.ended),
+      ...Object.values(state.moonfallP4Lobbies || {}),
+      ...Object.values(state.moonfallP4Games || {}).filter(game => !game?.ended),
+      ...Object.values(state.hexblitzLobbies || {}),
+      ...Object.values(state.hexblitzGames || {}).filter(game => !game?.ended)
+    ]);
     const azul = countUniquePlayers([
       ...Object.values(state.azulLobbies || {}),
       ...Object.values(state.azulGames || {}).filter(game => !game?.ended)
@@ -133,10 +140,16 @@ function createApiRouter({ User, state, isGameAllowed, io }){
         state.lobbies = {};
         state.othelloLobbies = {};
         state.azulLobbies = {};
+        state.moonfallSettlersLobbies = {};
+        state.moonfallP4Lobbies = {};
+        state.hexblitzLobbies = {};
         if(io){
           io.emit('lobbies_update', state.lobbies);
           io.emit('othello_lobbies_update', state.othelloLobbies);
           io.emit('azul_lobbies_update', state.azulLobbies);
+          io.emit('moonfall_settlers_lobbies_update', state.moonfallSettlersLobbies);
+          io.emit('moonfall_p4_lobbies_update', state.moonfallP4Lobbies);
+          io.emit('hexblitz_lobbies_update', state.hexblitzLobbies);
         }
       }
       res.json({ success: true, enabled: state.manualOverride });

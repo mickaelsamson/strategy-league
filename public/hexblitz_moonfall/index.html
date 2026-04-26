@@ -3,37 +3,64 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hex Blitz Moonfall</title>
-  <link rel="stylesheet" href="./style.css" />
+  <title>Hexblitz Moonfall</title>
+  <link rel="stylesheet" href="/assets/styles/theme.css" />
+  <link rel="stylesheet" href="/hexblitz_moonfall/style.css" />
+  <script defer src="/assets/scripts/site-shell.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script defer src="/hexblitz_moonfall/game.js"></script>
 </head>
-<body>
-  <main class="hb-app">
-    <section class="hero-panel">
-      <div class="brand">
-        <div class="stamp"></div>
-        <p>Strategy • Conquer • Connect</p>
-        <h1>HEX BLITZ</h1>
-        <h2>MOONFALL</h2>
-      </div>
+<body class="with-navbar hexblitz-page">
+  <div id="navbar-container"></div>
 
-      <div class="package-box">
-        <h3>How to play</h3>
-        <ul>
-          <li>Crimson connects left → right.</li>
-          <li>Lunar connects top → bottom.</li>
-          <li>Claim one empty hex per turn.</li>
-          <li>First completed path wins.</li>
-        </ul>
-      </div>
+  <main class="hb-app">
+    <section id="setupView" class="setup-view">
+      <article class="hero-panel panel-skin">
+        <p class="eyebrow">Moonfall Hex Arena</p>
+        <h1>Hexblitz</h1>
+        <p>Crimson connects left to right. Lunar connects top to bottom. Claim one empty hex each turn.</p>
+      </article>
+
+      <article class="setup-card panel-skin">
+        <div class="setup-mode-tabs" role="tablist" aria-label="Game mode">
+          <button id="localModeBtn" type="button" class="setup-mode-tab is-active">Local</button>
+          <button id="onlineModeBtn" type="button" class="setup-mode-tab">Online</button>
+        </div>
+
+        <section id="localSetupPanel">
+          <p class="setup-copy">Play a local duel on one screen.</p>
+          <button id="startLocalBtn" type="button" class="primary-btn">Start Local Game</button>
+        </section>
+
+        <section id="onlineSetupPanel" class="is-hidden" hidden>
+          <div class="setup-grid">
+            <label>Lobby name
+              <input id="onlineLobbyName" value="Hexblitz Lobby" />
+            </label>
+            <div class="online-cta-group">
+              <button id="createOnlineLobbyBtn" type="button" class="primary-btn">Create lobby</button>
+              <button id="refreshOnlineBtn" type="button" class="secondary-btn">Refresh</button>
+            </div>
+          </div>
+
+          <div class="online-status-card">
+            <span class="eyebrow">Lobby status</span>
+            <strong id="onlineLobbyStatus">Create a lobby or join one.</strong>
+            <span id="onlineLobbyMeta">Online mode is 1v1 (2 players).</span>
+          </div>
+
+          <div id="onlineLobbyList" class="online-lobby-list"></div>
+        </section>
+      </article>
     </section>
 
-    <section class="arena">
-      <header class="arena-header">
-        <div class="player-card crimson active" id="p1Card">
+    <section id="gameView" class="game-view is-hidden" hidden>
+      <header class="arena-header panel-skin">
+        <div class="player-card crimson" id="p1Card">
           <div class="orb"></div>
           <div>
             <small>Player 1</small>
-            <strong>Crimson</strong>
+            <strong id="p1Name">Crimson</strong>
           </div>
         </div>
 
@@ -46,50 +73,48 @@
           <div class="orb"></div>
           <div>
             <small>Player 2</small>
-            <strong>Lunar</strong>
+            <strong id="p2Name">Lunar</strong>
           </div>
         </div>
       </header>
 
-      <div class="stats-left statbox">
-        <small>Tiles</small>
-        <strong id="p1Tiles">0</strong>
-        <small>Time</small>
-        <strong id="timerA">00:00</strong>
-      </div>
+      <section class="arena panel-skin">
+        <div class="stats-left statbox">
+          <small>Tiles</small>
+          <strong id="p1Tiles">0</strong>
+          <small>Time</small>
+          <strong id="timerA">00:00</strong>
+        </div>
 
-      <div class="stats-right statbox">
-        <small>Tiles</small>
-        <strong id="p2Tiles">0</strong>
-        <small>Turn</small>
-        <strong id="turnCount">1</strong>
-      </div>
+        <div class="stats-right statbox">
+          <small>Tiles</small>
+          <strong id="p2Tiles">0</strong>
+          <small>Turn</small>
+          <strong id="turnCount">1</strong>
+        </div>
 
-      <div class="board-frame">
-        <div class="edge edge-left">CRIMSON</div>
-        <div class="edge edge-right">CRIMSON</div>
-        <div class="edge edge-top">LUNAR</div>
-        <div class="edge edge-bottom">LUNAR</div>
-        <div id="board" class="hex-board"></div>
-      </div>
+        <div class="board-frame">
+          <div class="edge edge-left">CRIMSON</div>
+          <div class="edge edge-right">CRIMSON</div>
+          <div class="edge edge-top">LUNAR</div>
+          <div class="edge edge-bottom">LUNAR</div>
+          <div id="board" class="hex-board"></div>
+        </div>
 
-      <div class="bottom-controls">
-        <button id="surrenderBtn">Surrender</button>
-        <div class="turn-dot"><span></span><b id="turnLabel">CRIMSON TURN</b></div>
-        <button id="resetBtn">Reset Game</button>
-      </div>
+        <div class="bottom-controls">
+          <button id="backBtn" type="button" class="secondary-btn">Back</button>
+          <div class="turn-dot"><span></span><b id="turnLabel">CRIMSON TURN</b></div>
+          <button id="surrenderBtn" type="button" class="secondary-btn">Surrender</button>
+          <button id="resetBtn" type="button" class="primary-btn">Reset</button>
+        </div>
+      </section>
 
       <div class="win-modal hidden" id="winModal">
-        <div class="burst"></div>
         <p>Moonfall path complete</p>
         <h2 id="winTitle">CRIMSON WINS</h2>
-        <button id="playAgainBtn">Play Again</button>
+        <button id="playAgainBtn" type="button">Play again</button>
       </div>
     </section>
-
-   
   </main>
-
-  <script src="./game.js"></script>
 </body>
 </html>

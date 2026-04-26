@@ -9,10 +9,16 @@ const state = {
   azulGames: {},
   moonfallSettlersLobbies: {},
   moonfallSettlersGames: {},
+  moonfallP4Lobbies: {},
+  moonfallP4Games: {},
+  hexblitzLobbies: {},
+  hexblitzGames: {},
   playerGames: {},
   othelloPlayerGames: {},
   azulPlayerGames: {},
   moonfallSettlersPlayerGames: {},
+  moonfallP4PlayerGames: {},
+  hexblitzPlayerGames: {},
   rematchRequests: {},
   pendingDisconnects: {}
 };

@@ -310,11 +310,24 @@
   function renderOnlineLobbyList(){
     if(!dom.onlineLobbyList) return;
     if(!onlineState.available){
-      dom.onlineLobbyStatus.textContent = 'Sign in on the main site to unlock online lobbies.';
-      dom.onlineLobbyMeta.textContent = 'Local mode is still available in this browser.';
+      dom.onlineLobbyStatus.textContent = 'Open Moonfall through the app server to unlock online lobbies.';
+      dom.onlineLobbyMeta.textContent = 'Local mode still works here, but Socket.IO and account presence need the main app server.';
+      if(dom.createOnlineLobbyBtn) dom.createOnlineLobbyBtn.disabled = true;
+      if(dom.refreshOnlineBtn) dom.refreshOnlineBtn.disabled = true;
+      if(dom.onlineLobbyName) dom.onlineLobbyName.disabled = true;
+      if(dom.onlineMaxPlayers) dom.onlineMaxPlayers.disabled = true;
+      if(dom.onlineBoardMode) dom.onlineBoardMode.disabled = true;
+      if(dom.onlineTargetScore) dom.onlineTargetScore.disabled = true;
       dom.onlineLobbyList.innerHTML = '<div class="online-empty">Online play needs a logged-in Strategy League profile.</div>';
       return;
     }
+
+    if(dom.createOnlineLobbyBtn) dom.createOnlineLobbyBtn.disabled = false;
+    if(dom.refreshOnlineBtn) dom.refreshOnlineBtn.disabled = false;
+    if(dom.onlineLobbyName) dom.onlineLobbyName.disabled = false;
+    if(dom.onlineMaxPlayers) dom.onlineMaxPlayers.disabled = false;
+    if(dom.onlineBoardMode) dom.onlineBoardMode.disabled = false;
+    if(dom.onlineTargetScore) dom.onlineTargetScore.disabled = false;
 
     const lobbies = Object.values(onlineState.lobbies || {});
     if(!lobbies.length){
@@ -1409,6 +1422,7 @@
 
   function handleCanvasClick(event){
     if(!state || state.winner || !isHumanInteraction()) return;
+    if(state.trade?.pendingOffer) return;
     const point = getCanvasPoint(event);
     const hit = hitTest(point.x, point.y);
     if(!hit) return;
@@ -2210,7 +2224,7 @@
   }
 
   function endTurn(){
-    if(!state || state.phase !== 'main' || !isHumanInteraction()) return;
+    if(!state || state.phase !== 'main' || !isHumanInteraction() || state.trade?.pendingOffer) return;
     finishTurn();
   }
 
@@ -2766,7 +2780,8 @@
   function updateButtons(){
     const human = isHumanInteraction();
     const player = getInteractionPlayer();
-    const mainHuman = human && state.phase === 'main' && state.activeMode !== 'robber';
+    const tradeLocked = Boolean(state.trade?.pendingOffer);
+    const mainHuman = human && state.phase === 'main' && state.activeMode !== 'robber' && !tradeLocked;
     const canRoll = human && state.phase === 'roll';
     dom.rollBtn.disabled = !(human && state.phase === 'roll');
     dom.rollBtn.textContent = 'Roll dices';
