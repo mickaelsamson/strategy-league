@@ -31,12 +31,12 @@ body{
 
 .games-grid{
   display:grid;
-  grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));
-  gap:20px;
+  grid-template-columns:repeat(auto-fit, minmax(clamp(190px, 28vw, 250px), 1fr));
+  gap:clamp(14px, 2vw, 20px);
 }
 
 .game-tile{
-  min-height:430px;
+  min-height:clamp(300px, 38vw, 430px);
   position:relative;
   overflow:hidden;
   display:flex;
@@ -155,17 +155,7 @@ body{
   cursor:pointer;
 }
 
-@media (max-width:1100px){
-  .games-grid{
-    grid-template-columns:repeat(2, minmax(0, 1fr));
-  }
-}
-
 @media (max-width:700px){
-  .games-grid{
-    grid-template-columns:1fr;
-  }
-
   .game-tile{
     min-height:310px;
   }

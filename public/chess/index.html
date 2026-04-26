@@ -70,9 +70,11 @@ h1{
 }
 
 .invite-row{
-  display:grid;
-  grid-template-columns:1fr auto;
-  gap:8px;
+  display:flex;
+}
+
+.invite-row button{
+  width:100%;
 }
 
 button{
@@ -179,8 +181,7 @@ input, select{
     </select>
     <button onclick="createLobby()">Create Lobby</button>
     <div class="invite-row">
-      <input id="inviteUsername" placeholder="Invite username">
-      <button onclick="sendInvite()">Invite</button>
+      <button type="button" onclick="openInvitePicker()">+ Invite online player</button>
     </div>
     <button class="secondary" onclick="goBack()">Back</button>
     <div class="rules">
@@ -299,10 +300,8 @@ async function checkGamesAccess(){
     socket.emit("toggle_ready", id);
   }
 
-  function sendInvite(){
-    const toUsername = document.getElementById("inviteUsername").value.trim();
-    if(!toUsername) return;
-    socket.emit("send_game_invite", { toUsername, gameKey: "chess" });
+  function openInvitePicker(){
+    window.SiteShell?.openInvitePicker?.("chess");
   }
 
   socket.on("chess_start", (data)=>{
@@ -313,7 +312,7 @@ async function checkGamesAccess(){
   window.createLobby = createLobby;
   window.joinLobby = joinLobby;
   window.toggleReady = toggleReady;
-  window.sendInvite = sendInvite;
+  window.openInvitePicker = openInvitePicker;
 
 })();
 

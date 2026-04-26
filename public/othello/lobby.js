@@ -34,11 +34,9 @@ function createLobby(){
 }
 function join(id){if(gamesEnabled)socket.emit("join_othello_lobby",id);}
 function ready(id){if(gamesEnabled)socket.emit("toggle_othello_ready",id);}
-function sendInvite(){
+function openInvitePicker(){
  if(!gamesEnabled)return;
- const toUsername=document.getElementById("inviteUsername").value.trim();
- if(!toUsername)return;
- socket.emit("send_game_invite",{toUsername,gameKey:"othello"});
+ window.SiteShell?.openInvitePicker?.("othello");
 }
 
 async function checkGamesAccess(){

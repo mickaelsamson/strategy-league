@@ -2,6 +2,8 @@
   const PUBLIC_PATHS = ['/login.html', '/register.html'];
   const GAME_LINKS = new Set(['home', 'games', 'leaderboard', 'profile', 'admin', 'logout']);
   let onlineSocket = null;
+  let latestOnlineUsers = {};
+  let invitePickerOpen = false;
 
   function getUser(){
     try{
@@ -113,11 +115,16 @@
       </aside>
 
       <aside class="app-sidebar-right" aria-label="Online players">
+        <button class="online-tab" type="button" aria-label="Show online players" title="Online players">
+          <i></i><b id="onlineCountTab">0</b>
+        </button>
         <div class="online-panel">
           <div class="online-head">
-            <strong>Online Players</strong>
+            <strong>Online</strong>
             <span><i></i><b id="onlineCount">0</b></span>
+            <button id="onlineInviteToggle" class="online-plus hidden" type="button" aria-label="Invite online player" title="Invite online player">+</button>
           </div>
+          <div id="onlineInvitePicker" class="online-invite-picker hidden"></div>
           <div id="onlinePlayers" class="online-list">
             <div class="online-empty">Connecting...</div>
           </div>
@@ -133,8 +140,34 @@
       btn.addEventListener('click', ()=> goTo(btn.dataset.link));
     });
 
+    bindOnlinePanelControls();
     bindGlobalProfileClicks();
     bootOnlinePlayers(user);
+  }
+
+  function bindOnlinePanelControls(){
+    const sidebar = document.querySelector('.app-sidebar-right');
+    const tab = document.querySelector('.online-tab');
+    const toggle = document.getElementById('onlineInviteToggle');
+    if(tab && sidebar){
+      tab.addEventListener('click', () => {
+        sidebar.classList.toggle('expanded');
+      });
+    }
+
+    if(toggle){
+      toggle.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        openInvitePicker(currentGameKey());
+      });
+    }
+
+    document.addEventListener('click', event => {
+      if(event.target.closest('.app-sidebar-right')) return;
+      sidebar?.classList.remove('expanded');
+      closeInvitePicker();
+    });
   }
 
   function ensureSocketClient(){
@@ -317,9 +350,12 @@
   function renderOnlinePlayers(users){
     const list = document.getElementById('onlinePlayers');
     const count = document.getElementById('onlineCount');
+    const tabCount = document.getElementById('onlineCountTab');
+    const inviteToggle = document.getElementById('onlineInviteToggle');
     if(!list) return;
     const user = getUser();
     const gameKey = currentGameKey();
+    latestOnlineUsers = users || {};
 
     const entries = Object.entries(users || {}).map(([username, data]) => ({
       username,
@@ -327,13 +363,15 @@
     })).sort((a, b) => (b.xp || 0) - (a.xp || 0));
 
     if(count) count.textContent = String(entries.length);
+    if(tabCount) tabCount.textContent = String(entries.length);
+    if(inviteToggle) inviteToggle.classList.toggle('hidden', !gameKey);
     if(!entries.length){
       list.innerHTML = '<div class="online-empty">No players online</div>';
+      renderInvitePicker(gameKey, entries);
       return;
     }
 
     list.innerHTML = entries.map(player => {
-      const canInvite = gameKey && user?.username && player.username !== user.username;
       return `
         <div class="online-player-row">
           <button class="online-player" type="button" data-profile-username="${escapeHtml(player.username)}" data-player='${escapeHtml(JSON.stringify(player))}'>
@@ -343,13 +381,12 @@
             </span>
             <i></i>
           </button>
-          ${canInvite ? `<button class="online-invite" type="button" data-invite-username="${escapeHtml(player.username)}">Invite</button>` : ''}
         </div>
       `;
     }).join('');
 
     bindPlayerCards();
-    bindInviteButtons(gameKey);
+    renderInvitePicker(gameKey, entries);
   }
 
   function getSharedSocket(){
@@ -365,9 +402,59 @@
         const toUsername = button.dataset.inviteUsername;
         if(socket && toUsername && gameKey){
           socket.emit('send_game_invite', { toUsername, gameKey });
+          showToast({ title: 'Invite sent', message: `Invite sent to ${toUsername}.` });
+          closeInvitePicker();
         }
       });
     });
+  }
+
+  function entriesFromLatestUsers(){
+    return Object.entries(latestOnlineUsers || {}).map(([username, data]) => ({
+      username,
+      ...(data || {})
+    })).sort((a, b) => (b.xp || 0) - (a.xp || 0));
+  }
+
+  function openInvitePicker(gameKey){
+    if(!gameKey) return;
+    invitePickerOpen = true;
+    document.querySelector('.app-sidebar-right')?.classList.add('expanded');
+    renderInvitePicker(gameKey, entriesFromLatestUsers());
+  }
+
+  function closeInvitePicker(){
+    invitePickerOpen = false;
+    const picker = document.getElementById('onlineInvitePicker');
+    if(picker) picker.classList.add('hidden');
+  }
+
+  function renderInvitePicker(gameKey, entries){
+    const picker = document.getElementById('onlineInvitePicker');
+    if(!picker) return;
+    const user = getUser();
+    if(!invitePickerOpen || !gameKey){
+      picker.classList.add('hidden');
+      picker.innerHTML = '';
+      return;
+    }
+
+    const targets = entries.filter(player => user?.username && player.username !== user.username);
+    picker.classList.remove('hidden');
+    picker.innerHTML = targets.length
+      ? `
+        <strong>Invite player</strong>
+        <div>
+          ${targets.map(player => `
+            <button class="online-invite-target" type="button" data-invite-username="${escapeHtml(player.username)}">
+              ${avatarMarkup(player, 'online-avatar')}
+              <span>${escapeHtml(player.username)}</span>
+            </button>
+          `).join('')}
+        </div>
+      `
+      : '<div class="online-empty">No invite targets online</div>';
+    bindInviteButtons(gameKey);
   }
 
   function bindPlayerCards(){
@@ -463,6 +550,9 @@
     openProfile(username){
       if(!username) return;
       window.location.href = `/profile.html?username=${encodeURIComponent(username)}`;
+    },
+    openInvitePicker(gameKey){
+      openInvitePicker(gameKey || currentGameKey());
     }
   };
 

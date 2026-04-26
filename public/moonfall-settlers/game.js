@@ -1,11 +1,11 @@
 (() => {
   const RESOURCE_KEYS = ['cedar', 'clay', 'rice', 'wisteria', 'sunsteel'];
   const RESOURCES = {
-    cedar: { name: 'Bois', short: 'Bo', color: '#78d6a7', tile: '#1f6b40', dark: '#0b251d', icon: '/moonfall-settlers/assets/generated/res-wood-512.png', texture: '/moonfall-settlers/assets/generated/tile-forest.png' },
-    clay: { name: 'Brique', short: 'Br', color: '#e08a58', tile: '#8a3f2c', dark: '#26100d', icon: '/moonfall-settlers/assets/generated/res-brick-512.png', texture: '/moonfall-settlers/assets/generated/tile-brick.png' },
-    rice: { name: 'Ble', short: 'Bl', color: '#f1d274', tile: '#a37b24', dark: '#2d210b', icon: '/moonfall-settlers/assets/generated/res-wheat-512.png', texture: '/moonfall-settlers/assets/generated/tile-wheat.png' },
-    wisteria: { name: 'Mouton', short: 'Mo', color: '#9bc66b', tile: '#415e2a', dark: '#17210e', icon: '/moonfall-settlers/assets/generated/res-sheep-512.png', texture: '/moonfall-settlers/assets/generated/tile-pasture.png' },
-    sunsteel: { name: 'Pierre', short: 'Pi', color: '#c7d2d9', tile: '#677173', dark: '#1d2427', icon: '/moonfall-settlers/assets/generated/res-stone-512.png', texture: '/moonfall-settlers/assets/generated/tile-mountain.png' }
+    cedar: { name: 'Wood', short: 'Wo', color: '#78d6a7', tile: '#1f6b40', dark: '#0b251d', icon: '/moonfall-settlers/assets/generated/res-wood-512.png', texture: '/moonfall-settlers/assets/generated/tile-forest.png' },
+    clay: { name: 'Brick', short: 'Br', color: '#e08a58', tile: '#8a3f2c', dark: '#26100d', icon: '/moonfall-settlers/assets/generated/res-brick-512.png', texture: '/moonfall-settlers/assets/generated/tile-brick.png' },
+    rice: { name: 'Wheat', short: 'Wh', color: '#f1d274', tile: '#a37b24', dark: '#2d210b', icon: '/moonfall-settlers/assets/generated/res-wheat-512.png', texture: '/moonfall-settlers/assets/generated/tile-wheat.png' },
+    wisteria: { name: 'Sheep', short: 'Sh', color: '#9bc66b', tile: '#415e2a', dark: '#17210e', icon: '/moonfall-settlers/assets/generated/res-sheep-512.png', texture: '/moonfall-settlers/assets/generated/tile-pasture.png' },
+    sunsteel: { name: 'Ore', short: 'Or', color: '#c7d2d9', tile: '#677173', dark: '#1d2427', icon: '/moonfall-settlers/assets/generated/res-stone-512.png', texture: '/moonfall-settlers/assets/generated/tile-mountain.png' }
   };
 
   const ASSETS = {
@@ -16,10 +16,10 @@
     oni: '/moonfall-settlers/assets/generated/token-oni-medallion.png',
     cardBack: '/moonfall-settlers/assets/generated/card-back-512.png',
     cardKnight: '/moonfall-settlers/assets/generated/card-knight-512.png',
-    pieceRoad: '/moonfall-settlers/assets/generated/piece-road-cutout.png',
-    pieceSettlement: '/moonfall-settlers/assets/generated/piece-settlement-cutout.png',
-    pieceCity: '/moonfall-settlers/assets/generated/piece-city-cutout.png',
-    pieceDev: '/moonfall-settlers/assets/generated/piece-dev-card-cutout.png',
+    pieceRoad: '/moonfall-settlers/assets/generated/piece-road-board.png',
+    pieceSettlement: '/moonfall-settlers/assets/generated/piece-settlement-board.png',
+    pieceCity: '/moonfall-settlers/assets/generated/piece-city-board.png',
+    pieceDev: '/moonfall-settlers/assets/generated/piece-dev-card-board.png',
     crests: [
       '/moonfall-settlers/assets/generated/crest-red-cutout.png',
       '/moonfall-settlers/assets/generated/crest-blue-cutout.png',
@@ -50,11 +50,11 @@
   };
 
   const DEV_CARDS = {
-    knight: { name: 'Chasseur', detail: 'Deplace l Oni et compte pour la Grande Armee.' },
-    road: { name: 'Deux Routes', detail: 'Place deux routes sans payer.' },
-    plenty: { name: 'Offrande', detail: 'Prends deux ressources a la banque.' },
-    monopoly: { name: 'Serment', detail: 'Prends une ressource chez tous les clans.' },
-    vp: { name: 'Relique', detail: 'Vaut un point de victoire.' }
+    knight: { name: 'Knight', detail: 'Move the Oni and count toward Largest Army.' },
+    road: { name: 'Road Building', detail: 'Place two roads for free.' },
+    plenty: { name: 'Year of Plenty', detail: 'Take two resources from the bank.' },
+    monopoly: { name: 'Monopoly', detail: 'Take one resource type from every clan.' },
+    vp: { name: 'Victory Relic', detail: 'Worth one victory point.' }
   };
 
   const DEV_DECK_BAG = [
@@ -67,9 +67,9 @@
 
   const PLAYER_PRESETS = [
     { name: 'The Emperor', color: '#f05a5f', accent: '#ffd36b', crest: ASSETS.crests[0] },
-    { name: 'Clan du Nord', color: '#58b7ff', accent: '#ccecff', crest: ASSETS.crests[1] },
-    { name: "Clan de l'Ouest", color: '#8dcf58', accent: '#ddffd0', crest: ASSETS.crests[2] },
-    { name: 'Clan du Sud', color: '#f2c44d', accent: '#fff1b3', crest: ASSETS.crests[3] }
+    { name: 'Northern Clan', color: '#58b7ff', accent: '#ccecff', crest: ASSETS.crests[1] },
+    { name: 'Western Clan', color: '#8dcf58', accent: '#ddffd0', crest: ASSETS.crests[2] },
+    { name: 'Southern Clan', color: '#f2c44d', accent: '#fff1b3', crest: ASSETS.crests[3] }
   ];
 
   const PIP_WEIGHT = { 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1 };
@@ -77,6 +77,7 @@
   const dom = {
     setupView: document.getElementById('setupView'),
     gameView: document.getElementById('gameView'),
+    topbar: document.querySelector('.topbar'),
     form: document.getElementById('setupForm'),
     slots: document.getElementById('slots'),
     playerCount: document.getElementById('playerCount'),
@@ -119,6 +120,7 @@
   let renderQueued = false;
   let noticeTimer = null;
   let aiTimer = null;
+  let autoRollTimer = null;
 
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const randomInt = max => Math.floor(Math.random() * max);
@@ -139,6 +141,10 @@
     loadImage('oni', ASSETS.oni);
     loadImage('cardBack', ASSETS.cardBack);
     loadImage('cardKnight', ASSETS.cardKnight);
+    loadImage('pieceRoad', ASSETS.pieceRoad);
+    loadImage('pieceSettlement', ASSETS.pieceSettlement);
+    loadImage('pieceCity', ASSETS.pieceCity);
+    loadImage('pieceDev', ASSETS.pieceDev);
     RESOURCE_KEYS.forEach(key => {
       loadImage(`tile-${key}`, RESOURCES[key].texture);
       loadImage(`icon-${key}`, RESOURCES[key].icon);
@@ -165,9 +171,9 @@
 
   function getSavedName(){
     try{
-      return JSON.parse(localStorage.getItem('user') || 'null')?.username || 'Joueur';
+      return JSON.parse(localStorage.getItem('user') || 'null')?.username || 'Player';
     }catch(_err){
-      return 'Joueur';
+      return 'Player';
     }
   }
 
@@ -194,10 +200,10 @@
       row.className = 'slot';
       row.innerHTML = `
         <div class="slot-number" style="color:${preset.color}">${i + 1}</div>
-        <label>Nom<input data-field="name" value="${escapeHtml(i === 0 ? getSavedName() : preset.name)}"></label>
+        <label>Name<input data-field="name" value="${escapeHtml(i === 0 ? getSavedName() : preset.name)}"></label>
         <label>Type<select data-field="type">
-          <option value="human"${i === 0 ? ' selected' : ''}>Humain</option>
-          <option value="ai"${i !== 0 ? ' selected' : ''}>IA</option>
+          <option value="human"${i === 0 ? ' selected' : ''}>Human</option>
+          <option value="ai"${i !== 0 ? ' selected' : ''}>AI</option>
         </select></label>
       `;
       dom.slots.appendChild(row);
@@ -258,6 +264,7 @@
       selected: null,
       hover: null,
       dice: null,
+      dicePair: null,
       devDeck: shuffle(DEV_DECK_BAG),
       devPlayedThisTurn: false,
       freeRoads: 0,
@@ -274,8 +281,8 @@
     dom.gameView.hidden = false;
     dom.gameView.classList.remove('is-hidden');
     resizeCanvas();
-    log('Les clans entrent dans la nuit de Moonfall.');
-    notice('Placement initial: colonie puis route.');
+    log('The clans enter the Moonfall night.');
+    notice('Initial placement: settlement, then road.');
     updateAll();
     scheduleAi();
   }
@@ -551,7 +558,6 @@
   function drawTile(tile){
     const center = screenPoint(tile.center);
     const corners = getTileCorners(tile);
-    const hot = [6, 8].includes(tile.number);
     const resource = RESOURCES[tile.type];
     const tileImage = tile.type === 'crater' ? images.crater : images[`tile-${tile.type}`];
 
@@ -591,7 +597,7 @@
     ctx.restore();
 
     if(tile.type !== 'crater'){
-      drawNumberToken(center, tile.number, hot);
+      drawNumberToken(center, tile.number);
     }
   }
 
@@ -754,10 +760,15 @@
     ctx.fillRect(x - size * .08, y + size * .3, size * .16, size * .54);
   }
 
-  function drawNumberToken(center, number, hot){
+  function drawNumberToken(center, number){
     ctx.save();
     const size = 58;
     const y = center.y + state.view.scale * .1;
+    const rolled = state.dice === number;
+    if(rolled){
+      ctx.shadowColor = 'rgba(94,228,109,.58)';
+      ctx.shadowBlur = 18;
+    }
     if(images.token?.complete && images.token.naturalWidth){
       ctx.drawImage(images.token, center.x - size / 2, y - size / 2, size, size);
     }else{
@@ -768,14 +779,15 @@
       ctx.strokeStyle = '#5d4523';
       ctx.stroke();
     }
-    ctx.fillStyle = hot ? '#9e1e1e' : '#151515';
+    ctx.shadowColor = 'transparent';
+    ctx.fillStyle = rolled ? '#0f8a4f' : '#151515';
     ctx.font = '900 28px Trebuchet MS, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(String(number), center.x, y - 2);
 
     const pips = PIP_WEIGHT[number] || 0;
-    ctx.fillStyle = hot ? '#9e1e1e' : '#151515';
+    ctx.fillStyle = rolled ? '#0f8a4f' : '#151515';
     const start = center.x - (pips - 1) * 3.5;
     for(let i = 0; i < pips; i += 1){
       ctx.beginPath();
@@ -917,25 +929,51 @@
       const player = state.players[edge.road];
       const a = screenPoint(state.board.vertices[edge.v1]);
       const b = screenPoint(state.board.vertices[edge.v2]);
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const length = Math.hypot(dx, dy);
+      const angle = Math.atan2(dy, dx);
+      const image = images.pieceRoad;
+
       ctx.save();
+      ctx.translate((a.x + b.x) / 2, (a.y + b.y) / 2);
+      ctx.rotate(angle);
       ctx.lineCap = 'round';
-      ctx.strokeStyle = 'rgba(0,0,0,.48)';
-      ctx.lineWidth = 12;
-      ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
-      ctx.stroke();
       ctx.strokeStyle = player.color;
-      ctx.lineWidth = 8;
+      ctx.lineWidth = 12;
+      ctx.globalAlpha = .78;
       ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
+      ctx.moveTo(-length * .44, 0);
+      ctx.lineTo(length * .44, 0);
       ctx.stroke();
+
+      if(image?.complete && image.naturalWidth){
+        const drawWidth = length * .78;
+        const drawHeight = Math.max(22, state.view.scale * .32);
+        ctx.globalAlpha = .96;
+        ctx.drawImage(image, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+      }else{
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = 'rgba(0,0,0,.48)';
+        ctx.lineWidth = 12;
+        ctx.beginPath();
+        ctx.moveTo(-length * .44, 0);
+        ctx.lineTo(length * .44, 0);
+        ctx.stroke();
+        ctx.strokeStyle = player.color;
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.moveTo(-length * .44, 0);
+        ctx.lineTo(length * .44, 0);
+        ctx.stroke();
+      }
+
+      ctx.globalAlpha = 1;
       ctx.strokeStyle = player.accent;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
+      ctx.moveTo(-length * .34, -4);
+      ctx.lineTo(length * .34, -4);
       ctx.stroke();
       ctx.restore();
     });
@@ -952,12 +990,32 @@
 
   function drawBuilding(x, y, player, kind){
     const size = kind === 'city' ? 18 : 14;
+    const image = kind === 'city' ? images.pieceCity : images.pieceSettlement;
     ctx.save();
     ctx.translate(x, y);
     ctx.fillStyle = 'rgba(0,0,0,.44)';
     ctx.beginPath();
     ctx.ellipse(0, size * .72, size * 1.05, size * .36, 0, 0, Math.PI * 2);
     ctx.fill();
+
+    if(image?.complete && image.naturalWidth){
+      const drawHeight = kind === 'city' ? 62 : 48;
+      const drawWidth = drawHeight * (image.naturalWidth / image.naturalHeight);
+      ctx.save();
+      ctx.shadowColor = player.color;
+      ctx.shadowBlur = 12;
+      ctx.globalAlpha = .92;
+      ctx.drawImage(image, -drawWidth / 2, -drawHeight + size * .75, drawWidth, drawHeight);
+      ctx.restore();
+
+      ctx.strokeStyle = player.color;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(0, size * .9, size * .75, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
 
     ctx.fillStyle = player.color;
     ctx.strokeStyle = '#11181c';
@@ -1203,22 +1261,22 @@
   function handleSetupClick(player, hit){
     if(state.setupPart === 'settlement' && hit.vertexId !== undefined){
       if(!canBuildSettlement(player.id, hit.vertexId, true)){
-        notice('Placement impossible.');
+        notice('Invalid placement.');
         return;
       }
       placeSettlement(player.id, hit.vertexId, true);
       state.setupPendingVertex = hit.vertexId;
       state.setupPart = 'road';
       state.activeMode = 'road';
-      log(`${player.name} fonde une colonie.`);
-      notice(`${player.name}: route initiale.`);
+      log(`${player.name} founds a settlement.`);
+      notice(`${player.name}: place your starting road.`);
       updateAll();
       return;
     }
 
     if(state.setupPart === 'road' && hit.edgeId !== undefined){
       if(!canBuildRoad(player.id, hit.edgeId, true)){
-        notice('Route impossible.');
+        notice('Invalid road.');
         return;
       }
       placeRoad(player.id, hit.edgeId, true);
@@ -1237,8 +1295,8 @@
       state.activeMode = null;
       state.turn = 0;
       state.turnNumber = 1;
-      log('La derniere torche est plantee. Les des decident la suite.');
-      notice(`${currentPlayer().name}: lance les des.`);
+      log('The last torch is planted. The dice decide what comes next.');
+      notice(`${currentPlayer().name}: rolling dice.`);
       updateAll();
       scheduleAi();
       return;
@@ -1246,7 +1304,7 @@
 
     state.activeMode = 'settlement';
     const next = getSetupPlayer();
-    notice(`${next.name}: colonie initiale.`);
+    notice(`${next.name}: place your starting settlement.`);
     updateAll();
     scheduleAi();
   }
@@ -1259,23 +1317,26 @@
       if(tile.type === 'crater') return;
       player.resources[tile.type] += 1;
     });
-    log(`${player.name} recoit ses ressources de depart.`);
+    log(`${player.name} receives starting resources.`);
   }
 
   function rollDice(){
     if(!state || state.phase !== 'roll' || state.winner) return;
     const player = currentPlayer();
-    const roll = 1 + randomInt(6) + 1 + randomInt(6);
+    const diceOne = 1 + randomInt(6);
+    const diceTwo = 1 + randomInt(6);
+    const roll = diceOne + diceTwo;
     state.dice = roll;
+    state.dicePair = [diceOne, diceTwo];
     state.devPlayedThisTurn = false;
-    log(`${player.name} lance ${roll}.`);
+    log(`${player.name} rolls ${diceOne} + ${diceTwo} = ${roll}.`);
 
     if(roll === 7){
       discardForSeven();
       state.phase = 'robber';
       state.activeMode = 'robber';
       state.pendingRobber = { playerId: player.id, source: 'dice' };
-      notice(`${player.name}: deplace l Oni.`);
+      notice(`${player.name}: move the Oni.`);
       updateAll();
       scheduleAi();
       return;
@@ -1300,7 +1361,7 @@
         player.resources[key] -= 1;
         toDiscard -= 1;
       }
-      log(`${player.name} perd des provisions dans la panique.`);
+      log(`${player.name} loses supplies in the panic.`);
     });
   }
 
@@ -1317,12 +1378,12 @@
       });
     });
 
-    log(gained ? `${gained} ressources arrivent sur le plateau.` : 'La nuit reste silencieuse.');
+    log(gained ? `${gained} resources arrive on the board.` : 'The night stays silent.');
   }
 
   function moveRobber(playerId, tileId){
     if(state.board.robberTile === tileId){
-      notice('Choisis une autre tuile.');
+      notice('Choose another tile.');
       return false;
     }
 
@@ -1335,9 +1396,9 @@
       const resource = available[randomInt(available.length)];
       victim.resources[resource] -= 1;
       player.resources[resource] += 1;
-      log(`${player.name} vole ${RESOURCES[resource].name} a ${victim.name}.`);
+      log(`${player.name} steals ${RESOURCES[resource].name} from ${victim.name}.`);
     }else{
-      log(`${player.name} deplace l Oni sans butin.`);
+      log(`${player.name} moves the Oni without loot.`);
     }
 
     state.phase = 'main';
@@ -1369,15 +1430,15 @@
   function buildRoad(playerId, edgeId, free){
     const player = state.players[playerId];
     if(!canBuildRoad(playerId, edgeId, free)){
-      notice('Route impossible.');
+      notice('Invalid road.');
       return false;
     }
     if(!free && !spend(player, COSTS.road)){
-      notice('Ressources insuffisantes.');
+      notice('Not enough resources.');
       return false;
     }
     placeRoad(playerId, edgeId, true);
-    log(`${player.name} trace une route.`);
+    log(`${player.name} builds a road.`);
     updateAwards();
     checkVictory(playerId);
     return true;
@@ -1392,15 +1453,15 @@
   function buildSettlement(playerId, vertexId, free){
     const player = state.players[playerId];
     if(!canBuildSettlement(playerId, vertexId, free)){
-      notice('Colonie impossible.');
+      notice('Invalid settlement.');
       return false;
     }
     if(!free && !spend(player, COSTS.settlement)){
-      notice('Ressources insuffisantes.');
+      notice('Not enough resources.');
       return false;
     }
     placeSettlement(playerId, vertexId, true);
-    log(`${player.name} fonde une colonie.`);
+    log(`${player.name} founds a settlement.`);
     checkVictory(playerId);
     return true;
   }
@@ -1414,18 +1475,18 @@
   function buildCity(playerId, vertexId){
     const player = state.players[playerId];
     if(!canBuildCity(playerId, vertexId)){
-      notice('Cite impossible.');
+      notice('Invalid city.');
       return false;
     }
     if(!spend(player, COSTS.city)){
-      notice('Ressources insuffisantes.');
+      notice('Not enough resources.');
       return false;
     }
     const vertex = state.board.vertices[vertexId];
     vertex.building.kind = 'city';
     player.pieces.settlements -= 1;
     player.pieces.cities += 1;
-    log(`${player.name} eleve une cite.`);
+    log(`${player.name} upgrades a city.`);
     checkVictory(playerId);
     return true;
   }
@@ -1434,16 +1495,16 @@
     const player = currentPlayer();
     if(!isHumanInteraction() || state.phase !== 'main') return;
     if(!state.devDeck.length){
-      notice('Le paquet est vide.');
+      notice('The deck is empty.');
       return;
     }
     if(!spend(player, COSTS.dev)){
-      notice('Ressources insuffisantes.');
+      notice('Not enough resources.');
       return;
     }
     const type = state.devDeck.pop();
     player.devCards.push({ type, fresh: true });
-    log(`${player.name} pioche ${DEV_CARDS[type].name}.`);
+    log(`${player.name} draws ${DEV_CARDS[type].name}.`);
     checkVictory(player.id);
     updateAll();
   }
@@ -1453,7 +1514,7 @@
     if(!isHumanInteraction() || state.phase !== 'main' || state.devPlayedThisTurn) return;
     const index = player.devCards.findIndex(card => card.type === type && !card.fresh && card.type !== 'vp');
     if(index < 0){
-      notice('Carte indisponible ce tour.');
+      notice('Card unavailable this turn.');
       return;
     }
     player.devCards.splice(index, 1);
@@ -1464,19 +1525,19 @@
       state.activeMode = 'robber';
       state.pendingRobber = { playerId: player.id, source: 'knight' };
       updateLargestArmy();
-      log(`${player.name} joue un Chasseur.`);
-      notice('Deplace l Oni.');
+      log(`${player.name} plays a Knight.`);
+      notice('Move the Oni.');
     }else if(type === 'road'){
       state.freeRoads = 2;
       state.activeMode = 'road';
-      log(`${player.name} joue Deux Routes.`);
-      notice('Place deux routes gratuites.');
+      log(`${player.name} plays Road Building.`);
+      notice('Place two free roads.');
     }else if(type === 'plenty'){
       const first = document.getElementById('plentyOne')?.value || 'cedar';
       const second = document.getElementById('plentyTwo')?.value || first;
       player.resources[first] += 1;
       player.resources[second] += 1;
-      log(`${player.name} recoit une Offrande.`);
+      log(`${player.name} receives Year of Plenty.`);
     }else if(type === 'monopoly'){
       const resource = document.getElementById('monopolyResource')?.value || 'cedar';
       let total = 0;
@@ -1499,7 +1560,7 @@
     const give = dom.tradeGive.value;
     const get = dom.tradeGet.value;
     if(give === get){
-      notice('Choisis deux ressources differentes.');
+      notice('Choose two different resources.');
       return;
     }
     const ratio = getTradeRatio(player.id, give);
@@ -1509,7 +1570,7 @@
     }
     player.resources[give] -= ratio;
     player.resources[get] += 1;
-    log(`${player.name} echange ${ratio}:1 avec la banque.`);
+      log(`${player.name} trades ${ratio}:1 with the bank.`);
     updateAll();
   }
 
@@ -1526,19 +1587,19 @@
     dom.tradeGetAmount.value = String(getAmount);
 
     if(!partner || partner.id === player.id){
-      notice('Choisis un clan.');
+      notice('Choose a clan.');
       return;
     }
     if(give === get){
-      notice('Choisis deux ressources differentes.');
+      notice('Choose two different resources.');
       return;
     }
     if(player.resources[give] < giveAmount){
-      notice(`${player.name} manque de ${RESOURCES[give].name}.`);
+      notice(`${player.name} needs more ${RESOURCES[give].name}.`);
       return;
     }
     if(partner.resources[get] < getAmount){
-      notice(`${partner.name} manque de ${RESOURCES[get].name}.`);
+      notice(`${partner.name} needs more ${RESOURCES[get].name}.`);
       return;
     }
 
@@ -1546,7 +1607,7 @@
     partner.resources[give] += giveAmount;
     partner.resources[get] -= getAmount;
     player.resources[get] += getAmount;
-    log(`${player.name} echange avec ${partner.name}.`);
+    log(`${player.name} trades with ${partner.name}.`);
     updateAll();
   }
 
@@ -1564,13 +1625,27 @@
     state.freeRoads = 0;
     state.devPlayedThisTurn = false;
     state.dice = null;
+    state.dicePair = null;
     state.phase = 'roll';
     state.turn = (state.turn + 1) % state.players.length;
     if(state.turn === 0) state.turnNumber += 1;
     log(`${currentPlayer().name} prend la main.`);
-    notice(`${currentPlayer().name}: lance les des.`);
+    notice(`${currentPlayer().name}: rolling dice.`);
     updateAll();
     scheduleAi();
+  }
+
+  function scheduleAutoRoll(){
+    clearTimeout(autoRollTimer);
+    if(!state || state.winner || state.phase !== 'roll') return;
+    const player = getInteractionPlayer();
+    if(!player || player.type !== 'human') return;
+
+    autoRollTimer = setTimeout(() => {
+      if(!state || state.winner || state.phase !== 'roll') return;
+      if(getInteractionPlayer()?.id !== player.id) return;
+      rollDice();
+    }, 620);
   }
 
   function spend(player, cost){
@@ -1646,7 +1721,7 @@
         player.hasLongestRoad = player.id === best.id;
       });
       state.longestRoadHolder = best.id;
-      log(`${best.name} controle la Plus Longue Route.`);
+      log(`${best.name} controls the Longest Road.`);
     }
   }
 
@@ -1658,7 +1733,7 @@
         player.hasLargestArmy = player.id === best.id;
       });
       state.largestArmyHolder = best.id;
-      log(`${best.name} revele la Grande Armee.`);
+      log(`${best.name} reveals the Largest Army.`);
     }
   }
 
@@ -1701,8 +1776,8 @@
       state.winner = playerId;
       state.phase = 'ended';
       state.activeMode = null;
-      log(`${player.name} remporte Moonfall Settlers.`);
-      notice(`${player.name} gagne la partie.`);
+      log(`${player.name} wins Moonfall Settlers.`);
+      notice(`${player.name} wins the game.`);
     }
   }
 
@@ -1772,7 +1847,7 @@
       state.setupPendingVertex = vertexId;
       state.setupPart = 'road';
       state.activeMode = 'road';
-      log(`${player.name} fonde une colonie.`);
+      log(`${player.name} founds a settlement.`);
       updateAll();
       scheduleAi();
       return;
@@ -1842,7 +1917,7 @@
     spend(player, COSTS.dev);
     const type = state.devDeck.pop();
     player.devCards.push({ type, fresh: true });
-    log(`${player.name} pioche une carte.`);
+    log(`${player.name} draws a card.`);
     checkVictory(player.id);
     return true;
   }
@@ -1860,7 +1935,7 @@
       const ratio = getTradeRatio(player.id, give);
       player.resources[give] -= ratio;
       player.resources[missing] += 1;
-      log(`${player.name} echange avec la banque.`);
+      log(`${player.name} trades with the bank.`);
       return true;
     }
     return false;
@@ -1933,26 +2008,33 @@
     renderPlayersPanel();
     renderBoardPanel();
     renderLogPanel();
+    scheduleAutoRoll();
     queueRender();
   }
 
   function updateHud(){
     const player = getInteractionPlayer() || currentPlayer();
     dom.turnHud.textContent = String(state.turnNumber);
-    dom.activePlayer.textContent = player ? player.name : 'Fin';
+    dom.activePlayer.textContent = player ? player.name : 'Game Over';
     dom.activePlayer.style.color = player ? player.color : '#fff';
     dom.phaseHud.textContent = phaseLabel();
-    dom.diceHud.textContent = state.dice ? String(state.dice) : '--';
+    renderDiceHud();
     dom.targetHud.textContent = String(state.targetScore);
     dom.pointsHud.textContent = player ? String(victoryPoints(player)) : '0';
+    dom.topbar?.classList.toggle('is-human-turn', Boolean(player?.type === 'human' && !state.winner));
   }
 
   function phaseLabel(){
-    if(state.phase === 'setup') return state.setupPart === 'settlement' ? 'Colonie' : 'Route';
-    if(state.phase === 'roll') return 'Des';
+    if(state.phase === 'setup') return state.setupPart === 'settlement' ? 'Settlement' : 'Road';
+    if(state.phase === 'roll') return 'Roll';
     if(state.phase === 'robber') return 'Oni';
     if(state.phase === 'main') return 'Action';
-    return 'Fin';
+    return 'Done';
+  }
+
+  function renderDiceHud(){
+    const values = state.dicePair || ['-', '-'];
+    dom.diceHud.innerHTML = values.map(value => `<i>${value}</i>`).join('');
   }
 
   function updateButtons(){
@@ -1971,6 +2053,11 @@
     [['road', dom.roadBtn], ['settlement', dom.settlementBtn], ['city', dom.cityBtn]].forEach(([mode, button]) => {
       button.classList.toggle('active', state.activeMode === mode);
     });
+
+    dom.roadBtn.title = `Road cost: ${formatCost(COSTS.road)}`;
+    dom.settlementBtn.title = `Settlement cost: ${formatCost(COSTS.settlement)}`;
+    dom.cityBtn.title = `City cost: ${formatCost(COSTS.city)}`;
+    dom.devBtn.title = `Development card cost: ${formatCost(COSTS.dev)}`;
   }
 
   function renderResourcePanel(){
@@ -1986,15 +2073,7 @@
   }
 
   function renderCostPanel(){
-    const items = [
-      ['Route', COSTS.road],
-      ['Colonie', COSTS.settlement],
-      ['Cite', COSTS.city],
-      ['Carte', COSTS.dev]
-    ];
-    dom.costPanel.innerHTML = items.map(([label, cost]) => `
-      <span class="cost-chip"><b>${label}</b> ${formatCost(cost)}</span>
-    `).join('');
+    dom.costPanel.innerHTML = '';
   }
 
   function formatCost(cost){
@@ -2036,18 +2115,18 @@
         </div>
       `).join('')}
       <div class="dev-actions">
-        <button id="playKnight" type="button"${!playable.knight || state.devPlayedThisTurn || !isHumanInteraction() ? ' disabled' : ''}>Chasseur</button>
+        <button id="playKnight" type="button"${!playable.knight || state.devPlayedThisTurn || !isHumanInteraction() ? ' disabled' : ''}>Knight</button>
         <button id="playRoadCard" type="button"${!playable.road || state.devPlayedThisTurn || !isHumanInteraction() ? ' disabled' : ''}>Routes</button>
       </div>
-      <label>Offrande
+      <label>Year of Plenty
         <select id="plentyOne">${resourceOptions}</select>
         <select id="plentyTwo">${resourceOptions}</select>
       </label>
-      <button id="playPlenty" type="button"${!playable.plenty || state.devPlayedThisTurn || !isHumanInteraction() ? ' disabled' : ''}>Jouer Offrande</button>
-      <label>Serment
+      <button id="playPlenty" type="button"${!playable.plenty || state.devPlayedThisTurn || !isHumanInteraction() ? ' disabled' : ''}>Play Year of Plenty</button>
+      <label>Monopoly
         <select id="monopolyResource">${resourceOptions}</select>
       </label>
-      <button id="playMonopoly" type="button"${!playable.monopoly || state.devPlayedThisTurn || !isHumanInteraction() ? ' disabled' : ''}>Jouer Serment</button>
+      <button id="playMonopoly" type="button"${!playable.monopoly || state.devPlayedThisTurn || !isHumanInteraction() ? ' disabled' : ''}>Play Monopoly</button>
     `;
 
     const bind = (id, type) => {
@@ -2062,12 +2141,12 @@
 
   function renderPlayersPanel(){
     dom.playersPanel.innerHTML = state.players.map(player => {
-      const ports = [...getPlayerPorts(player.id)].map(port => port === 'generic' ? '3:1' : `${RESOURCES[port].short} 2:1`).join(', ') || 'Aucun port';
+      const ports = [...getPlayerPorts(player.id)].map(port => port === 'generic' ? '3:1' : `${RESOURCES[port].short} 2:1`).join(', ') || 'No port';
       return `
         <div class="player-row ${getInteractionPlayer()?.id === player.id ? 'active' : ''}" style="color:${player.color}">
           <strong>${escapeHtml(player.name)} - ${victoryPoints(player)} pts</strong>
-          <span>${sumResources(player.resources)} ressources, ${player.devCards.length} cartes</span>
-          <span>Route ${player.longestRoad}, Armee ${player.knights}, ${ports}</span>
+          <span>${sumResources(player.resources)} resources, ${player.devCards.length} cards</span>
+          <span>Road ${player.longestRoad}, Army ${player.knights}, ${ports}</span>
         </div>
       `;
     }).join('');
@@ -2078,26 +2157,26 @@
     const selected = describeSelected();
     dom.boardPanel.innerHTML = `
       <div class="board-stat oni-stat"><img src="${ASSETS.oni}" alt=""><span><strong>Oni</strong>${tileLabel(robberTile)}</span></div>
-      <div class="board-stat"><strong>Paquet</strong><span>${state.devDeck.length} cartes restantes</span></div>
+      <div class="board-stat"><strong>Deck</strong><span>${state.devDeck.length} cards left</span></div>
       <div class="board-stat"><strong>Selection</strong><span>${selected}</span></div>
     `;
   }
 
   function describeSelected(){
-    if(!state.selected) return 'Aucune';
+    if(!state.selected) return 'None';
     if(state.selected.type === 'tile'){
       return tileLabel(state.board.tiles[state.selected.id]);
     }
     const vertex = state.board.vertices[state.selected.id];
     if(vertex.building){
       const player = state.players[vertex.building.playerId];
-      return `${vertex.building.kind === 'city' ? 'Cite' : 'Colonie'} de ${player.name}`;
+      return `${vertex.building.kind === 'city' ? 'City' : 'Settlement'} of ${player.name}`;
     }
-    return vertex.port ? `Port ${vertex.port === 'generic' ? '3:1' : RESOURCES[vertex.port].name}` : 'Intersection libre';
+    return vertex.port ? `Port ${vertex.port === 'generic' ? '3:1' : RESOURCES[vertex.port].name}` : 'Free intersection';
   }
 
   function tileLabel(tile){
-    if(tile.type === 'crater') return 'Cratere maudit';
+    if(tile.type === 'crater') return 'Cursed crater';
     return `${RESOURCES[tile.type].name} ${tile.number}`;
   }
 
@@ -2107,6 +2186,7 @@
 
   function resetToSetup(){
     clearTimeout(aiTimer);
+    clearTimeout(autoRollTimer);
     state = null;
     dom.gameView.hidden = true;
     dom.gameView.classList.add('is-hidden');

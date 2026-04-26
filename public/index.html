@@ -98,7 +98,7 @@ body{
 
 .home-layout{
   display:grid;
-  grid-template-columns:minmax(0, 1.45fr) minmax(320px, .95fr);
+  grid-template-columns:minmax(0, 1.45fr) minmax(290px, .95fr);
   gap:20px;
 }
 
@@ -217,6 +217,54 @@ body{
   gap:12px;
 }
 
+.week-card{
+  min-height:188px;
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  padding:18px;
+  margin-bottom:20px;
+  color:white;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,0.1);
+  background:#231017;
+}
+
+.week-card::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg, rgba(0,0,0,.08), rgba(10,3,6,.9));
+}
+
+.week-card.chess{background:url("/chess/board.png") center/cover;}
+.week-card.othello{background:linear-gradient(135deg, #194537, #0c241f 54%, #3a1018);}
+.week-card.azul{background:linear-gradient(135deg, #083044, #0196b3 46%, #ffc44e);}
+.week-card.strategy{background:url("/moonfall-world-conquest/map.svg") center/cover;}
+.week-card.moonfall-settlers{background:linear-gradient(135deg, #173039, #d9b45f 44%, #6d5bb4);}
+.week-card.moonfall-rts{background:linear-gradient(135deg, #10272a, #5dd8ff 48%, #24161b);}
+
+.week-card > *{
+  position:relative;
+  z-index:1;
+}
+
+.week-card .pill{
+  margin-bottom:auto;
+}
+
+.week-card h2{
+  margin:34px 0 6px;
+  font-size:28px;
+}
+
+.week-card p{
+  margin:0 0 14px;
+  color:#f2d6d2;
+}
+
 .quick-game{
   min-height:88px;
   display:grid;
@@ -284,12 +332,12 @@ body{
 
 .game-grid{
   display:grid;
-  grid-template-columns:repeat(4, minmax(0, 1fr));
+  grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));
   gap:16px;
 }
 
 .game-card{
-  min-height:260px;
+  min-height:clamp(190px, 24vw, 260px);
   overflow:hidden;
   position:relative;
   display:flex;
@@ -479,7 +527,7 @@ body{
 
 .popular-list{
   display:grid;
-  grid-template-columns:repeat(4, minmax(0, 1fr));
+  grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));
   gap:14px;
 }
 
@@ -522,11 +570,6 @@ body{
 
   .home-profile-chip{
     display:none;
-  }
-
-  .game-grid,
-  .popular-list{
-    grid-template-columns:1fr;
   }
 
   .stat-mini-grid{
@@ -617,6 +660,13 @@ body{
     </div>
 
     <aside>
+      <article id="gameOfWeek" class="week-card shell-surface chess">
+        <span class="pill">Game of the Week · 2x XP</span>
+        <h2 id="gameOfWeekTitle">Chess</h2>
+        <p>Double XP once per day on this weekly pick.</p>
+        <button id="gameOfWeekBtn" class="primary-action" type="button">Play Weekly Game</button>
+      </article>
+
       <div class="quick-games">
         <a class="quick-game" href="/chess/index.html">
           <span class="quick-icon">C</span>
@@ -771,6 +821,26 @@ async function loadPlayingCounts(){
   }
 }
 
+async function loadGameOfWeek(){
+  try{
+    const response = await fetch("/api/games/game-of-week");
+    if(!response.ok) throw new Error("Game of the week unavailable");
+    const game = await response.json();
+    const card = document.getElementById("gameOfWeek");
+    const title = document.getElementById("gameOfWeekTitle");
+    const button = document.getElementById("gameOfWeekBtn");
+    if(!card || !title || !button) return;
+
+    card.className = `week-card shell-surface ${game.key || "chess"}`;
+    title.textContent = game.name || "Chess";
+    button.onclick = () => {
+      window.location.href = game.url || "/games.html";
+    };
+  }catch(err){
+    console.error(err);
+  }
+}
+
 document.getElementById("homeSearch").addEventListener("keydown", event => {
   if(event.key !== "Enter") return;
   const value = event.currentTarget.value.trim().toLowerCase();
@@ -785,6 +855,7 @@ document.getElementById("homeSearch").addEventListener("keydown", event => {
 
 loadProfile();
 loadPlayingCounts();
+loadGameOfWeek();
 setInterval(loadPlayingCounts, 10000);
 </script>
 </body>

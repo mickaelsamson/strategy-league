@@ -1,7 +1,7 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const { getLeaderboard } = require('../services/user-service');
+const { getGameOfWeek, getLeaderboard } = require('../services/user-service');
 
 const AVATAR_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg']);
 
@@ -114,6 +114,10 @@ function createApiRouter({ User, state, isGameAllowed, io }){
       strategy,
       total: chess + othello + azul + strategy
     });
+  });
+
+  router.get('/games/game-of-week', (req, res)=>{
+    res.json(getGameOfWeek());
   });
 
   router.post('/admin/override', async (req, res)=>{

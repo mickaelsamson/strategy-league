@@ -99,8 +99,12 @@ body[data-azul-players="4"]{
 
 .invite-row{
   display:grid;
-  grid-template-columns:1fr auto;
+  grid-template-columns:1fr;
   gap:8px;
+}
+
+.invite-row button{
+  width:100%;
 }
 
 .lobby-create h2,
