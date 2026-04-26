@@ -988,12 +988,11 @@
 
       if(image?.complete && image.naturalWidth){
         const ratio = image.naturalWidth / image.naturalHeight;
-        const drawWidth = length * 1.02;
-        const drawHeight = Math.min(drawWidth / ratio, Math.max(24, state.view.scale * .42));
+        const drawWidth = length * 1.08;
+        const drawHeight = Math.min(drawWidth / ratio, Math.max(28, state.view.scale * .5));
         ctx.save();
-        ctx.shadowColor = player.color;
-        ctx.shadowBlur = 16;
-        ctx.globalAlpha = .98;
+        ctx.shadowColor = 'rgba(0,0,0,.34)';
+        ctx.shadowBlur = 12;
         ctx.drawImage(image, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
         ctx.restore();
       }else{
@@ -1004,14 +1003,6 @@
         ctx.lineTo(length * .44, 0);
         ctx.stroke();
       }
-
-      ctx.beginPath();
-      ctx.arc(0, 0, 8, 0, Math.PI * 2);
-      ctx.fillStyle = '#0d1216';
-      ctx.fill();
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = player.color;
-      ctx.stroke();
       ctx.restore();
     });
   }
@@ -1036,22 +1027,13 @@
     ctx.fill();
 
     if(image?.complete && image.naturalWidth){
-      const drawHeight = kind === 'city' ? 72 : 58;
+      const drawHeight = kind === 'city' ? 86 : 68;
       const drawWidth = drawHeight * (image.naturalWidth / image.naturalHeight);
       ctx.save();
-      ctx.shadowColor = player.color;
-      ctx.shadowBlur = 14;
-      ctx.globalAlpha = .98;
+      ctx.shadowColor = 'rgba(0,0,0,.38)';
+      ctx.shadowBlur = 16;
       ctx.drawImage(image, -drawWidth / 2, -drawHeight + size * .75, drawWidth, drawHeight);
       ctx.restore();
-
-      ctx.fillStyle = '#0c1014';
-      ctx.beginPath();
-      ctx.arc(size * .78, size * .38, 8, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = player.color;
-      ctx.stroke();
       ctx.restore();
       return;
     }
