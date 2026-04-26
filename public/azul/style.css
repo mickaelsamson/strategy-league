@@ -7,7 +7,7 @@ body{
   --azul-tile-size:26px;
   --azul-cell-size:27px;
   --azul-board-width:min(700px, 100%);
-  --azul-board-slot-size:24px;
+  --azul-board-slot-size:34px;
   --azul-board-gap:4px;
 }
 
@@ -18,7 +18,7 @@ body[data-azul-players="3"]{
   --azul-tile-size:23px;
   --azul-cell-size:24px;
   --azul-board-width:min(640px, 100%);
-  --azul-board-slot-size:22px;
+  --azul-board-slot-size:30px;
   --azul-board-gap:3px;
 }
 
@@ -29,7 +29,7 @@ body[data-azul-players="4"]{
   --azul-tile-size:21px;
   --azul-cell-size:22px;
   --azul-board-width:min(580px, 100%);
-  --azul-board-slot-size:20px;
+  --azul-board-slot-size:27px;
   --azul-board-gap:3px;
 }
 
@@ -567,7 +567,7 @@ body.app-shell-active .azul-game .tile-stack{
 .pattern-lines{
   position:absolute;
   left:16.2%;
-  top:15.2%;
+  top:13.8%;
   width:calc(var(--azul-board-slot-size) * 5 + var(--azul-board-gap) * 4);
   height:calc(var(--azul-board-slot-size) * 5 + var(--azul-board-gap) * 4);
   display:grid;
@@ -644,7 +644,7 @@ body.app-shell-active .azul-game .player-board button.pattern-line.can-place:not
 .wall{
   position:absolute;
   left:58.2%;
-  top:15.2%;
+  top:13.8%;
   width:calc(var(--azul-board-slot-size) * 5 + var(--azul-board-gap) * 4);
   height:calc(var(--azul-board-slot-size) * 5 + var(--azul-board-gap) * 4);
   display:grid;
