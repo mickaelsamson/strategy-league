@@ -176,25 +176,26 @@ function renderBoard(player){
         <b>${player.score}</b>
       </header>
 
-      <div class="board-grid">
-        <div class="pattern-lines">
-          ${player.pattern.map((line, row) => `
-            <button class="pattern-line ${isMine && selected && canPlace(player, row, selected.color) ? "can-place" : ""}"
-              ${isMine ? `onclick="submitMove(${row})"` : "disabled"}>
-              ${patternSlots(player, line, row, isMine)}
-            </button>
+      <div class="board-surface">
+        <div class="board-grid">
+          <div class="pattern-lines">
+            ${player.pattern.map((line, row) => `
+              <button class="pattern-line ${isMine && selected && canPlace(player, row, selected.color) ? "can-place" : ""}"
+                ${isMine ? `onclick="submitMove(${row})"` : "disabled"}>
+                ${patternSlots(player, line, row, isMine)}
+              </button>
+            `).join("")}
+          </div>
+          <div class="wall">${wallMarkup(player)}</div>
+        </div>
+
+        <div class="floor-line ${isMine && selected ? "can-place" : ""}" ${isMine ? `onclick="submitMove(-1)"` : ""}>
+          ${FLOOR_PENALTIES.map((penalty, i) => `
+            <span class="floor-slot ${player.floor[i] ? "has-tile" : ""}" data-penalty="${penalty}">
+              ${player.floor[i] ? tileMarkup(player.floor[i]) : `<b>${penalty}</b>`}
+            </span>
           `).join("")}
         </div>
-        <div class="wall">${wallMarkup(player)}</div>
-      </div>
-
-      <div class="floor-line ${isMine && selected ? "can-place" : ""}" ${isMine ? `onclick="submitMove(-1)"` : ""}>
-        <span>Floor</span>
-        ${FLOOR_PENALTIES.map((penalty, i) => `
-          <span class="floor-slot ${player.floor[i] ? "has-tile" : ""}" data-penalty="${penalty}">
-            ${player.floor[i] ? tileMarkup(player.floor[i]) : `<b>${penalty}</b>`}
-          </span>
-        `).join("")}
       </div>
       <div class="score-pop-anchor" data-seat="${player.seat}"></div>
     </article>

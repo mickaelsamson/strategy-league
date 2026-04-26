@@ -1307,8 +1307,10 @@ body.app-shell-active.moonsettlers-page .command-grid button.active{
 .dice-stage{
   grid-area:dice;
   display:flex;
+  flex-direction:column;
   align-items:center;
   justify-content:center;
+  gap:18px;
 }
 
 .dice-stage .dice-pair{
@@ -1355,6 +1357,26 @@ body.app-shell-active.moonsettlers-page .command-grid button.active{
   border-radius:50%;
   background:#121010;
   box-shadow:inset 0 2px 3px rgba(255,255,255,.08), 0 1px 0 rgba(0,0,0,.38);
+}
+
+.dice-roll-btn{
+  min-width:104px;
+  padding:0 14px;
+  border:1px solid rgba(174,119,58,.44);
+  background:linear-gradient(180deg, rgba(14,20,23,.96), rgba(5,8,11,.96));
+  color:#d7b06b;
+  box-shadow:inset 0 0 0 1px rgba(255,230,177,.05), 0 10px 22px rgba(0,0,0,.34);
+}
+
+.dice-roll-btn.is-attention{
+  border-color:rgba(94,228,109,.72);
+  background:linear-gradient(180deg, rgba(40,114,49,.96), rgba(14,61,26,.96));
+  color:#dbffd4;
+  box-shadow:0 0 0 1px rgba(94,228,109,.22), 0 0 28px rgba(94,228,109,.22), inset 0 0 0 1px rgba(214,255,210,.08);
+}
+
+.dice-roll-btn:disabled{
+  opacity:.5;
 }
 
 .dock-drawer.trade-drawer{
@@ -1628,7 +1650,7 @@ body.app-shell-active.moonsettlers-page .command-grid button.active{
   }
 
   .dice-stage{
-    align-items:flex-start;
+    align-items:center;
     padding-top:20px;
   }
 }
@@ -1648,7 +1670,7 @@ body.app-shell-active.moonsettlers-page .command-grid button.active{
     padding:0 0 6px;
   }
 
-  .dice-pair{
+  .dice-stage .dice-pair{
     flex-direction:row;
   }
 

@@ -987,8 +987,9 @@
       ctx.rotate(angle);
 
       if(image?.complete && image.naturalWidth){
-        const drawHeight = Math.max(20, state.view.scale * .34);
-        const drawWidth = Math.min(length * .94, drawHeight * (image.naturalWidth / image.naturalHeight));
+        const ratio = image.naturalWidth / image.naturalHeight;
+        const drawWidth = length * 1.02;
+        const drawHeight = Math.min(drawWidth / ratio, Math.max(24, state.view.scale * .42));
         ctx.save();
         ctx.shadowColor = player.color;
         ctx.shadowBlur = 16;
@@ -2280,7 +2281,10 @@
     const human = isHumanInteraction();
     const player = getInteractionPlayer();
     const mainHuman = human && state.phase === 'main' && state.activeMode !== 'robber';
+    const canRoll = human && state.phase === 'roll';
     dom.rollBtn.disabled = !(human && state.phase === 'roll');
+    dom.rollBtn.textContent = 'Roll dices';
+    dom.rollBtn.classList.toggle('is-attention', canRoll);
     dom.endTurnBtn.disabled = !mainHuman;
     dom.roadBtn.disabled = !mainHuman || (!canAfford(player, COSTS.road) && state.freeRoads === 0);
     dom.settlementBtn.disabled = !mainHuman || !canAfford(player, COSTS.settlement);
