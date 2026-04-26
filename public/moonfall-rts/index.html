@@ -6,7 +6,9 @@
   <title>Moonfall RTS</title>
   <link rel="stylesheet" href="/assets/styles/theme.css">
   <link rel="stylesheet" href="/moonfall-rts/style.css">
+  <link rel="stylesheet" href="/assets/styles/game-mode-shell.css">
   <script defer src="/assets/scripts/site-shell.js"></script>
+  <script defer src="/assets/scripts/game-mode-tabs.js"></script>
   <script type="module" src="/moonfall-rts/game.js"></script>
 </head>
 <body class="with-navbar moonfall-rts-page">
@@ -14,27 +16,57 @@
 
 <main class="rts-app">
   <section id="homeScreen" class="home-screen">
-    <div class="home-copy">
+    <div class="game-mode-art" aria-hidden="true">
+      <div class="game-mode-preview">
+        <div class="game-mode-preview-stack">
+          <div class="preview-chip">Faction choice<strong>Watchers or Shadows</strong></div>
+          <div class="preview-chip">Local skirmish<strong>Playable now</strong></div>
+          <div class="preview-chip">Online battlefield<strong>Coming soon</strong></div>
+        </div>
+      </div>
+      <div class="game-mode-aura"></div>
+    </div>
+
+    <section class="game-mode-card">
       <span class="eyebrow">Mini web RTS</span>
       <h1>Moonfall RTS</h1>
-      <p>Build a base, gather crystal, wood and food, train an army, and destroy the enemy HQ.</p>
-    </div>
+      <p class="game-mode-copy">Moonfall RTS now starts with the same Local / Online entry shell as Moonfall Settlers. The local skirmish is live, and the online battlefield is clearly staged in the same place for later activation.</p>
 
-    <div class="faction-panel">
-      <h2>Choose your faction</h2>
-      <div class="faction-grid">
-        <button class="faction-card watchers selected" type="button" data-faction="watchers">
-          <span>Watchers</span>
-          <small>Defense, archers, guardians</small>
-        </button>
-        <button class="faction-card shadows" type="button" data-faction="shadows">
-          <span>Shadows</span>
-          <small>Speed, brutes, oracles</small>
-        </button>
+      <div class="setup-mode-tabs" role="tablist" aria-label="Game mode">
+        <button id="localModeBtn" type="button" class="setup-mode-tab is-active">Local</button>
+        <button id="onlineModeBtn" type="button" class="setup-mode-tab">Online</button>
       </div>
 
-      <button id="startGameBtn" class="start-btn" type="button">Start match</button>
-    </div>
+      <section id="localSetupPanel" class="mode-panel">
+        <div class="faction-panel">
+          <h2>Choose your faction</h2>
+          <div class="faction-grid">
+            <button class="faction-card watchers selected" type="button" data-faction="watchers">
+              <span>Watchers</span>
+              <small>Defense, archers, guardians</small>
+            </button>
+            <button class="faction-card shadows" type="button" data-faction="shadows">
+              <span>Shadows</span>
+              <small>Speed, brutes, oracles</small>
+            </button>
+          </div>
+
+          <button id="startGameBtn" class="start-btn" type="button">Start match</button>
+        </div>
+      </section>
+
+      <section id="onlineSetupPanel" class="mode-panel is-hidden" hidden>
+        <div class="coming-soon-card">
+          <span class="eyebrow">Online battlefield</span>
+          <strong>RTS online is coming soon</strong>
+          <p>The screen is now aligned with the other games, but the true online RTS loop stays locked until we ship a proper synchronized multiplayer implementation.</p>
+          <div class="mode-actions">
+            <button type="button" disabled>Coming soon</button>
+            <button type="button" class="ghost-btn" onclick="window.location.href='/games.html'">Back</button>
+          </div>
+        </div>
+      </section>
+    </section>
   </section>
 
   <section id="gameScreen" class="game-screen is-hidden" hidden>
@@ -101,5 +133,10 @@
     </div>
   </section>
 </main>
+<script>
+window.addEventListener("DOMContentLoaded", () => {
+  window.GameModeTabs?.init({ defaultMode: "local" });
+});
+</script>
 </body>
 </html>

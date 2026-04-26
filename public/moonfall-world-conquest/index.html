@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/assets/styles/theme.css">
   <link rel="stylesheet" href="/moonfall-world-conquest/style.css">
+  <link rel="stylesheet" href="/assets/styles/game-mode-shell.css">
   <script defer src="/assets/scripts/site-shell.js"></script>
+  <script defer src="/assets/scripts/game-mode-tabs.js"></script>
   <script defer src="/moonfall-world-conquest/game.js"></script>
   <title>Moonfall World Conquest</title>
 </head>
@@ -14,56 +16,81 @@
 
 <main class="conquest-app">
   <section id="setupView" class="setup-view">
-    <div class="setup-main">
-      <div class="setup-title">
+    <div class="game-mode-shell">
+      <div class="game-mode-art" aria-hidden="true">
+        <div class="game-mode-preview">
+          <div class="game-mode-preview-stack">
+            <div class="preview-chip">Global map<strong>Territories and reinforcements</strong></div>
+            <div class="preview-chip">Local command<strong>Humans and AI today</strong></div>
+            <div class="preview-chip">Online war room<strong>Coming soon</strong></div>
+          </div>
+        </div>
+        <div class="game-mode-aura"></div>
+      </div>
+
+      <form id="setupForm" class="game-mode-card">
         <span class="eyebrow">Risklike conquest</span>
         <h1>Moonfall World Conquest</h1>
-      </div>
+        <p class="game-mode-copy">World Conquest now enters through the same Local / Online gateway as Moonfall Settlers. The live online war room is shown in the same place, but stays locked until that mode exists server-side.</p>
 
-      <form id="setupForm" class="setup-card">
-        <div class="setup-grid">
-          <label>Joueurs
-            <select id="playerCount">
-              <option value="2">2</option>
-              <option value="3" selected>3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
-              <option value="6">6</option>
-            </select>
-          </label>
-          <label>Rythme
-            <select id="pace">
-              <option value="quick" selected>Rapide</option>
-              <option value="classic">Classique</option>
-            </select>
-          </label>
-          <label>IA
-            <select id="aiStyle">
-              <option value="balanced" selected>Equilibree</option>
-              <option value="bold">Agressive</option>
-            </select>
-          </label>
+        <div class="setup-mode-tabs" role="tablist" aria-label="Game mode">
+          <button id="localModeBtn" type="button" class="setup-mode-tab is-active">Local</button>
+          <button id="onlineModeBtn" type="button" class="setup-mode-tab">Online</button>
         </div>
 
-        <div id="slots" class="slots"></div>
+        <section id="localSetupPanel" class="mode-panel">
+          <div class="setup-grid">
+            <label>Joueurs
+              <select id="playerCount">
+                <option value="2">2</option>
+                <option value="3" selected>3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+              </select>
+            </label>
+            <label>Rythme
+              <select id="pace">
+                <option value="quick" selected>Rapide</option>
+                <option value="classic">Classique</option>
+              </select>
+            </label>
+            <label>IA
+              <select id="aiStyle">
+                <option value="balanced" selected>Equilibree</option>
+                <option value="bold">Agressive</option>
+              </select>
+            </label>
+          </div>
 
-        <div class="setup-actions">
-          <button id="shuffleBtn" type="button" class="secondary-btn">Melanger</button>
-          <button type="submit" class="primary-btn">Lancer la conquete</button>
-        </div>
+          <div id="slots" class="slots"></div>
+
+          <div class="coming-soon-card">
+            <span class="eyebrow">Core rules</span>
+            <p><strong>Renforts.</strong> Minimum 3 armees par tour, plus territoires controles divises par 3 et bonus de regions completes.</p>
+            <p><strong>Attaque.</strong> Depuis un territoire adjacent avec au moins 2 armees. Attaquant jusqu'a 3 des, defenseur jusqu'a 2, egalite pour le defenseur.</p>
+            <p><strong>Conquete.</strong> Quand la defense tombe a 0, le territoire change de camp et des armees avancent depuis le front victorieux.</p>
+          </div>
+
+          <div class="setup-actions">
+            <button id="shuffleBtn" type="button" class="secondary-btn">Melanger</button>
+            <button type="submit" class="primary-btn">Lancer la conquete</button>
+          </div>
+        </section>
+
+        <section id="onlineSetupPanel" class="mode-panel is-hidden" hidden>
+          <div class="coming-soon-card">
+            <span class="eyebrow">Online war room</span>
+            <strong>Online conquest is coming soon</strong>
+            <p>This page already exposes the final dual-mode structure, but the online campaign remains intentionally unavailable until the real server-driven multiplayer loop is ready.</p>
+            <div class="mode-actions">
+              <button type="button" disabled>Coming soon</button>
+              <button type="button" class="ghost-btn" onclick="window.location.href='/games.html'">Back</button>
+            </div>
+          </div>
+        </section>
       </form>
     </div>
-
-    <aside class="rulebook">
-      <h2>Regles de base</h2>
-      <div class="rule-list">
-        <p><strong>Renforts.</strong> Minimum 3 armees par tour, plus territoires controles divises par 3 et bonus de regions completes.</p>
-        <p><strong>Attaque.</strong> Depuis un territoire adjacent avec au moins 2 armees. Attaquant jusqu'a 3 des, defenseur jusqu'a 2, egalite pour le defenseur.</p>
-        <p><strong>Conquete.</strong> Quand la defense tombe a 0, le territoire change de camp et des armees avancent depuis le front victorieux.</p>
-        <p><strong>Cartes.</strong> Une conquete dans le tour donne une carte. Trois cartes compatibles se convertissent en renforts croissants.</p>
-        <p><strong>Fortification.</strong> En fin de tour, deplace des armees entre deux territoires allies adjacents.</p>
-      </div>
-    </aside>
   </section>
 
   <section id="gameView" class="game-view is-hidden" hidden>
@@ -133,5 +160,10 @@
     </div>
   </section>
 </main>
+<script>
+window.addEventListener("DOMContentLoaded", () => {
+  window.GameModeTabs?.init({ defaultMode: "local" });
+});
+</script>
 </body>
 </html>

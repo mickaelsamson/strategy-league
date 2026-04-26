@@ -2,12 +2,16 @@
 <html>
 <head>
 <link rel="stylesheet" href="/assets/styles/theme.css">
+<link rel="stylesheet" href="/assets/styles/game-mode-shell.css">
 <script defer src="/assets/scripts/site-shell.js"></script>
-<title>Azul Lobby</title>
+<script defer src="/assets/scripts/game-mode-tabs.js"></script>
+<title>Azul</title>
 <script src="/socket.io/socket.io.js"></script>
 <link rel="stylesheet" href="style.css">
 </head>
-<body class="azul-lobby-page">
+<body class="with-navbar game-mode-page azul-lobby-page">
+
+<div id="navbar-container"></div>
 
 <div id="blockedScreen" class="blocked-screen">
   <h1>Games Disabled</h1>
@@ -15,40 +19,82 @@
   <button onclick="window.location.href='/games.html'">Back</button>
 </div>
 
-<main class="azul-container">
-  <header class="azul-header">
-    <span class="game-kicker">Ranked Azul</span>
-    <h1>Azul Arena Lobby</h1>
-    <p>Create a room, ready up, and draft the perfect wall.</p>
-  </header>
-
-  <section class="lobby-layout">
-    <div class="panel lobby-create">
-      <span class="game-kicker">New Match</span>
-      <h2>Create Room</h2>
-      <input id="name" placeholder="Lobby name">
-      <label class="player-count-field">
-        <span>Players</span>
-        <select id="maxPlayers">
-          <option value="2">2 players</option>
-          <option value="3">3 players</option>
-          <option value="4">4 players</option>
-        </select>
-      </label>
-      <button onclick="createLobby()">Create Lobby</button>
-      <div class="invite-row">
-        <button type="button" onclick="openInvitePicker()">+ Invite online player</button>
+<main class="game-mode-app">
+  <section class="game-mode-shell">
+    <div class="game-mode-art" aria-hidden="true">
+      <div class="game-mode-preview">
+        <div class="game-mode-preview-stack">
+          <div class="preview-chip">Draft table<strong>2 to 4 players</strong></div>
+          <div class="preview-chip">Online arena<strong>Ranked lobbies live now</strong></div>
+          <div class="preview-chip">Local table<strong>Coming soon</strong></div>
+        </div>
       </div>
-      <button class="ghost-btn" onclick="window.location.href='/games.html'">Back to Games</button>
+      <div class="game-mode-aura"></div>
     </div>
 
-    <div class="panel">
-      <h3>Open Lobbies</h3>
-      <div id="lobbies"></div>
-    </div>
+    <section class="game-mode-card">
+      <span class="eyebrow">Pattern drafting</span>
+      <h1>Azul</h1>
+      <p class="game-mode-copy">Azul now follows the same Local / Online shell as Moonfall Settlers, with the same visual cadence and setup logic before entering the match.</p>
+
+      <div class="setup-mode-tabs" role="tablist" aria-label="Game mode">
+        <button id="localModeBtn" type="button" class="setup-mode-tab">Local</button>
+        <button id="onlineModeBtn" type="button" class="setup-mode-tab">Online</button>
+      </div>
+
+      <section id="localSetupPanel" class="mode-panel" hidden>
+        <div class="coming-soon-card">
+          <span class="eyebrow">Offline table</span>
+          <strong>Local Azul is coming soon</strong>
+          <p>The UI is ready for the dual-mode flow. The offline table remains blocked until the full local turn engine is exposed safely.</p>
+          <div class="mode-actions">
+            <button type="button" disabled>Coming soon</button>
+            <button type="button" class="ghost-btn" onclick="window.location.href='/games.html'">Back</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="onlineSetupPanel" class="mode-panel">
+        <div class="mode-section">
+          <div class="mode-grid two-col">
+            <label>Lobby name
+              <input id="name" placeholder="Lobby name">
+            </label>
+            <label class="player-count-field">
+              <span>Players</span>
+              <select id="maxPlayers">
+                <option value="2">2 players</option>
+                <option value="3">3 players</option>
+                <option value="4">4 players</option>
+              </select>
+            </label>
+          </div>
+          <div class="mode-actions">
+            <button onclick="createLobby()">Create Lobby</button>
+            <button type="button" class="ghost-btn" onclick="openInvitePicker()">Invite player</button>
+            <button type="button" class="ghost-btn" onclick="window.location.href='/games.html'">Back</button>
+          </div>
+        </div>
+
+        <div class="status-card">
+          <span class="eyebrow">Online status</span>
+          <strong>Open Lobbies</strong>
+          <span>Create a room, ready up, and draft the perfect wall.</span>
+        </div>
+
+        <div class="list-panel">
+          <div id="lobbies"></div>
+        </div>
+      </section>
+    </section>
   </section>
 </main>
 
+<script>
+window.addEventListener("DOMContentLoaded", () => {
+  window.GameModeTabs?.init({ defaultMode: "online" });
+});
+</script>
 <script src="lobby.js"></script>
 </body>
 </html>
