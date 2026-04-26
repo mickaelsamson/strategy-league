@@ -99,11 +99,24 @@
     gameView: document.getElementById('gameView'),
     topbar: document.querySelector('.topbar'),
     form: document.getElementById('setupForm'),
+    localModeBtn: document.getElementById('localModeBtn'),
+    onlineModeBtn: document.getElementById('onlineModeBtn'),
+    localSetupPanel: document.getElementById('localSetupPanel'),
+    onlineSetupPanel: document.getElementById('onlineSetupPanel'),
     slots: document.getElementById('slots'),
     playerCount: document.getElementById('playerCount'),
     boardMode: document.getElementById('boardMode'),
     targetScore: document.getElementById('targetScore'),
     shuffleBtn: document.getElementById('shuffleBtn'),
+    onlineLobbyName: document.getElementById('onlineLobbyName'),
+    onlineMaxPlayers: document.getElementById('onlineMaxPlayers'),
+    onlineBoardMode: document.getElementById('onlineBoardMode'),
+    onlineTargetScore: document.getElementById('onlineTargetScore'),
+    createOnlineLobbyBtn: document.getElementById('createOnlineLobbyBtn'),
+    refreshOnlineBtn: document.getElementById('refreshOnlineBtn'),
+    onlineLobbyList: document.getElementById('onlineLobbyList'),
+    onlineLobbyStatus: document.getElementById('onlineLobbyStatus'),
+    onlineLobbyMeta: document.getElementById('onlineLobbyMeta'),
     canvas: document.getElementById('boardCanvas'),
     notice: document.getElementById('notice'),
     turnHud: document.getElementById('turnHud'),
@@ -153,6 +166,19 @@
 
   const ctx = dom.canvas.getContext('2d');
   const images = {};
+  const user = getSavedUser();
+  const socket = typeof window.io === 'function' && user?.username ? window.io() : null;
+  const onlineState = {
+    available: Boolean(socket && user?.username),
+    setupMode: 'local',
+    lobbies: {},
+    currentLobbyId: null,
+    gameId: null,
+    hostUsername: null,
+    me: user?.username || getSavedName(),
+    connectedPlayers: [],
+    waitingForSnapshot: false
+  };
   let state = null;
   let renderQueued = false;
   let noticeTimer = null;
@@ -211,12 +237,16 @@
       .replaceAll("'", '&#039;');
   }
 
-  function getSavedName(){
+  function getSavedUser(){
     try{
-      return JSON.parse(localStorage.getItem('user') || 'null')?.username || 'Player';
+      return JSON.parse(localStorage.getItem('user') || 'null');
     }catch(_err){
-      return 'Player';
+      return null;
     }
+  }
+
+  function getSavedName(){
+    return getSavedUser()?.username || 'Player';
   }
 
   function notice(text){
@@ -230,6 +260,12 @@
     if(!state) return;
     state.log.unshift(text);
     state.log = state.log.slice(0, 18);
+  }
+
+  function logLocal(targetState, text){
+    if(!targetState) return;
+    targetState.log.unshift(text);
+    targetState.log = targetState.log.slice(0, 18);
   }
 
   function renderSlots(){
@@ -260,6 +296,159 @@
     });
   }
 
+  function setSetupMode(mode){
+    onlineState.setupMode = mode === 'online' ? 'online' : 'local';
+    dom.localModeBtn?.classList.toggle('is-active', onlineState.setupMode === 'local');
+    dom.onlineModeBtn?.classList.toggle('is-active', onlineState.setupMode === 'online');
+    dom.localSetupPanel.hidden = onlineState.setupMode !== 'local';
+    dom.localSetupPanel.classList.toggle('is-hidden', onlineState.setupMode !== 'local');
+    dom.onlineSetupPanel.hidden = onlineState.setupMode !== 'online';
+    dom.onlineSetupPanel.classList.toggle('is-hidden', onlineState.setupMode !== 'online');
+    renderOnlineLobbyList();
+  }
+
+  function renderOnlineLobbyList(){
+    if(!dom.onlineLobbyList) return;
+    if(!onlineState.available){
+      dom.onlineLobbyStatus.textContent = 'Sign in on the main site to unlock online lobbies.';
+      dom.onlineLobbyMeta.textContent = 'Local mode is still available in this browser.';
+      dom.onlineLobbyList.innerHTML = '<div class="online-empty">Online play needs a logged-in Strategy League profile.</div>';
+      return;
+    }
+
+    const lobbies = Object.values(onlineState.lobbies || {});
+    if(!lobbies.length){
+      dom.onlineLobbyStatus.textContent = onlineState.currentLobbyId ? 'Waiting for more clans to gather.' : 'Choose a lobby or create one.';
+      dom.onlineLobbyMeta.textContent = onlineState.currentLobbyId ? 'Everyone must ready up to enter Moonfall.' : 'Online Moonfall supports 2 to 4 human players.';
+      dom.onlineLobbyList.innerHTML = '<div class="online-empty">No Moonfall lobby yet. Open the first table.</div>';
+      return;
+    }
+
+    dom.onlineLobbyList.innerHTML = lobbies.map(lobby => {
+      const me = lobby.players.find(player => player.username === onlineState.me);
+      const everyoneReady = lobby.players.length >= 2 && lobby.players.every(player => player.ready);
+      const full = lobby.players.length >= (lobby.maxPlayers || 4);
+      const mine = Boolean(me);
+      const action = mine
+        ? `<button type="button" class="online-lobby-btn" data-online-action="ready" data-lobby-id="${lobby.id}">${me.ready ? 'Cancel ready' : 'Ready up'}</button>
+           <button type="button" class="online-lobby-btn secondary" data-online-action="leave" data-lobby-id="${lobby.id}">Leave</button>`
+        : full
+          ? '<button type="button" class="online-lobby-btn" disabled>Full</button>'
+          : `<button type="button" class="online-lobby-btn" data-online-action="join" data-lobby-id="${lobby.id}">Join</button>`;
+
+      return `
+        <article class="online-lobby-card ${mine ? 'is-mine' : ''}">
+          <div class="online-lobby-head">
+            <strong>${escapeHtml(lobby.name)}</strong>
+            <span>${lobby.players.length}/${lobby.maxPlayers} players</span>
+          </div>
+          <div class="online-lobby-meta">${escapeHtml(lobby.boardMode)} board · ${lobby.targetScore} points${everyoneReady ? ' · ready to start' : ''}</div>
+          <div class="online-lobby-players">
+            ${lobby.players.map(player => `<span class="online-player-chip ${player.ready ? 'is-ready' : ''}">${escapeHtml(player.username)}${player.ready ? ' ready' : ''}</span>`).join('')}
+          </div>
+          <div class="online-lobby-actions">${action}</div>
+        </article>
+      `;
+    }).join('');
+
+    dom.onlineLobbyList.querySelectorAll('[data-online-action]').forEach(button => {
+      button.addEventListener('click', () => {
+        const lobbyId = button.dataset.lobbyId;
+        const action = button.dataset.onlineAction;
+        if(action === 'join') socket?.emit('join_moonfall_settlers_lobby', lobbyId);
+        if(action === 'leave') socket?.emit('leave_moonfall_settlers_lobby', lobbyId);
+        if(action === 'ready') socket?.emit('toggle_moonfall_settlers_ready', lobbyId);
+      });
+    });
+  }
+
+  function updateOnlineStatus(text, detail){
+    if(dom.onlineLobbyStatus) dom.onlineLobbyStatus.textContent = text;
+    if(dom.onlineLobbyMeta) dom.onlineLobbyMeta.textContent = detail;
+  }
+
+  function renderOnlineStateFromLobbies(){
+    const lobby = onlineState.currentLobbyId ? onlineState.lobbies[onlineState.currentLobbyId] : null;
+    if(lobby){
+      updateOnlineStatus(
+        `${lobby.name} · ${lobby.players.length}/${lobby.maxPlayers} clans`,
+        lobby.players.every(player => player.ready)
+          ? 'All clans are ready. Entering Moonfall...'
+          : 'Ready up when your table is complete.'
+      );
+    }else if(onlineState.waitingForSnapshot){
+      updateOnlineStatus('Host is preparing the board...', 'The game view will open as soon as the first state arrives.');
+    }else{
+      updateOnlineStatus('Choose a lobby or create one.', 'Online Moonfall supports 2 to 4 human players.');
+    }
+    renderOnlineLobbyList();
+  }
+
+  function createOnlinePlayers(entries){
+    return entries.map((entry, index) => {
+      const preset = PLAYER_PRESETS[index] || PLAYER_PRESETS[index % PLAYER_PRESETS.length];
+      return createPlayer(index, entry.username, 'human', preset);
+    });
+  }
+
+  function isOnlineGame(){
+    return Boolean(state?.online?.enabled && onlineState.gameId);
+  }
+
+  function isOnlineHost(){
+    return Boolean(isOnlineGame() && state.online.hostUsername === onlineState.me);
+  }
+
+  function myOnlinePlayer(){
+    if(!state) return null;
+    return state.players.find(player => player.username === onlineState.me || player.name === onlineState.me) || null;
+  }
+
+  function onlinePlayerForUsername(username){
+    if(!state) return null;
+    return state.players.find(player => player.username === username || player.name === username) || null;
+  }
+
+  function serializeState(){
+    if(!state) return null;
+    const payload = JSON.parse(JSON.stringify(state));
+    payload.hover = null;
+    payload.selected = null;
+    payload.trade.open = false;
+    payload.view = { width: 1, height: 1, scale: 1, offsetX: 0, offsetY: 0 };
+    return payload;
+  }
+
+  function syncOnlineState(){
+    if(!isOnlineGame() || !isOnlineHost() || !socket) return;
+    socket.emit('moonfall_settlers_sync_state', {
+      gameId: onlineState.gameId,
+      snapshot: serializeState()
+    });
+  }
+
+  function applySnapshot(snapshot, hostUsername, gameId){
+    if(!snapshot) return;
+    onlineState.gameId = gameId || onlineState.gameId;
+    onlineState.hostUsername = hostUsername || onlineState.hostUsername;
+    snapshot.online = {
+      enabled: true,
+      gameId: onlineState.gameId,
+      hostUsername: onlineState.hostUsername
+    };
+    enterGame(snapshot);
+    onlineState.waitingForSnapshot = false;
+    syncTradeResponseVisibility();
+  }
+
+  function requestOnlineAction(action){
+    if(!socket || !onlineState.gameId) return;
+    socket.emit('moonfall_settlers_action', {
+      gameId: onlineState.gameId,
+      action
+    });
+  }
+
   function readSetup(){
     return [...dom.slots.querySelectorAll('.slot')].map((slot, index) => {
       const preset = PLAYER_PRESETS[index];
@@ -272,6 +461,7 @@
   function createPlayer(id, name, type, preset){
     return {
       id,
+      username: name,
       name,
       type,
       color: preset.color,
@@ -301,13 +491,10 @@
     };
   }
 
-  function startGame(event){
-    event.preventDefault();
-    const players = readSetup();
-    const targetScore = Number(dom.targetScore.value) || TARGET_DEFAULT;
-    state = {
+  function createInitialState(players, boardMode, targetScore, options = {}){
+    return {
       players,
-      board: createBoard(dom.boardMode.value),
+      board: createBoard(boardMode),
       targetScore,
       turn: 0,
       turnNumber: 1,
@@ -330,17 +517,48 @@
       winner: null,
       log: [],
       trade: createTradeState(players),
-      view: { width: 1, height: 1, scale: 1, offsetX: 0, offsetY: 0 }
+      view: { width: 1, height: 1, scale: 1, offsetX: 0, offsetY: 0 },
+      online: {
+        enabled: Boolean(options.online),
+        gameId: options.gameId || null,
+        hostUsername: options.hostUsername || null
+      }
     };
+  }
+
+  function enterGame(nextState){
+    state = nextState;
+    if(!state.view){
+      state.view = { width: 1, height: 1, scale: 1, offsetX: 0, offsetY: 0 };
+    }
+    if(!state.trade){
+      state.trade = createTradeState(state.players || []);
+    }
+    if(!state.online){
+      state.online = { enabled: false, gameId: null, hostUsername: null };
+    }
+
+    state.hover = null;
+    state.selected = null;
+    state.trade.open = false;
 
     dom.setupView.hidden = true;
     dom.setupView.classList.add('is-hidden');
     dom.gameView.hidden = false;
     dom.gameView.classList.remove('is-hidden');
     resizeCanvas();
-    log('The clans enter the Moonfall night.');
-    notice('Initial placement: settlement, then road.');
     updateAll();
+  }
+
+  function startLocalGame(event){
+    event.preventDefault();
+    if(onlineState.setupMode !== 'local') return;
+    const players = readSetup();
+    const targetScore = Number(dom.targetScore.value) || TARGET_DEFAULT;
+    const nextState = createInitialState(players, dom.boardMode.value, targetScore);
+    logLocal(nextState, 'The clans enter the Moonfall night.');
+    enterGame(nextState);
+    notice('Initial placement: settlement, then road.');
     scheduleAi();
   }
 
@@ -1196,6 +1414,39 @@
     if(!hit) return;
     const player = getInteractionPlayer();
 
+    if(isOnlineGame() && !isOnlineHost()){
+      if(state.phase === 'setup'){
+        if(state.setupPart === 'settlement' && hit.vertexId !== undefined){
+          requestOnlineAction({ type: 'setup_settlement', vertexId: hit.vertexId });
+          return;
+        }
+        if(state.setupPart === 'road' && hit.edgeId !== undefined){
+          requestOnlineAction({ type: 'setup_road', edgeId: hit.edgeId });
+          return;
+        }
+      }
+
+      if(state.activeMode === 'robber' && hit.tileId !== undefined){
+        requestOnlineAction({ type: 'move_robber', tileId: hit.tileId });
+        return;
+      }
+
+      if(state.phase === 'main'){
+        if(state.activeMode === 'road' && hit.edgeId !== undefined){
+          requestOnlineAction({ type: 'build_road', edgeId: hit.edgeId });
+          return;
+        }
+        if(state.activeMode === 'settlement' && hit.vertexId !== undefined){
+          requestOnlineAction({ type: 'build_settlement', vertexId: hit.vertexId });
+          return;
+        }
+        if(state.activeMode === 'city' && hit.vertexId !== undefined){
+          requestOnlineAction({ type: 'build_city', vertexId: hit.vertexId });
+          return;
+        }
+      }
+    }
+
     if(state.phase === 'setup'){
       handleSetupClick(player, hit);
       return;
@@ -1329,6 +1580,7 @@
       log(`${player.name} founds a settlement.`);
       notice(`${player.name}: place your starting road.`);
       updateAll();
+      syncOnlineState();
       return;
     }
 
@@ -1340,6 +1592,7 @@
       placeRoad(player.id, hit.edgeId, true);
       if(state.setupStep >= state.players.length) grantInitialResources(player.id, state.setupPendingVertex);
       advanceSetup();
+      syncOnlineState();
     }
   }
 
@@ -1356,6 +1609,7 @@
       log('The last torch is planted. The dice decide what comes next.');
       notice(`${currentPlayer().name}: rolling dice.`);
       updateAll();
+      syncOnlineState();
       scheduleAi();
       return;
     }
@@ -1364,6 +1618,7 @@
     const next = getSetupPlayer();
     notice(`${next.name}: place your starting settlement.`);
     updateAll();
+    syncOnlineState();
     scheduleAi();
   }
 
@@ -1376,6 +1631,46 @@
       player.resources[tile.type] += 1;
     });
     log(`${player.name} receives starting resources.`);
+  }
+
+  function requestRollDice(){
+    if(isOnlineGame() && !isOnlineHost() && isHumanInteraction()){
+      requestOnlineAction({ type: 'roll' });
+      return;
+    }
+    rollDice();
+  }
+
+  function requestEndTurn(){
+    if(isOnlineGame() && !isOnlineHost() && isHumanInteraction()){
+      requestOnlineAction({ type: 'end_turn' });
+      return;
+    }
+    endTurn();
+  }
+
+  function requestBuyDevCard(){
+    if(isOnlineGame() && !isOnlineHost() && isHumanInteraction()){
+      requestOnlineAction({ type: 'buy_dev' });
+      return;
+    }
+    buyDevCard();
+  }
+
+  function requestPlayDevCard(type){
+    if(isOnlineGame() && !isOnlineHost() && isHumanInteraction()){
+      const action = { type: 'play_dev', card: type };
+      if(type === 'plenty'){
+        action.first = document.getElementById('plentyOne')?.value || 'cedar';
+        action.second = document.getElementById('plentyTwo')?.value || action.first;
+      }
+      if(type === 'monopoly'){
+        action.resource = document.getElementById('monopolyResource')?.value || 'cedar';
+      }
+      requestOnlineAction(action);
+      return;
+    }
+    playDevCard(type);
   }
 
   function rollDice(){
@@ -1396,6 +1691,7 @@
       state.pendingRobber = { playerId: player.id, source: 'dice' };
       notice(`${player.name}: move the Oni.`);
       updateAll();
+      syncOnlineState();
       scheduleAi();
       return;
     }
@@ -1404,6 +1700,7 @@
     state.phase = 'main';
     state.activeMode = null;
     updateAll();
+    syncOnlineState();
     scheduleAi();
   }
 
@@ -1463,6 +1760,7 @@
     state.activeMode = null;
     state.pendingRobber = null;
     updateAll();
+    syncOnlineState();
     scheduleAi();
     return true;
   }
@@ -1499,6 +1797,7 @@
     log(`${player.name} builds a road.`);
     updateAwards();
     checkVictory(playerId);
+    syncOnlineState();
     return true;
   }
 
@@ -1521,6 +1820,7 @@
     placeSettlement(playerId, vertexId, true);
     log(`${player.name} founds a settlement.`);
     checkVictory(playerId);
+    syncOnlineState();
     return true;
   }
 
@@ -1546,12 +1846,15 @@
     player.pieces.cities += 1;
     log(`${player.name} upgrades a city.`);
     checkVictory(playerId);
+    syncOnlineState();
     return true;
   }
 
-  function buyDevCard(){
-    const player = currentPlayer();
-    if(!isHumanInteraction() || state.phase !== 'main') return;
+  function buyDevCard(actorId = null){
+    const player = actorId === null ? currentPlayer() : state.players[actorId];
+    if(!player || state.phase !== 'main') return;
+    if(actorId === null && !isHumanInteraction()) return;
+    if(actorId !== null && currentPlayer().id !== actorId) return;
     if(!state.devDeck.length){
       notice('The deck is empty.');
       return;
@@ -1565,11 +1868,14 @@
     log(`${player.name} draws ${DEV_CARDS[type].name}.`);
     checkVictory(player.id);
     updateAll();
+    syncOnlineState();
   }
 
-  function playDevCard(type){
-    const player = currentPlayer();
-    if(!isHumanInteraction() || state.phase !== 'main' || state.devPlayedThisTurn) return;
+  function playDevCard(type, actorId = null, extra = {}){
+    const player = actorId === null ? currentPlayer() : state.players[actorId];
+    if(!player || state.phase !== 'main' || state.devPlayedThisTurn) return;
+    if(actorId === null && !isHumanInteraction()) return;
+    if(actorId !== null && currentPlayer().id !== actorId) return;
     const index = player.devCards.findIndex(card => card.type === type && !card.fresh && card.type !== 'vp');
     if(index < 0){
       notice('Card unavailable this turn.');
@@ -1591,13 +1897,13 @@
       log(`${player.name} plays Road Building.`);
       notice('Place two free roads.');
     }else if(type === 'plenty'){
-      const first = document.getElementById('plentyOne')?.value || 'cedar';
-      const second = document.getElementById('plentyTwo')?.value || first;
+      const first = extra.first || document.getElementById('plentyOne')?.value || 'cedar';
+      const second = extra.second || document.getElementById('plentyTwo')?.value || first;
       player.resources[first] += 1;
       player.resources[second] += 1;
       log(`${player.name} receives Year of Plenty.`);
     }else if(type === 'monopoly'){
-      const resource = document.getElementById('monopolyResource')?.value || 'cedar';
+      const resource = extra.resource || document.getElementById('monopolyResource')?.value || 'cedar';
       let total = 0;
       state.players.forEach(other => {
         if(other.id === player.id) return;
@@ -1610,6 +1916,7 @@
 
     checkVictory(player.id);
     updateAll();
+    syncOnlineState();
   }
 
   function syncTradeState(){
@@ -1655,6 +1962,44 @@
     state.trade.pendingOffer = null;
     dom.tradeResponseModal.hidden = true;
     dom.tradeResponseModal.classList.add('is-hidden');
+  }
+
+  function syncTradeResponseVisibility(){
+    if(!isOnlineGame()){
+      if(!state?.trade.pendingOffer) closeTradeResponse();
+      return;
+    }
+
+    const offer = state?.trade?.pendingOffer;
+    if(!offer){
+      dom.tradeResponseModal.hidden = true;
+      dom.tradeResponseModal.classList.add('is-hidden');
+      return;
+    }
+
+    const from = state.players[offer.from];
+    const to = state.players[offer.to];
+    const localPlayer = myOnlinePlayer();
+    if(!localPlayer){
+      closeTradeResponse();
+      return;
+    }
+
+    dom.tradeResponseModal.hidden = false;
+    dom.tradeResponseModal.classList.remove('is-hidden');
+    dom.tradeResponseTitle.textContent = localPlayer.id === offer.to ? `${to.name} reviews the offer` : 'Trade proposal';
+    dom.tradeResponseSummary.innerHTML = describeTradeOffer(offer);
+
+    if(localPlayer.id === offer.to){
+      dom.tradeResponseText.textContent = `${from.name} offers ${offer.giveAmount} ${RESOURCES[offer.give].name} for ${offer.getAmount} ${RESOURCES[offer.get].name}.`;
+      dom.tradeResponseActions.hidden = false;
+      return;
+    }
+
+    dom.tradeResponseText.textContent = localPlayer.id === offer.from
+      ? `${to.name} is considering your offer.`
+      : `${from.name} proposes a trade to ${to.name}.`;
+    dom.tradeResponseActions.hidden = true;
   }
 
   function setTradeMode(mode){
@@ -1710,7 +2055,30 @@
   function submitTrade(){
     if(!state || state.phase !== 'main' || !isHumanInteraction()) return;
     if(state.trade.mode === 'bank'){
+      if(isOnlineGame() && !isOnlineHost()){
+        requestOnlineAction({
+          type: 'bank_trade',
+          give: state.trade.give,
+          get: state.trade.get,
+          giveAmount: state.trade.giveAmount,
+          getAmount: state.trade.getAmount
+        });
+        closeTradeModal();
+        return;
+      }
       bankTrade();
+      return;
+    }
+    if(isOnlineGame() && !isOnlineHost()){
+      requestOnlineAction({
+        type: 'offer_trade',
+        give: state.trade.give,
+        get: state.trade.get,
+        giveAmount: state.trade.giveAmount,
+        getAmount: state.trade.getAmount,
+        partnerId: state.trade.partnerId
+      });
+      closeTradeModal();
       return;
     }
     playerTrade();
@@ -1733,6 +2101,7 @@
     log(`${player.name} trades ${trade.giveAmount} ${RESOURCES[trade.give].name} with the bank for ${trade.getAmount} ${RESOURCES[trade.get].name}.`);
     closeTradeModal();
     updateAll();
+    syncOnlineState();
   }
 
   function playerTrade(){
@@ -1766,6 +2135,13 @@
       getAmount: trade.getAmount
     };
     state.trade.pendingOffer = offer;
+    if(isOnlineGame()){
+      closeTradeModal();
+      updateAll();
+      syncTradeResponseVisibility();
+      syncOnlineState();
+      return;
+    }
     openTradeResponse(offer);
   }
 
@@ -1805,6 +2181,14 @@
 
   function resolveTradeOffer(accepted){
     if(!state?.trade.pendingOffer) return;
+    if(isOnlineGame() && !isOnlineHost()){
+      requestOnlineAction({
+        type: 'respond_trade',
+        accepted
+      });
+      closeTradeResponse();
+      return;
+    }
     const offer = state.trade.pendingOffer;
     const from = state.players[offer.from];
     const to = state.players[offer.to];
@@ -1822,6 +2206,7 @@
     closeTradeResponse();
     closeTradeModal();
     updateAll();
+    syncOnlineState();
   }
 
   function endTurn(){
@@ -1847,6 +2232,7 @@
     log(`${currentPlayer().name} prend la main.`);
     notice(`${currentPlayer().name}: rolling dice.`);
     updateAll();
+    syncOnlineState();
     scheduleAi();
   }
 
@@ -2020,12 +2406,14 @@
 
   function isHumanInteraction(){
     const player = getInteractionPlayer();
-    return Boolean(player && player.type === 'human' && !state.winner);
+    if(!player || state.winner) return false;
+    if(isOnlineGame()) return player.username === onlineState.me;
+    return player.type === 'human';
   }
 
   function scheduleAi(){
     clearTimeout(aiTimer);
-    if(!state || state.winner) return;
+    if(!state || state.winner || isOnlineGame()) return;
     const player = getInteractionPlayer();
     if(!player || player.type !== 'ai') return;
     aiTimer = setTimeout(runAi, state.phase === 'setup' ? 650 : 850);
@@ -2205,6 +2593,101 @@
     return bestTile.id;
   }
 
+  function applyOnlineAction(username, action){
+    if(!isOnlineHost() || !state || !action) return;
+    const player = onlinePlayerForUsername(username);
+    if(!player) return;
+    const interactionPlayer = getInteractionPlayer();
+    const actionType = action.type;
+    const canActOutOfTurn = actionType === 'respond_trade';
+
+    if(!canActOutOfTurn && (!interactionPlayer || interactionPlayer.id !== player.id)) return;
+
+    if(actionType === 'roll'){
+      rollDice();
+      return;
+    }
+
+    if(actionType === 'end_turn'){
+      finishTurn();
+      return;
+    }
+
+    if(actionType === 'setup_settlement'){
+      handleSetupClick(player, { vertexId: action.vertexId });
+      return;
+    }
+
+    if(actionType === 'setup_road'){
+      handleSetupClick(player, { edgeId: action.edgeId });
+      return;
+    }
+
+    if(actionType === 'move_robber'){
+      moveRobber(player.id, action.tileId);
+      return;
+    }
+
+    if(actionType === 'build_road'){
+      if(buildRoad(player.id, action.edgeId, state.freeRoads > 0)){
+        if(state.freeRoads > 0){
+          state.freeRoads -= 1;
+          if(state.freeRoads === 0) state.activeMode = null;
+        }
+        updateAll();
+        syncOnlineState();
+      }
+      return;
+    }
+
+    if(actionType === 'build_settlement'){
+      if(buildSettlement(player.id, action.vertexId, false)) updateAll();
+      return;
+    }
+
+    if(actionType === 'build_city'){
+      if(buildCity(player.id, action.vertexId)) updateAll();
+      return;
+    }
+
+    if(actionType === 'buy_dev'){
+      buyDevCard(player.id);
+      return;
+    }
+
+    if(actionType === 'play_dev'){
+      playDevCard(action.card, player.id, action);
+      return;
+    }
+
+    if(actionType === 'bank_trade'){
+      state.trade.give = action.give;
+      state.trade.get = action.get;
+      state.trade.giveAmount = action.giveAmount;
+      state.trade.getAmount = action.getAmount;
+      state.trade.mode = 'bank';
+      bankTrade();
+      return;
+    }
+
+    if(actionType === 'offer_trade'){
+      state.trade.mode = 'clan';
+      state.trade.give = action.give;
+      state.trade.get = action.get;
+      state.trade.giveAmount = action.giveAmount;
+      state.trade.getAmount = action.getAmount;
+      state.trade.partnerId = action.partnerId;
+      playerTrade();
+      return;
+    }
+
+    if(actionType === 'respond_trade' && state.trade.pendingOffer){
+      const offer = state.trade.pendingOffer;
+      if(offer.to !== player.id) return;
+      resolveTradeOffer(Boolean(action.accepted));
+    }
+  }
+
   function updateAll(){
     updateHud();
     updateButtons();
@@ -2215,6 +2698,7 @@
     renderPlayersPanel();
     renderBoardPanel();
     renderLogPanel();
+    syncTradeResponseVisibility();
     scheduleAutoRoll();
     queueRender();
   }
@@ -2228,7 +2712,7 @@
     renderDiceHud();
     dom.targetHud.textContent = String(state.targetScore);
     dom.pointsHud.textContent = player ? String(victoryPoints(player)) : '0';
-    dom.topbar?.classList.toggle('is-human-turn', Boolean(player?.type === 'human' && !state.winner));
+    dom.topbar?.classList.toggle('is-human-turn', isHumanInteraction());
   }
 
   function phaseLabel(){
@@ -2433,7 +2917,7 @@
 
     const bind = (id, type) => {
       const button = document.getElementById(id);
-      if(button) button.addEventListener('click', () => playDevCard(type));
+      if(button) button.addEventListener('click', () => requestPlayDevCard(type));
     };
     bind('playKnight', 'knight');
     bind('playRoadCard', 'road');
@@ -2492,25 +2976,88 @@
     clearTimeout(autoRollTimer);
     clearTimeout(tradeResponseTimer);
     state = null;
+    onlineState.gameId = null;
+    onlineState.hostUsername = null;
+    onlineState.waitingForSnapshot = false;
     dom.gameView.hidden = true;
     dom.gameView.classList.add('is-hidden');
     dom.setupView.hidden = false;
     dom.setupView.classList.remove('is-hidden');
+    renderOnlineStateFromLobbies();
   }
 
-  dom.form.addEventListener('submit', startGame);
+  function bindSocket(){
+    if(!socket || !onlineState.available) return;
+    window.StrategyLeagueSocket = socket;
+    socket.emit('register_online', onlineState.me);
+    socket.on('online_users', users => {
+      window.dispatchEvent(new CustomEvent('site-shell-online-users', { detail: users }));
+    });
+    socket.on('game_notice', ({ message } = {}) => {
+      if(message) notice(message);
+    });
+    socket.on('moonfall_settlers_lobbies_update', lobbies => {
+      onlineState.lobbies = lobbies || {};
+      if(onlineState.currentLobbyId && !onlineState.lobbies[onlineState.currentLobbyId]){
+        onlineState.currentLobbyId = null;
+      }else if(!onlineState.currentLobbyId){
+        const mine = Object.values(onlineState.lobbies).find(lobby =>
+          lobby.players.some(player => player.username === onlineState.me)
+        );
+        if(mine) onlineState.currentLobbyId = mine.id;
+      }
+      renderOnlineStateFromLobbies();
+    });
+
+    socket.on('moonfall_settlers_start', payload => {
+      onlineState.gameId = payload?.gameId || null;
+      onlineState.hostUsername = payload?.hostUsername || null;
+      onlineState.connectedPlayers = payload?.players || [];
+      onlineState.waitingForSnapshot = true;
+      onlineState.currentLobbyId = null;
+      renderOnlineStateFromLobbies();
+
+      if(payload?.hostUsername === onlineState.me && !payload?.hasSnapshot){
+        const players = createOnlinePlayers(payload.players || []);
+        const nextState = createInitialState(
+          players,
+          payload?.lobby?.boardMode || 'balanced',
+          Number(payload?.lobby?.targetScore) || TARGET_DEFAULT,
+          { online: true, gameId: payload.gameId, hostUsername: payload.hostUsername }
+        );
+        logLocal(nextState, 'The clans enter the Moonfall night.');
+        enterGame(nextState);
+        notice('Initial placement: settlement, then road.');
+        syncOnlineState();
+      }
+    });
+
+    socket.on('moonfall_settlers_state', ({ snapshot, hostUsername, gameId } = {}) => {
+      applySnapshot(snapshot, hostUsername, gameId);
+    });
+
+    socket.on('moonfall_settlers_action_request', ({ username, action } = {}) => {
+      applyOnlineAction(username, action);
+    });
+
+    socket.on('moonfall_settlers_notice', ({ message } = {}) => {
+      if(message) notice(message);
+    });
+  }
+
+  dom.form.addEventListener('submit', startLocalGame);
   dom.playerCount.addEventListener('change', renderSlots);
   dom.shuffleBtn.addEventListener('click', shuffleSlotNames);
   dom.canvas.addEventListener('mousemove', handleMouseMove);
   dom.canvas.addEventListener('mouseleave', handleCanvasLeave);
   dom.canvas.addEventListener('click', handleCanvasClick);
-  dom.rollBtn.addEventListener('click', rollDice);
-  dom.endTurnBtn.addEventListener('click', endTurn);
+  dom.rollBtn.addEventListener('click', requestRollDice);
+  dom.endTurnBtn.addEventListener('click', requestEndTurn);
   dom.newGameBtn.addEventListener('click', resetToSetup);
   dom.roadBtn.addEventListener('click', () => setMode('road'));
   dom.settlementBtn.addEventListener('click', () => setMode('settlement'));
   dom.cityBtn.addEventListener('click', () => setMode('city'));
-  dom.devBtn.addEventListener('click', buyDevCard);
+  dom.devBtn.addEventListener('click', requestBuyDevCard);
   dom.tradeOpenBtn.addEventListener('click', openTradeModal);
   dom.tradeCloseBtn.addEventListener('click', closeTradeModal);
   dom.tradeCancelBtn.addEventListener('click', closeTradeModal);
@@ -2538,7 +3085,23 @@
   });
   window.addEventListener('resize', resizeCanvas);
 
+  dom.localModeBtn?.addEventListener('click', () => setSetupMode('local'));
+  dom.onlineModeBtn?.addEventListener('click', () => setSetupMode('online'));
+  dom.createOnlineLobbyBtn?.addEventListener('click', () => {
+    if(!socket) return;
+    socket.emit('create_moonfall_settlers_lobby', {
+      name: dom.onlineLobbyName.value,
+      maxPlayers: Number(dom.onlineMaxPlayers.value) || 4,
+      boardMode: dom.onlineBoardMode.value,
+      targetScore: Number(dom.onlineTargetScore.value) || TARGET_DEFAULT
+    });
+  });
+  dom.refreshOnlineBtn?.addEventListener('click', renderOnlineStateFromLobbies);
+
+  bindSocket();
   bootImages();
   renderSlots();
+  setSetupMode('local');
   renderTradePanel();
+  renderOnlineStateFromLobbies();
 })();

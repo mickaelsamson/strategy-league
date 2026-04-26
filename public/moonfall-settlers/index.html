@@ -6,6 +6,7 @@
   <link rel="stylesheet" href="/assets/styles/theme.css">
   <link rel="stylesheet" href="/moonfall-settlers/style.css">
   <script defer src="/assets/scripts/site-shell.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
   <script defer src="/moonfall-settlers/game.js"></script>
   <title>Moonfall Settlers</title>
 </head>
@@ -33,35 +34,86 @@
       <h1>Moonfall Settlers</h1>
       <p class="setup-copy">A dark tactical Catan-like board: rival clans, settlements, roads, ports, development cards, and the Moon Oni at the center of the conflict.</p>
 
-      <div class="setup-grid">
-        <label>Players
-          <select id="playerCount">
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4" selected>4</option>
-          </select>
-        </label>
-        <label>Board
-          <select id="boardMode">
-            <option value="balanced" selected>Balanced</option>
-            <option value="wild">Wild</option>
-          </select>
-        </label>
-        <label>Score
-          <select id="targetScore">
-            <option value="8">8</option>
-            <option value="10" selected>10</option>
-            <option value="12">12</option>
-          </select>
-        </label>
+      <div class="setup-mode-tabs" role="tablist" aria-label="Game mode">
+        <button id="localModeBtn" type="button" class="setup-mode-tab is-active">Local</button>
+        <button id="onlineModeBtn" type="button" class="setup-mode-tab">Online</button>
       </div>
 
-      <div id="slots" class="slots"></div>
+      <div id="localSetupPanel">
+        <div class="setup-grid">
+          <label>Players
+            <select id="playerCount">
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4" selected>4</option>
+            </select>
+          </label>
+          <label>Board
+            <select id="boardMode">
+              <option value="balanced" selected>Balanced</option>
+              <option value="wild">Wild</option>
+            </select>
+          </label>
+          <label>Score
+            <select id="targetScore">
+              <option value="8">8</option>
+              <option value="10" selected>10</option>
+              <option value="12">12</option>
+            </select>
+          </label>
+        </div>
 
-      <div class="setup-actions">
-        <button id="shuffleBtn" type="button" class="secondary-btn">Shuffle</button>
-        <button type="submit" class="primary-btn">Start Game</button>
+        <div id="slots" class="slots"></div>
+
+        <div class="setup-actions">
+          <button id="shuffleBtn" type="button" class="secondary-btn">Shuffle</button>
+          <button type="submit" class="primary-btn">Start Game</button>
+        </div>
       </div>
+
+      <section id="onlineSetupPanel" class="online-setup is-hidden" hidden>
+        <div class="online-create">
+          <div class="setup-grid">
+            <label>Lobby name
+              <input id="onlineLobbyName" value="Moonfall Lobby">
+            </label>
+            <label>Players
+              <select id="onlineMaxPlayers">
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4" selected>4</option>
+              </select>
+            </label>
+            <label>Board
+              <select id="onlineBoardMode">
+                <option value="balanced" selected>Balanced</option>
+                <option value="wild">Wild</option>
+              </select>
+            </label>
+          </div>
+          <div class="setup-grid online-score-row">
+            <label>Score
+              <select id="onlineTargetScore">
+                <option value="8">8</option>
+                <option value="10" selected>10</option>
+                <option value="12">12</option>
+              </select>
+            </label>
+            <div class="online-cta-group">
+              <button id="createOnlineLobbyBtn" type="button" class="primary-btn">Create lobby</button>
+              <button id="refreshOnlineBtn" type="button" class="secondary-btn">Refresh</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="online-status-card">
+          <span class="eyebrow">Lobby status</span>
+          <strong id="onlineLobbyStatus">Choose a lobby or create one.</strong>
+          <span id="onlineLobbyMeta">Online Moonfall supports 2 to 4 human players.</span>
+        </div>
+
+        <div id="onlineLobbyList" class="online-lobby-list"></div>
+      </section>
     </form>
   </section>
 

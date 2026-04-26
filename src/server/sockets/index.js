@@ -1,13 +1,15 @@
 const { createChessModule } = require('../games/chess/socket');
 const { createOthelloModule } = require('../games/othello/socket');
 const { createAzulModule } = require('../games/azul/socket');
+const { createMoonfallSettlersModule } = require('../games/moonfall-settlers/socket');
 const { DISCONNECT_FORFEIT_MS } = require('../config/constants');
 
 function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, applyOthelloResult, applyAzulResult }){
   const GAME_META = {
     chess: { label: 'Chess', lobbyUrl: '/chess/index.html', gameUrl: '/chess/chess-game.html' },
     othello: { label: 'Othello', lobbyUrl: '/othello/index.html', gameUrl: '/othello/game.html' },
-    azul: { label: 'Azul Arena', lobbyUrl: '/azul/index.html', gameUrl: '/azul/game.html' }
+    azul: { label: 'Azul Arena', lobbyUrl: '/azul/index.html', gameUrl: '/azul/game.html' },
+    moonfall: { label: 'Moonfall Settlers', lobbyUrl: '/moonfall-settlers/index.html', gameUrl: '/moonfall-settlers/index.html' }
   };
 
   function socketsForUsername(username){
@@ -33,6 +35,11 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
       game && !game.ended && game.players?.some(p => p.username === username)
     );
     if(azulEntry) return { gameKey: 'azul', gameId: azulEntry[0], label: GAME_META.azul.label, url: GAME_META.azul.gameUrl };
+
+    const moonfallEntry = Object.entries(state.moonfallSettlersGames).find(([, game]) =>
+      game && !game.ended && game.players?.some(p => p.username === username)
+    );
+    if(moonfallEntry) return { gameKey: 'moonfall', gameId: moonfallEntry[0], label: GAME_META.moonfall.label, url: GAME_META.moonfall.gameUrl };
 
     return null;
   }
@@ -67,6 +74,7 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
     io.emit('lobbies_update', state.lobbies);
     io.emit('othello_lobbies_update', state.othelloLobbies);
     io.emit('azul_lobbies_update', state.azulLobbies);
+    io.emit('moonfall_settlers_lobbies_update', state.moonfallSettlersLobbies);
     io.sockets.sockets.forEach(s => emitActiveGame(s));
   }
 
@@ -101,6 +109,14 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
       state,
       updatePresence,
       applyAzulResult: (game, winner, reason) => applyAzulResult(User, game, winner, reason),
+      isGameAllowed
+    });
+
+    const moonfall = createMoonfallSettlersModule({
+      io,
+      socket,
+      state,
+      updatePresence,
       isGameAllowed
     });
 
@@ -172,6 +188,8 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
         azul.emitState(game);
       }
 
+      moonfall.rebindForUsername(socket.username);
+
       emitActiveGame(socket);
       updatePresence();
     });
@@ -179,6 +197,7 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
     chess.register();
     othello.register();
     azul.register();
+    moonfall.register();
 
     socket.on('send_game_invite', ({ toUsername, gameKey } = {})=>{
       if(!socket.username || !toUsername || toUsername === socket.username) return;
@@ -272,6 +291,8 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
         state.azulLobbies[id].players = state.azulLobbies[id].players.filter(p => p.id !== socket.id);
         if(state.azulLobbies[id].players.length === 0) delete state.azulLobbies[id];
       }
+
+      moonfall.handleDisconnect();
 
       io.emit('othello_lobbies_update', state.othelloLobbies);
       io.emit('azul_lobbies_update', state.azulLobbies);

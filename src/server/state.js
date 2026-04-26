@@ -7,9 +7,12 @@ const state = {
   othelloGames: {},
   azulLobbies: {},
   azulGames: {},
+  moonfallSettlersLobbies: {},
+  moonfallSettlersGames: {},
   playerGames: {},
   othelloPlayerGames: {},
   azulPlayerGames: {},
+  moonfallSettlersPlayerGames: {},
   rematchRequests: {},
   pendingDisconnects: {}
 };

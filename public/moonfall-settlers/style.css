@@ -141,6 +141,22 @@ body.moonsettlers-page [hidden],
   margin-bottom:14px;
 }
 
+.setup-mode-tabs{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin:0 0 16px;
+}
+
+.setup-mode-tab{
+  background:rgba(255,255,255,.06);
+}
+
+.setup-mode-tab.is-active{
+  border-color:rgba(242,200,109,.55);
+  background:linear-gradient(180deg, rgba(116,81,41,.9), rgba(69,45,25,.95));
+}
+
 label{
   display:flex;
   flex-direction:column;
@@ -194,6 +210,126 @@ select{
   justify-content:flex-end;
   gap:10px;
   margin-top:16px;
+}
+
+.online-setup{
+  display:grid;
+  gap:14px;
+}
+
+.online-create,
+.online-status-card,
+.online-lobby-card{
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:8px;
+  background:rgba(255,255,255,.045);
+}
+
+.online-create,
+.online-status-card{
+  padding:14px;
+}
+
+.online-score-row{
+  grid-template-columns:minmax(0, 1fr) 1.3fr;
+  margin:0;
+}
+
+.online-cta-group{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  align-items:end;
+}
+
+.online-status-card{
+  display:grid;
+  gap:4px;
+}
+
+.online-status-card strong{
+  color:#fff;
+  font-size:18px;
+}
+
+.online-status-card span:last-child{
+  color:#d9d0be;
+  font-size:13px;
+}
+
+.online-lobby-list{
+  display:grid;
+  gap:10px;
+  max-height:40vh;
+  overflow:auto;
+  padding-right:4px;
+}
+
+.online-lobby-card{
+  padding:12px;
+  display:grid;
+  gap:10px;
+}
+
+.online-lobby-card.is-mine{
+  border-color:rgba(242,200,109,.28);
+  background:rgba(242,200,109,.08);
+}
+
+.online-lobby-head,
+.online-lobby-actions,
+.online-lobby-players{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.online-lobby-head{
+  justify-content:space-between;
+}
+
+.online-lobby-head strong{
+  font-size:16px;
+}
+
+.online-lobby-meta{
+  color:#d9d0be;
+  font-size:13px;
+}
+
+.online-player-chip{
+  min-height:28px;
+  padding:5px 9px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.1);
+  background:rgba(0,0,0,.18);
+  color:#ece2cb;
+  font-size:12px;
+  font-weight:900;
+}
+
+.online-player-chip.is-ready{
+  border-color:rgba(124,216,139,.52);
+  color:#bff4c8;
+}
+
+.online-lobby-btn{
+  min-height:38px;
+  padding:0 14px;
+  background:#3b4d55;
+}
+
+.online-lobby-btn.secondary{
+  background:rgba(255,255,255,.08);
+}
+
+.online-empty{
+  padding:18px;
+  border:1px dashed rgba(255,255,255,.14);
+  border-radius:8px;
+  color:#d9d0be;
+  text-align:center;
 }
 
 button{
@@ -602,6 +738,11 @@ h2{
 
   .setup-grid,
   .slot{
+    grid-template-columns:1fr;
+  }
+
+  .online-score-row,
+  .online-cta-group{
     grid-template-columns:1fr;
   }
 
