@@ -1,0 +1,493 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;500;700;900&display=swap');
+
+:root {
+  --bg: #070b12;
+  --panel: rgba(8, 13, 22, 0.78);
+  --panel-strong: rgba(10, 15, 24, 0.92);
+  --line: rgba(255, 92, 101, 0.35);
+  --line-soft: rgba(255, 255, 255, 0.12);
+  --red: #e84955;
+  --red-glow: rgba(232, 73, 85, 0.55);
+  --cream: #f5efe8;
+  --muted: #a9a6a6;
+  --blue: #8fa8bd;
+  --shadow: 0 30px 90px rgba(0, 0, 0, 0.65);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--cream);
+  font-family: Inter, system-ui, sans-serif;
+  background:
+    linear-gradient(90deg, rgba(7,11,18,0.88), rgba(7,11,18,0.42), rgba(7,11,18,0.88)),
+    url("./assets/moonfall-bg.png") center / cover fixed no-repeat,
+    var(--bg);
+  overflow-x: hidden;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(255,255,255,0.08), transparent 22%),
+    radial-gradient(circle at 70% 70%, rgba(232,73,85,0.12), transparent 28%),
+    linear-gradient(rgba(0,0,0,0.20), rgba(0,0,0,0.45));
+  z-index: -1;
+}
+
+.moonfall-app {
+  width: min(1500px, 96vw);
+  margin: 32px auto 0;
+  display: grid;
+  grid-template-columns: 280px minmax(460px, 760px) 330px;
+  gap: 28px;
+  align-items: center;
+}
+
+.panel,
+.game-panel {
+  border: 1px solid var(--line);
+  background: linear-gradient(145deg, rgba(7, 11, 18, 0.86), rgba(13, 18, 29, 0.72));
+  box-shadow: var(--shadow), inset 0 0 0 1px rgba(255,255,255,0.05);
+  backdrop-filter: blur(10px);
+  position: relative;
+}
+
+.panel {
+  min-height: 650px;
+  padding: 34px 28px;
+}
+
+.left-panel {
+  border-radius: 4px 28px 4px 28px;
+}
+
+.right-panel {
+  border-radius: 28px 4px 28px 4px;
+}
+
+.game-panel {
+  min-height: 720px;
+  padding: 28px 28px 36px;
+  border-radius: 26px 6px 26px 6px;
+}
+
+.brand-kana {
+  color: var(--red);
+  font-size: 34px;
+  letter-spacing: 8px;
+  writing-mode: vertical-rl;
+  position: absolute;
+  left: -8px;
+  top: -6px;
+  opacity: 0.85;
+  font-family: Cinzel, serif;
+}
+
+.eyebrow {
+  color: var(--red);
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  font-weight: 700;
+  margin: 0 0 10px;
+}
+
+h1, h2, h3 {
+  font-family: Cinzel, serif;
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(2.2rem, 4vw, 3.8rem);
+  letter-spacing: 0.22em;
+  line-height: 0.95;
+}
+
+h2 {
+  color: var(--red);
+  letter-spacing: 0.35em;
+  margin-top: 18px;
+  font-size: 1rem;
+}
+
+.divider {
+  width: 120px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--red), transparent);
+  margin: 30px 0;
+}
+
+.tagline {
+  color: var(--cream);
+  line-height: 1.65;
+  margin-bottom: 44px;
+}
+
+.feature-list {
+  display: grid;
+  gap: 24px;
+}
+
+.feature-list article,
+.player-card {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.feature-list span {
+  width: 54px;
+  height: 54px;
+  border: 1px solid var(--red);
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  background: rgba(232, 73, 85, 0.05);
+}
+
+.feature-list strong,
+.player-card strong {
+  display: block;
+  letter-spacing: 0.06em;
+}
+
+.feature-list p,
+.player-card p,
+.how-box p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.topbar {
+  display: grid;
+  grid-template-columns: 56px 1fr 56px;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.turn-banner {
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  color: var(--cream);
+  background: linear-gradient(90deg, transparent, rgba(232,73,85,0.12), transparent);
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  clip-path: polygon(0 0, calc(50% - 24px) 0, 50% 14px, calc(50% + 24px) 0, 100% 0, 96% 50%, 100% 100%, calc(50% + 24px) 100%, 50% calc(100% - 14px), calc(50% - 24px) 100%, 0 100%, 4% 50%);
+}
+
+.icon-btn,
+.arrow,
+.win-actions button {
+  border: 1px solid var(--line);
+  background: rgba(8, 13, 22, 0.72);
+  color: var(--cream);
+  cursor: pointer;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.icon-btn {
+  height: 54px;
+  font-size: 1.4rem;
+  border-radius: 10px;
+}
+
+.icon-btn:hover,
+.arrow:hover,
+.win-actions button:hover {
+  transform: translateY(-2px);
+  border-color: var(--red);
+  box-shadow: 0 0 24px var(--red-glow);
+}
+
+.board {
+  margin: 0 auto;
+  width: min(100%, 720px);
+  aspect-ratio: 7 / 6;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  gap: 7px;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background:
+    linear-gradient(145deg, rgba(20, 26, 38, 0.96), rgba(4, 8, 14, 0.96)),
+    radial-gradient(circle at center, rgba(255,255,255,0.08), transparent 60%);
+  border-radius: 18px;
+  box-shadow:
+    inset 0 0 30px rgba(255,255,255,0.04),
+    inset 0 0 50px rgba(0,0,0,0.9),
+    0 30px 80px rgba(0,0,0,0.55);
+}
+
+.cell {
+  border: 1px solid rgba(255,255,255,0.11);
+  background: linear-gradient(145deg, #101622, #05080e);
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  position: relative;
+  box-shadow: inset 0 0 12px rgba(0,0,0,0.7);
+}
+
+.cell::before {
+  content: "";
+  width: 76%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: radial-gradient(circle at 35% 25%, rgba(255,255,255,0.10), rgba(0,0,0,0.55) 55%, #020307 100%);
+  box-shadow: inset 0 0 18px rgba(0,0,0,0.95), 0 0 0 1px rgba(255,255,255,0.08);
+}
+
+.cell:hover {
+  border-color: rgba(232,73,85,0.5);
+}
+
+.orb {
+  width: 76%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  position: absolute;
+  transform: translateY(-520%);
+  animation: drop .34s cubic-bezier(.2,.8,.25,1.2) forwards;
+  box-shadow: inset 0 8px 13px rgba(255,255,255,0.16), inset 0 -10px 18px rgba(0,0,0,0.45), 0 0 24px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+
+.orb::after {
+  content: "";
+  position: absolute;
+  inset: 15% 10%;
+  border-top: 4px double rgba(255,255,255,0.26);
+  border-radius: 999px;
+  opacity: 0.7;
+}
+
+.orb.p1 {
+  background:
+    radial-gradient(circle at 33% 24%, #ff9aa0, transparent 22%),
+    repeating-radial-gradient(circle at 50% 100%, rgba(0,0,0,0) 0 9px, rgba(70,0,5,0.22) 10px 13px),
+    linear-gradient(145deg, #ff5f67, #991821 68%, #3a070c);
+  border: 1px solid rgba(255, 154, 160, 0.65);
+  box-shadow: 0 0 20px rgba(232,73,85,0.52), inset 0 8px 13px rgba(255,255,255,0.16), inset 0 -10px 18px rgba(0,0,0,0.45);
+}
+
+.orb.p2 {
+  background:
+    radial-gradient(circle at 33% 24%, #ffffff, transparent 22%),
+    repeating-radial-gradient(circle at 50% 100%, rgba(0,0,0,0) 0 9px, rgba(16,20,28,0.22) 10px 13px),
+    linear-gradient(145deg, #f2eee8, #9b9692 68%, #34363b);
+  border: 1px solid rgba(255,255,255,0.62);
+}
+
+.orb.win {
+  animation: pulseWin .85s ease infinite alternate;
+}
+
+@keyframes drop {
+  to { transform: translateY(0); }
+}
+
+@keyframes pulseWin {
+  from { filter: brightness(1); transform: scale(1); }
+  to { filter: brightness(1.45); transform: scale(1.08); }
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 26px;
+}
+
+.arrow {
+  width: 58px;
+  height: 58px;
+  border-radius: 12px;
+  font-size: 1.4rem;
+}
+
+.selected-orb {
+  width: 78px;
+  height: 78px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(7,11,18,0.65);
+  display: grid;
+  place-items: center;
+}
+
+.selected-orb::before {
+  content: "";
+  width: 58px;
+  height: 58px;
+  border-radius: 999px;
+  background: linear-gradient(145deg, #ff5f67, #991821 68%, #3a070c);
+  box-shadow: 0 0 26px rgba(232,73,85,0.55);
+}
+
+.right-panel h3 {
+  color: var(--red);
+  letter-spacing: 0.16em;
+  text-align: center;
+  margin-bottom: 26px;
+}
+
+.avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 2rem;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 45% 32%, rgba(255,255,255,0.2), transparent 18%),
+    linear-gradient(145deg, rgba(232,73,85,0.28), rgba(8,13,22,0.95));
+  box-shadow: 0 0 30px rgba(232,73,85,0.18);
+}
+
+.you .avatar {
+  background:
+    radial-gradient(circle at 45% 32%, rgba(255,255,255,0.22), transparent 18%),
+    linear-gradient(145deg, rgba(143,168,189,0.33), rgba(8,13,22,0.95));
+}
+
+.vs {
+  margin: 34px auto;
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  color: var(--red);
+  font-weight: 900;
+  transform: rotate(45deg);
+}
+
+.vs::first-letter {
+  transform: rotate(-45deg);
+}
+
+.info-box,
+.how-box {
+  border-top: 1px solid var(--line);
+  margin-top: 32px;
+  padding-top: 26px;
+}
+
+.info-box p {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+}
+
+.info-box b {
+  color: var(--cream);
+  text-transform: uppercase;
+}
+
+.win-card {
+  position: absolute;
+  left: 50%;
+  bottom: 44px;
+  transform: translateX(-50%);
+  width: min(520px, 86%);
+  padding: 28px;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(rgba(8,13,22,0.78), rgba(8,13,22,0.88)),
+    url("./assets/moonfall-bg.png") center / cover;
+  text-align: center;
+  box-shadow: 0 35px 90px rgba(0,0,0,0.7), 0 0 40px rgba(232,73,85,0.18);
+  border-radius: 8px 26px;
+}
+
+.win-card.hidden { display: none; }
+
+.win-card h3 {
+  font-size: 3rem;
+  letter-spacing: 0.18em;
+  text-shadow: 0 0 30px var(--red-glow);
+}
+
+.win-actions {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.win-actions button {
+  padding: 14px 22px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-radius: 8px;
+}
+
+.moonfall-footer {
+  width: min(1500px, 96vw);
+  margin: 18px auto 28px;
+  display: flex;
+  justify-content: center;
+  gap: 60px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.84rem;
+}
+
+@media (max-width: 1160px) {
+  .moonfall-app {
+    grid-template-columns: 1fr;
+  }
+
+  .panel,
+  .game-panel {
+    min-height: auto;
+  }
+
+  .left-panel,
+  .right-panel {
+    display: none;
+  }
+}
+
+@media (max-width: 620px) {
+  .moonfall-app {
+    width: 100%;
+    margin-top: 0;
+  }
+
+  .game-panel {
+    min-height: 100vh;
+    border-radius: 0;
+    padding: 18px 12px;
+  }
+
+  .board {
+    gap: 4px;
+    padding: 8px;
+  }
+
+  .turn-banner {
+    font-size: 0.78rem;
+  }
+
+  .moonfall-footer {
+    display: none;
+  }
+}
