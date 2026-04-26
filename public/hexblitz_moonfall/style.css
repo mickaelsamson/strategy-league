@@ -206,11 +206,17 @@ input {
   height: 44px;
   border-radius: 50%;
   border: 1px solid rgba(255,255,255,.24);
-  background: radial-gradient(circle at 35% 25%, #ffb4b8, #ef4054 34%, #67101a 78%);
+  background:
+    url("./assets/tiles/hex_crimson.png") center / 130% 130% no-repeat,
+    radial-gradient(circle at 35% 25%, #ffb4b8, #ef4054 34%, #67101a 78%);
+  box-shadow: 0 0 18px rgba(239,64,84,.5);
 }
 
 .lunar .orb {
-  background: radial-gradient(circle at 35% 25%, #fff, #d6d0c8 42%, #474d56 86%);
+  background:
+    url("./assets/tiles/hex_ivory.png") center / 130% 130% no-repeat,
+    radial-gradient(circle at 35% 25%, #fff, #d6d0c8 42%, #474d56 86%);
+  box-shadow: 0 0 18px rgba(255,245,220,.46);
 }
 
 .player-card small {
@@ -319,17 +325,13 @@ input {
 }
 
 .hex.p1::before {
-  background:
-    radial-gradient(circle at 35% 25%, rgba(255,180,184,.95), rgba(239,64,84,.94) 34%, rgba(103,16,26,.96) 76%) center / 54% 47% no-repeat,
-    url("./assets/tiles/hex_empty.png") center / contain no-repeat;
-  filter: drop-shadow(0 0 14px rgba(239,64,84,.78));
+  background-image: url("./assets/tiles/hex_crimson.png");
+  filter: drop-shadow(0 0 16px rgba(239,64,84,.88)) brightness(1.08);
 }
 
 .hex.p2::before {
-  background:
-    radial-gradient(circle at 35% 25%, rgba(255,255,255,.98), rgba(214,208,200,.96) 42%, rgba(71,77,86,.94) 86%) center / 54% 47% no-repeat,
-    url("./assets/tiles/hex_empty.png") center / contain no-repeat;
-  filter: drop-shadow(0 0 14px rgba(255,245,220,.6));
+  background-image: url("./assets/tiles/hex_ivory.png");
+  filter: drop-shadow(0 0 18px rgba(255,245,220,.72)) brightness(1.1);
 }
 
 .hex.path::after {

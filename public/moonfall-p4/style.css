@@ -244,43 +244,172 @@ input {
   padding: 16px;
 }
 
-.board {
+.board-panel {
+  padding: clamp(12px, 2vw, 22px);
+  background:
+    linear-gradient(150deg, rgba(12, 18, 29, 0.94), rgba(4, 8, 14, 0.96)),
+    radial-gradient(circle at 50% 0%, rgba(232, 73, 85, 0.16), transparent 55%);
+}
+
+.moonfall-board-frame {
+  --selected-col: 4;
+  position: relative;
+  width: min(100%, 900px);
   margin: 0 auto;
-  width: min(100%, 720px);
+  display: grid;
+  grid-template-columns: clamp(26px, 4vw, 42px) minmax(0, 1fr);
+  grid-template-rows: auto clamp(44px, 6vw, 62px);
+  padding: clamp(12px, 1.8vw, 18px) clamp(10px, 1.8vw, 16px) 0 clamp(8px, 1.4vw, 14px);
+  border: 1px solid rgba(181, 185, 196, 0.28);
+  border-radius: 4px;
+  background:
+    linear-gradient(180deg, rgba(32, 39, 52, 0.95), rgba(10, 15, 24, 0.98)),
+    radial-gradient(circle at 50% 100%, rgba(232, 73, 85, 0.14), transparent 54%);
+  box-shadow:
+    0 28px 64px rgba(0, 0, 0, 0.48),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 0 28px rgba(0, 0, 0, 0.62);
+}
+
+.moonfall-board-frame::before {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  pointer-events: none;
+  border: 2px solid rgba(178, 184, 198, 0.28);
+  border-radius: 4px;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.72),
+    0 0 0 1px rgba(0, 0, 0, 0.55);
+}
+
+.row-labels,
+.col-labels {
+  position: relative;
+  z-index: 2;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  color: #ff5862;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 700;
+  text-shadow: 0 1px 0 #21070b, 0 0 10px rgba(232, 73, 85, 0.35);
+}
+
+.row-labels {
+  display: grid;
+  grid-template-rows: repeat(6, 1fr);
+  align-items: center;
+  justify-items: center;
+  font-size: clamp(18px, 2.6vw, 28px);
+  padding-bottom: 6px;
+}
+
+.col-labels {
+  grid-column: 2;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  align-items: center;
+  justify-items: center;
+  min-height: clamp(44px, 6vw, 62px);
+  font-size: clamp(18px, 2.5vw, 28px);
+  border-top: 1px solid rgba(255, 82, 92, 0.22);
+}
+
+.col-labels li {
+  position: relative;
+  z-index: 2;
+}
+
+.col-labels li.is-selected {
+  color: #ffd1d1;
+}
+
+.col-labels li.is-selected::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: clamp(26px, 4.4vw, 54px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%) rotate(45deg);
+  border: 2px solid rgba(255, 82, 92, 0.76);
+  background: rgba(12, 17, 26, 0.86);
+  box-shadow: 0 0 18px rgba(232, 73, 85, 0.25), inset 0 0 0 1px rgba(0, 0, 0, 0.6);
+  z-index: -1;
+}
+
+.board {
+  position: relative;
+  z-index: 1;
+  width: 100%;
   aspect-ratio: 7 / 6;
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   grid-template-rows: repeat(6, 1fr);
-  gap: 6px;
-  padding: 12px;
-  border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 16px;
-  background: linear-gradient(145deg, rgba(20, 26, 38, 0.98), rgba(4, 8, 14, 0.98));
+  gap: 3px;
+  padding: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.72);
+  border-radius: 4px;
+  background:
+    linear-gradient(145deg, rgba(36, 43, 57, 0.98), rgba(12, 18, 29, 0.98));
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.65);
 }
 
 .cell {
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 8px;
-  background: transparent;
+  appearance: none;
+  border: 1px solid rgba(7, 10, 17, 0.96);
+  border-radius: 5px;
+  background:
+    linear-gradient(145deg, rgba(31, 38, 52, 0.98), rgba(19, 25, 37, 0.98));
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.05),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.55);
   display: grid;
   place-items: center;
   cursor: pointer;
   position: relative;
+  padding: 0;
+  overflow: hidden;
+}
+
+body.moonfall-p4-page.app-shell-active .board-panel .moonfall-board-frame #board.board button.cell {
+  border: 1px solid rgba(7, 10, 17, 0.96) !important;
+  background:
+    linear-gradient(145deg, rgba(31, 38, 52, 0.98), rgba(19, 25, 37, 0.98)) !important;
+  color: inherit !important;
 }
 
 .cell::before {
   content: "";
-  width: 76%;
+  width: 78%;
   aspect-ratio: 1;
   border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.16);
-  background: transparent;
-  box-shadow: inset 0 0 20px rgba(0,0,0,0.28);
+  border: 2px solid rgba(178, 181, 190, 0.34);
+  background:
+    radial-gradient(circle at 50% 42%, rgba(18, 25, 36, 0.45), transparent 36%),
+    radial-gradient(circle at 50% 56%, #050910 0 61%, #111823 62% 100%);
+  box-shadow:
+    inset 0 10px 16px rgba(0, 0, 0, 0.88),
+    inset 0 -3px 7px rgba(94, 105, 125, 0.16),
+    0 2px 0 rgba(255, 255, 255, 0.07),
+    0 -2px 0 rgba(0, 0, 0, 0.88);
 }
 
 .cell.selecting {
-  border-color: rgba(232,73,85,0.64);
-  box-shadow: inset 0 0 0 1px rgba(232,73,85,0.45);
+  border-color: rgba(255, 82, 92, 0.52);
+  box-shadow:
+    inset 0 0 0 1px rgba(232, 73, 85, 0.38),
+    0 0 16px rgba(232, 73, 85, 0.12);
+}
+
+body.moonfall-p4-page.app-shell-active .board-panel .moonfall-board-frame #board.board button.cell.selecting {
+  border-color: rgba(255, 82, 92, 0.52) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(232, 73, 85, 0.38),
+    0 0 16px rgba(232, 73, 85, 0.12) !important;
 }
 
 .orb {
@@ -291,16 +420,57 @@ input {
   z-index: 1;
   transform: translateY(-520%);
   animation: drop 0.3s cubic-bezier(0.2,0.8,0.25,1.2) forwards;
-  box-shadow: inset 0 8px 13px rgba(255,255,255,0.16), inset 0 -10px 18px rgba(0,0,0,0.45);
+  border: 2px solid rgba(10, 10, 14, 0.86);
+  overflow: hidden;
+  box-shadow:
+    0 2px 2px rgba(0, 0, 0, 0.78),
+    inset 0 7px 11px rgba(255, 255, 255, 0.22),
+    inset 0 -11px 17px rgba(0, 0, 0, 0.44);
+}
+
+.orb::before {
+  content: "";
+  position: absolute;
+  inset: 7% 9% auto auto;
+  width: 36%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.46), rgba(255, 255, 255, 0.04) 64%, transparent 70%);
+  filter: blur(0.2px);
+}
+
+.orb::after {
+  content: "";
+  position: absolute;
+  inset: 28% 5% 4%;
+  border-radius: 0 0 999px 999px;
+  opacity: 0.78;
+  background:
+    repeating-radial-gradient(ellipse at 50% 100%, transparent 0 8px, var(--orb-wave) 9px 12px, transparent 13px 20px),
+    repeating-radial-gradient(ellipse at 14% 100%, transparent 0 8px, var(--orb-wave) 9px 11px, transparent 12px 19px),
+    repeating-radial-gradient(ellipse at 86% 100%, transparent 0 8px, var(--orb-wave) 9px 11px, transparent 12px 19px);
+  background-size: 58% 68%, 52% 62%, 52% 62%;
+  background-position: 50% 100%, 0 100%, 100% 100%;
+  background-repeat: no-repeat;
 }
 
 .orb.p1 {
-  background: linear-gradient(145deg, #ff5f67, #991821 68%, #3a070c);
-  box-shadow: 0 0 20px var(--p4-red-glow), inset 0 8px 13px rgba(255,255,255,0.16), inset 0 -10px 18px rgba(0,0,0,0.45);
+  --orb-wave: rgba(111, 13, 25, 0.52);
+  background:
+    radial-gradient(circle at 38% 24%, #ff8a8f 0 14%, transparent 29%),
+    linear-gradient(145deg, #f85d65, #c82234 54%, #7d111b 100%);
+  box-shadow:
+    0 0 18px var(--p4-red-glow),
+    0 2px 2px rgba(0, 0, 0, 0.78),
+    inset 0 7px 12px rgba(255, 255, 255, 0.2),
+    inset 0 -12px 17px rgba(72, 5, 12, 0.56);
 }
 
 .orb.p2 {
-  background: linear-gradient(145deg, #f2eee8, #9b9692 68%, #34363b);
+  --orb-wave: rgba(104, 101, 105, 0.42);
+  background:
+    radial-gradient(circle at 35% 22%, #fffaf5 0 14%, transparent 29%),
+    linear-gradient(145deg, #ede8e2, #c9c1bc 56%, #7f7b7c 100%);
 }
 
 .orb.win {
@@ -325,11 +495,22 @@ input {
   aspect-ratio: 1;
   border-radius: 50%;
   border: 1px solid rgba(255,255,255,0.35);
-  background: linear-gradient(145deg, #ff5f67, #991821 68%, #3a070c);
+  background:
+    radial-gradient(circle at 38% 24%, #ff8a8f 0 14%, transparent 29%),
+    linear-gradient(145deg, #f85d65, #c82234 54%, #7d111b 100%);
+  box-shadow:
+    0 0 18px var(--p4-red-glow),
+    inset 0 7px 12px rgba(255, 255, 255, 0.2),
+    inset 0 -12px 17px rgba(72, 5, 12, 0.56);
 }
 
 .selected-orb.enemy-selected {
-  background: linear-gradient(145deg, #f2eee8, #9b9692 68%, #34363b);
+  background:
+    radial-gradient(circle at 35% 22%, #fffaf5 0 14%, transparent 29%),
+    linear-gradient(145deg, #ede8e2, #c9c1bc 56%, #7f7b7c 100%);
+  box-shadow:
+    inset 0 7px 12px rgba(255, 255, 255, 0.28),
+    inset 0 -12px 17px rgba(46, 43, 44, 0.46);
 }
 
 .right-panel h3,

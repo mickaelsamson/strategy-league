@@ -61,6 +61,13 @@
   const PORT_BAG = ['generic', 'generic', 'generic', 'generic', 'cedar', 'clay', 'rice', 'wisteria', 'sunsteel'];
   const MAX_PIECES = { roads: 15, settlements: 5, cities: 4 };
   const TARGET_DEFAULT = 10;
+  const tutorialMode = new URLSearchParams(window.location.search).get('tutorial') === '1';
+  const TUTORIAL_STEPS = [
+    { title: 'Settle strong numbers', body: 'You are playing a guided local game against AI clans. During setup, place settlements near 6 and 8 when possible.', tips: ['6 and 8 produce most often.', 'Diversify wood, brick, wheat, sheep, and ore.'] },
+    { title: 'Build the economy', body: 'Roll dice, collect resources, and convert them into roads, settlements, cities, and cards.', tips: ['Roads are useful only if they lead to a settlement spot.', 'Cities on strong numbers snowball quickly.'] },
+    { title: 'Trade with purpose', body: 'Use bank or clan trades to turn blocked hands into points.', tips: ['A good trade creates a build this turn.', 'Do not hoard resources without a plan.'] },
+    { title: 'Race to victory points', body: 'Watch your points and the AI clans. Convert production into cities, largest army, longest road, and final settlements.', tips: ['Points win, not resources.', 'When ahead, choose reliable points over flashy plays.'] }
+  ];
 
   const COSTS = {
     road: { cedar: 1, clay: 1 },
@@ -167,7 +174,7 @@
   const ctx = dom.canvas.getContext('2d');
   const images = {};
   const user = getSavedUser();
-  const socket = typeof window.io === 'function' && user?.username ? window.io() : null;
+  const socket = !tutorialMode && typeof window.io === 'function' && user?.username ? window.io() : null;
   const onlineState = {
     available: Boolean(socket && user?.username),
     setupMode: 'local',
@@ -185,6 +192,7 @@
   let aiTimer = null;
   let autoRollTimer = null;
   let tradeResponseTimer = null;
+  let tutorialGuide = null;
 
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const randomInt = max => Math.floor(Math.random() * max);
@@ -572,6 +580,23 @@
     logLocal(nextState, 'The clans enter the Moonfall night.');
     enterGame(nextState);
     notice('Initial placement: settlement, then road.');
+    scheduleAi();
+  }
+
+  function startTutorialGame(){
+    const players = PLAYER_PRESETS.slice(0, 4).map((preset, index) =>
+      createPlayer(index, index === 0 ? getSavedName() : preset.name, index === 0 ? 'human' : 'ai', preset)
+    );
+    const nextState = createInitialState(players, 'balanced', 8);
+    logLocal(nextState, 'Tutorial begins: build a Moonfall economy faster than the AI clans.');
+    tutorialGuide = tutorialGuide || window.TutorialGuide?.create({
+      title: 'Moonfall Settlers Tutorial',
+      steps: TUTORIAL_STEPS,
+      onBack: () => window.location.href = '/moonfall-settlers/index.html'
+    });
+    enterGame(nextState);
+    notice('Tutorial setup: place a settlement, then a road.');
+    updateTutorialGuide();
     scheduleAi();
   }
 
@@ -2713,8 +2738,21 @@
     renderBoardPanel();
     renderLogPanel();
     syncTradeResponseVisibility();
+    updateTutorialGuide();
     scheduleAutoRoll();
     queueRender();
+  }
+
+  function updateTutorialGuide(){
+    if(!tutorialMode || !tutorialGuide || !state) return;
+    let step = 0;
+    if(state.phase === 'roll' || state.phase === 'main') step = 1;
+    if(state.phase === 'main' && sumResources(currentPlayer()?.resources || {}) >= 5) step = 2;
+    if(state.turnNumber >= 5 || state.players.some(player => victoryPoints(player) >= Math.max(4, state.targetScore - 3))) step = 3;
+    tutorialGuide.setStep(step);
+    if(state.winner){
+      tutorialGuide.complete(`${state.winner.name} wins. You completed a guided Moonfall Settlers game against AI clans.`);
+    }
   }
 
   function updateHud(){
@@ -3119,4 +3157,5 @@
   setSetupMode('local');
   renderTradePanel();
   renderOnlineStateFromLobbies();
+  if(tutorialMode) startTutorialGame();
 })();

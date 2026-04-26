@@ -2,7 +2,9 @@
 <html>
 <head>
 <link rel="stylesheet" href="/assets/styles/theme.css">
+<link rel="stylesheet" href="/assets/styles/tutorial-guide.css">
 <script defer src="/assets/scripts/site-shell.js"></script>
+<script src="/assets/scripts/tutorial-guide.js"></script>
 <title>Chess</title>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -310,15 +312,16 @@ button{
 
 <script>
 
-const socket = io();
-window.StrategyLeagueSocket = socket;
+const tutorialMode = new URLSearchParams(window.location.search).get("tutorial") === "1";
+const socket = tutorialMode ? { emit(){}, on(){} } : io();
+if(!tutorialMode) window.StrategyLeagueSocket = socket;
 const user = JSON.parse(localStorage.getItem("user"));
 
 if(!user){
   window.location.href = "/login.html";
 }
 
-socket.emit("register_online", user.username);
+if(!tutorialMode) socket.emit("register_online", user.username);
 
 let game = new Chess();
 let selected = null;
@@ -330,6 +333,30 @@ let opponentName = "";
 let gameOver = false;
 let gameEndSent = false;
   let selectedTimeControl = 120;
+let tutorialGuide = null;
+let tutorialMoves = 0;
+const TUTORIAL_STEPS = [
+  {
+    title: "Control the center",
+    body: "You play White against the coach AI. Start by taking central space so your pieces have better squares.",
+    tips: ["Click a piece, then click a highlighted destination.", "Central pawns and knights usually make the best first moves."]
+  },
+  {
+    title: "Develop before attacking",
+    body: "Bring knights and bishops into the game. Do not launch the queen too early unless there is a concrete tactic.",
+    tips: ["A developed piece attacks, defends, and helps your king castle.", "One-move threats are easy for the AI to parry."]
+  },
+  {
+    title: "Keep your king safe",
+    body: "Castle when you can. Safe king first, then attack with the whole army.",
+    tips: ["If your king is unsafe, tactics can backfire.", "After castling, connect rooks and fight for open files."]
+  },
+  {
+    title: "Convert advantages",
+    body: "When you win material or create an attack, simplify carefully and look for checks, captures, and threats.",
+    tips: ["Checkmate wins immediately.", "When ahead, trading pieces is often better than trading pawns."]
+  }
+];
 function applyStartData(data){
   gameOver = false;
   gameEndSent = false;
@@ -420,6 +447,7 @@ function updateTimerUI(){
 
 function checkTimeout(){
   if(gameEndSent || gameOver) return;
+  if(tutorialMode) return;
 
   if(myTime <= 0){
     gameEndSent = true;
@@ -481,7 +509,7 @@ socket.on("chess_rematch_status", data=>{
   
 function updateUI(){
   document.getElementById("turn").innerText =
-    game.turn() === playerColor ? "Your turn" : "Opponent turn";
+    game.turn() === playerColor ? "Your turn" : tutorialMode ? "Coach AI turn" : "Opponent turn";
 }
 
 function showResultAnimation(result, message, xpChange){
@@ -593,8 +621,12 @@ function clickCell(sq){
     possibleMoves=[];
 
     if(move){
-      socket.emit("chess_move",{fen:game.fen()});
-      sendGameEndIfNeeded();
+      if(tutorialMode){
+        handleTutorialPlayerMove();
+      }else{
+        socket.emit("chess_move",{fen:game.fen()});
+        sendGameEndIfNeeded();
+      }
     }
   }
 
@@ -626,28 +658,139 @@ function clickCell(sq){
   }
 }
 
+function updateTutorialGuide(){
+  if(!tutorialMode || !tutorialGuide) return;
+  tutorialGuide.setStep(Math.min(TUTORIAL_STEPS.length - 1, Math.floor(tutorialMoves / 2)));
+}
+
+function finishTutorialChess(result, message){
+  gameOver = true;
+  if(timerInterval) clearInterval(timerInterval);
+  document.getElementById("turn").innerText = "Tutorial finished";
+  document.getElementById("status").innerText = message;
+  document.getElementById("rematchBtn").style.display = "inline-block";
+  document.getElementById("endGameBtn").style.display = "inline-block";
+  tutorialGuide?.complete(`${message} You played a guided chess game against the coach AI.`);
+  showResultAnimation(result, message, 0);
+}
+
+function checkTutorialEnd(){
+  if(game.in_checkmate()){
+    const playerWon = game.turn() !== playerColor;
+    finishTutorialChess(playerWon ? "win" : "loss", playerWon ? "Checkmate. You won the tutorial." : "Checkmate. Coach AI wins this one.");
+    return true;
+  }
+  if(game.in_stalemate() || game.in_draw() || game.in_threefold_repetition() || game.insufficient_material()){
+    finishTutorialChess("draw", "Draw. Good defensive lesson.");
+    return true;
+  }
+  return false;
+}
+
+function scoreAiMove(move){
+  let score = 0;
+  if(move.captured) score += 10;
+  if(["d4","e4","d5","e5","c4","f4","c5","f5"].includes(move.to)) score += 3;
+  if(move.san.includes("+")) score += 4;
+  if(move.san.includes("#")) score += 100;
+  if(move.piece === "n" || move.piece === "b") score += 2;
+  return score + Math.random();
+}
+
+function playTutorialAi(){
+  if(!tutorialMode || gameOver || game.turn() === playerColor) return;
+  tutorialGuide?.message("Coach AI is thinking. Compare its reply with your plan before moving again.", ["Ask: what did the AI attack?", "Then ask: can I improve a piece with tempo?"]);
+  setTimeout(() => {
+    if(gameOver) return;
+    const moves = game.moves({ verbose: true }).sort((a, b) => scoreAiMove(b) - scoreAiMove(a));
+    const move = moves[0];
+    if(move){
+      game.move(move);
+      document.getElementById("status").innerText = `Coach AI played ${move.san}.`;
+    }
+    updateUI();
+    draw();
+    updateTimerUI();
+    if(!checkTutorialEnd()) updateTutorialGuide();
+  }, 700);
+}
+
+function handleTutorialPlayerMove(){
+  tutorialMoves += 1;
+  updateUI();
+  draw();
+  updateTimerUI();
+  if(checkTutorialEnd()) return;
+  playTutorialAi();
+}
+
+function startTutorialChess(){
+  game.reset();
+  gameOver = false;
+  gameEndSent = false;
+  selected = null;
+  possibleMoves = [];
+  playerColor = "w";
+  myName = user.username;
+  opponentName = "Coach AI";
+  selectedTimeControl = 600;
+  myTime = selectedTimeControl;
+  opponentTime = selectedTimeControl;
+  tutorialMoves = 0;
+  document.getElementById("youName").innerText = myName;
+  document.getElementById("opponentName").innerText = opponentName;
+  document.getElementById("youColor").innerText = "White";
+  document.getElementById("opponentColor").innerText = "Black";
+  document.getElementById("players").innerHTML = "<div class='player'>Coach AI (Tutorial)</div>";
+  document.getElementById("status").innerText = "Tutorial mode: play White against the coach AI.";
+  document.getElementById("rematchBtn").style.display = "none";
+  document.getElementById("endGameBtn").style.display = "none";
+  tutorialGuide = tutorialGuide || window.TutorialGuide?.create({
+    title: "Chess Tutorial",
+    steps: TUTORIAL_STEPS,
+    onBack: () => window.location.href = "/chess/index.html"
+  });
+  startTimer();
+  updateTutorialGuide();
+  updateUI();
+  draw();
+  updateTimerUI();
+}
+
   
   
 function resign(){
   if(gameOver) return;
+  if(tutorialMode){
+    finishTutorialChess("loss", "You resigned the tutorial. Restart when you want another guided run.");
+    return;
+  }
   if(confirm("Resign game?")){
     socket.emit("resign");
   }
 }
 function rematch(){
   if(!gameOver) return;
+  if(tutorialMode){
+    document.getElementById("resultOverlay").classList.remove("show");
+    document.getElementById("showResultBtn").hidden = true;
+    startTutorialChess();
+    return;
+  }
   socket.emit("rematch");
   document.getElementById("status").innerText = "⌛ Rematch requested...";
 }
 
 function goMain(){
-  window.location.href = "/";
+  window.location.href = tutorialMode ? "/chess/index.html" : "/";
 }
 
 draw();
 
 const savedSession = localStorage.getItem("chessSession");
-if(savedSession){
+if(tutorialMode){
+  startTutorialChess();
+}else if(savedSession){
   try{
     applyStartData(JSON.parse(savedSession));
   }catch(err){

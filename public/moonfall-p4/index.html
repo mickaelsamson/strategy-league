@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Moonfall Power 4</title>
   <link rel="stylesheet" href="/assets/styles/theme.css" />
+  <link rel="stylesheet" href="/assets/styles/tutorial-guide.css" />
   <link rel="stylesheet" href="/moonfall-p4/style.css" />
   <script defer src="/assets/scripts/site-shell.js"></script>
+  <script src="/assets/scripts/tutorial-guide.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script defer src="/moonfall-p4/game.js"></script>
 </head>
@@ -36,7 +38,7 @@
           <p class="setup-copy">Play instantly on one screen.</p>
           <div class="setup-actions">
             <button id="startLocalBtn" type="button" class="primary-btn">Start Local Game</button>
-            <button type="button" class="secondary-btn" onclick="window.location.href='/tutorial/index.html?game=moonfall_p4'">TUTORIAL</button>
+            <button type="button" class="secondary-btn" onclick="window.location.href='/moonfall-p4/index.html?tutorial=1'">TUTORIAL</button>
           </div>
         </section>
 
@@ -48,7 +50,7 @@
             <div class="online-cta-group">
               <button id="createOnlineLobbyBtn" type="button" class="primary-btn">Create lobby</button>
               <button id="refreshOnlineBtn" type="button" class="secondary-btn">Refresh</button>
-              <button type="button" class="secondary-btn" onclick="window.location.href='/tutorial/index.html?game=moonfall_p4'">TUTORIAL</button>
+              <button type="button" class="secondary-btn" onclick="window.location.href='/moonfall-p4/index.html?tutorial=1'">TUTORIAL</button>
             </div>
           </div>
 
@@ -82,7 +84,15 @@
         </aside>
 
         <section class="board-panel panel-skin">
-          <div id="board" class="board" aria-label="Moonfall Power 4 board"></div>
+          <div class="moonfall-board-frame">
+            <ol class="row-labels" aria-hidden="true">
+              <li>1</li><li>2</li><li>3</li><li>4</li><li>5</li><li>6</li>
+            </ol>
+            <div id="board" class="board" aria-label="Moonfall Power 4 board"></div>
+            <ol class="col-labels" aria-hidden="true">
+              <li>1</li><li>2</li><li>3</li><li>4</li><li>5</li><li>6</li><li>7</li>
+            </ol>
+          </div>
           <div class="controls">
             <button class="arrow" id="leftSelect" type="button">◀</button>
             <div class="selected-orb" id="selectedOrb"></div>

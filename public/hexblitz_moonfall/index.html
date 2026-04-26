@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Hexblitz Moonfall</title>
   <link rel="stylesheet" href="/assets/styles/theme.css" />
+  <link rel="stylesheet" href="/assets/styles/tutorial-guide.css" />
   <link rel="stylesheet" href="/hexblitz_moonfall/style.css" />
   <script defer src="/assets/scripts/site-shell.js"></script>
+  <script src="/assets/scripts/tutorial-guide.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script defer src="/hexblitz_moonfall/game.js"></script>
 </head>
@@ -31,7 +33,7 @@
           <p class="setup-copy">Play a local duel on one screen.</p>
           <div class="setup-actions">
             <button id="startLocalBtn" type="button" class="primary-btn">Start Local Game</button>
-            <button type="button" class="secondary-btn" onclick="window.location.href='/tutorial/index.html?game=hexblitz'">TUTORIAL</button>
+            <button type="button" class="secondary-btn" onclick="window.location.href='/hexblitz_moonfall/index.html?tutorial=1'">TUTORIAL</button>
           </div>
         </section>
 
@@ -43,7 +45,7 @@
             <div class="online-cta-group">
               <button id="createOnlineLobbyBtn" type="button" class="primary-btn">Create lobby</button>
               <button id="refreshOnlineBtn" type="button" class="secondary-btn">Refresh</button>
-              <button type="button" class="secondary-btn" onclick="window.location.href='/tutorial/index.html?game=hexblitz'">TUTORIAL</button>
+              <button type="button" class="secondary-btn" onclick="window.location.href='/hexblitz_moonfall/index.html?tutorial=1'">TUTORIAL</button>
             </div>
           </div>
 

@@ -4,6 +4,12 @@
   const P1 = 1;
   const P2 = 2;
   const dirs = [[-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0]];
+  const tutorialMode = new URLSearchParams(window.location.search).get('tutorial') === '1';
+  const TUTORIAL_STEPS = [
+    { title: 'Build a bridge', body: 'You play Crimson. Build connected threats instead of isolated stones.', tips: ['Crimson connects left to right.', 'A bridge gives you two ways to reconnect if the AI blocks one.'] },
+    { title: 'Block the cut', body: 'The Lunar AI wants to split your chain. Defend only when the cut is urgent.', tips: ['A good defensive move also keeps your path alive.', 'Do not chase random stones far from your route.'] },
+    { title: 'Finish the path', body: 'When a direct connection is available, take it immediately.', tips: ['Hex has no draws.', 'The winner is the first full connected path, not the player with most stones.'] }
+  ];
 
   const dom = {
     setupView: document.getElementById('setupView'),
@@ -39,7 +45,7 @@
   };
 
   const user = getUser();
-  const socket = typeof window.io === 'function' && user?.username ? window.io() : null;
+  const socket = !tutorialMode && typeof window.io === 'function' && user?.username ? window.io() : null;
   if(socket){
     window.StrategyLeagueSocket = socket;
   }
@@ -67,6 +73,8 @@
   };
 
   let timerId = null;
+  let tutorialGuide = null;
+  let tutorialAiTimer = null;
 
   function getUser(){
     try{
@@ -125,6 +133,7 @@
   }
 
   function resetState(){
+    clearTimeout(tutorialAiTimer);
     state.grid = createEmptyGrid();
     state.current = P1;
     state.turn = 1;
@@ -207,6 +216,58 @@
     });
   }
 
+  function wouldHexWin(r, c, player){
+    if(state.grid[r]?.[c] !== EMPTY) return false;
+    state.grid[r][c] = player;
+    const win = findPath(player).length > 0;
+    state.grid[r][c] = EMPTY;
+    return win;
+  }
+
+  function scoreAiHex(r, c){
+    if(state.grid[r]?.[c] !== EMPTY) return -999;
+    if(wouldHexWin(r, c, P2)) return 1000;
+    if(wouldHexWin(r, c, P1)) return 900;
+    const center = 4 - (Math.abs(4 - r) + Math.abs(4 - c)) * 0.4;
+    const topBottom = 5 - Math.min(r, SIZE - 1 - r);
+    return center + topBottom + Math.random();
+  }
+
+  function chooseAiHex(){
+    const moves = [];
+    for(let r = 0; r < SIZE; r += 1){
+      for(let c = 0; c < SIZE; c += 1){
+        if(state.grid[r][c] === EMPTY) moves.push({ r, c, score: scoreAiHex(r, c) });
+      }
+    }
+    return moves.sort((a, b) => b.score - a.score)[0] || null;
+  }
+
+  function updateTutorialGuide(){
+    if(!tutorialMode || !tutorialGuide) return;
+    tutorialGuide.setStep(Math.min(TUTORIAL_STEPS.length - 1, Math.floor((state.turn - 1) / 8)));
+  }
+
+  function scheduleTutorialAi(){
+    if(!tutorialMode || state.gameOver || state.current !== P2) return;
+    clearTimeout(tutorialAiTimer);
+    tutorialGuide?.message('Coach AI is choosing a Lunar reply. Watch whether it cuts your chain or extends top-to-bottom.', [
+      'Your next move should either reconnect your path or create a stronger bridge.'
+    ]);
+    tutorialAiTimer = setTimeout(() => {
+      if(!tutorialMode || state.gameOver || state.current !== P2) return;
+      const move = chooseAiHex();
+      if(move){
+        claimHex(move.r, move.c);
+        if(!state.gameOver){
+          tutorialGuide?.message('Coach AI moved. Keep building Crimson left-to-right, but block an urgent Lunar cut when needed.', [
+            'Connected threats beat isolated stones.'
+          ]);
+        }
+      }
+    }, 650);
+  }
+
   function claimHex(r, c, actorUsername = null){
     if(state.gameOver || state.grid[r][c] !== EMPTY) return false;
 
@@ -231,6 +292,8 @@
     state.turn += 1;
     render();
     updateUI();
+    updateTutorialGuide();
+    scheduleTutorialAi();
     return true;
   }
 
@@ -299,6 +362,7 @@
             return;
           }
 
+          if(tutorialMode && state.current !== P1) return;
           claimHex(r, c);
         });
 
@@ -310,7 +374,7 @@
   function updateNames(){
     if(!isOnlineGame()){
       dom.p1Name.textContent = 'Crimson';
-      dom.p2Name.textContent = 'Lunar';
+      dom.p2Name.textContent = tutorialMode ? 'Coach AI' : 'Lunar';
       return;
     }
 
@@ -347,11 +411,15 @@
       dom.status.textContent = state.winner === P1 ? 'CRIMSON VICTORY' : 'LUNAR VICTORY';
     }else if(isOnlineGame()){
       dom.status.textContent = isPlayersTurn() ? 'YOUR TURN' : 'RIVAL TURN';
+    }else if(tutorialMode){
+      dom.status.textContent = p1Turn ? 'YOUR TURN' : 'COACH AI';
     }else{
       dom.status.textContent = p1Turn ? 'CRIMSON TURN' : 'LUNAR TURN';
     }
 
-    dom.turnLabel.textContent = p1Turn ? 'CRIMSON TURN' : 'LUNAR TURN';
+    dom.turnLabel.textContent = tutorialMode
+      ? (p1Turn ? 'CRIMSON TURN' : 'COACH AI')
+      : p1Turn ? 'CRIMSON TURN' : 'LUNAR TURN';
   }
 
   function showWin(forcedWinner = null, surrendered = false){
@@ -374,6 +442,11 @@
       }
     }));
 
+    if(tutorialMode){
+      tutorialGuide?.complete(localWin
+        ? 'Your Crimson path crossed the board. Nice bridge-building.'
+        : 'Coach AI completed the Lunar path. Replay and watch for cuts sooner.');
+    }
     updateUI();
   }
 
@@ -414,6 +487,20 @@
     online.players = [];
     resetState();
     startGameView();
+  }
+
+  function startTutorialGame(){
+    online.gameId = null;
+    online.hostUsername = null;
+    online.players = [];
+    resetState();
+    tutorialGuide = tutorialGuide || window.TutorialGuide?.create({
+      title: 'Hexblitz Tutorial',
+      steps: TUTORIAL_STEPS,
+      onBack: () => window.location.href = '/hexblitz_moonfall/index.html'
+    });
+    startGameView();
+    updateTutorialGuide();
   }
 
   function goToSetup(){
@@ -581,6 +668,7 @@
       render();
       updateUI();
       dom.winModal.classList.add('hidden');
+      if(tutorialMode) updateTutorialGuide();
     });
 
     dom.surrenderBtn.addEventListener('click', () => {
@@ -601,6 +689,14 @@
         return;
       }
 
+      if(tutorialMode){
+        state.gameOver = true;
+        state.winner = P2;
+        state.path = [];
+        showWin(P2, true);
+        return;
+      }
+
       state.gameOver = true;
       state.winner = state.current === P1 ? P2 : P1;
       showWin(state.winner, true);
@@ -618,6 +714,7 @@
       render();
       updateUI();
       dom.winModal.classList.add('hidden');
+      if(tutorialMode) updateTutorialGuide();
     });
 
     document.addEventListener('keydown', event => {
@@ -642,6 +739,7 @@
     initEvents();
     renderOnlineLobbies();
     registerSocket();
+    if(tutorialMode) startTutorialGame();
   }
 
   init();

@@ -4,6 +4,12 @@
   const EMPTY = 0;
   const P1 = 1;
   const P2 = 2;
+  const tutorialMode = new URLSearchParams(window.location.search).get('tutorial') === '1';
+  const TUTORIAL_STEPS = [
+    { title: 'Own the center', body: 'You are Player 1. Start near the center because center columns create the most winning lines.', tips: ['Column 4 is the strongest opening column.', 'Edges create fewer horizontal and diagonal threats.'] },
+    { title: 'Block immediate threats', body: 'Before building your own plan, scan the coach AI board for three in a row.', tips: ['One missed block can lose instantly.', 'Check horizontal, vertical, and both diagonals.'] },
+    { title: 'Create a fork', body: 'The strongest move creates two winning threats at once. The AI can block only one.', tips: ['Look for two separate lines of three.', 'Center stones make forks easier.'] }
+  ];
 
   const dom = {
     setupView: document.getElementById('setupView'),
@@ -19,6 +25,8 @@
     onlineLobbyStatus: document.getElementById('onlineLobbyStatus'),
     onlineLobbyMeta: document.getElementById('onlineLobbyMeta'),
     onlineLobbyList: document.getElementById('onlineLobbyList'),
+    boardFrame: document.querySelector('.moonfall-board-frame'),
+    colLabels: document.querySelectorAll('.col-labels li'),
     board: document.getElementById('board'),
     status: document.getElementById('status'),
     selectedOrb: document.getElementById('selectedOrb'),
@@ -42,7 +50,7 @@
   };
 
   const user = getUser();
-  const socket = typeof window.io === 'function' && user?.username ? window.io() : null;
+  const socket = !tutorialMode && typeof window.io === 'function' && user?.username ? window.io() : null;
   if(socket){
     window.StrategyLeagueSocket = socket;
   }
@@ -71,6 +79,8 @@
   };
 
   let timerId = null;
+  let tutorialGuide = null;
+  let tutorialAiTimer = null;
 
   function getUser(){
     try{
@@ -129,6 +139,7 @@
   }
 
   function resetState(){
+    clearTimeout(tutorialAiTimer);
     state.grid = createEmptyGrid();
     state.currentPlayer = P1;
     state.selectedCol = 3;
@@ -149,6 +160,54 @@
 
   function isDraw(){
     return state.grid[0].every(cell => cell !== EMPTY);
+  }
+
+  function wouldWin(col, player){
+    const row = getAvailableRow(col);
+    if(row === -1) return false;
+    state.grid[row][col] = player;
+    const win = getWinningCells(row, col, player).length >= 4;
+    state.grid[row][col] = EMPTY;
+    return win;
+  }
+
+  function scoreAiColumn(col){
+    const row = getAvailableRow(col);
+    if(row === -1) return -999;
+    if(wouldWin(col, P2)) return 1000;
+    if(wouldWin(col, P1)) return 900;
+    return (4 - Math.abs(3 - col)) * 8 + Math.random();
+  }
+
+  function chooseAiColumn(){
+    return Array.from({ length: COLS }, (_, col) => col)
+      .filter(col => getAvailableRow(col) !== -1)
+      .sort((a, b) => scoreAiColumn(b) - scoreAiColumn(a))[0];
+  }
+
+  function updateTutorialGuide(){
+    if(!tutorialMode || !tutorialGuide) return;
+    tutorialGuide.setStep(Math.min(TUTORIAL_STEPS.length - 1, Math.floor((state.turn - 1) / 4)));
+  }
+
+  function scheduleTutorialAi(){
+    if(!tutorialMode || state.gameOver || state.currentPlayer !== P2) return;
+    clearTimeout(tutorialAiTimer);
+    tutorialGuide?.message('Coach AI is choosing a reply. Watch whether it blocks you or builds its own three-in-a-row.', [
+      'After the AI move, scan for immediate threats before attacking.'
+    ]);
+    tutorialAiTimer = setTimeout(() => {
+      if(!tutorialMode || state.gameOver || state.currentPlayer !== P2) return;
+      const col = chooseAiColumn();
+      if(Number.isInteger(col)){
+        applyDrop(col);
+        if(!state.gameOver){
+          tutorialGuide?.message(`Coach AI dropped in column ${col + 1}. Your turn: block urgent threats, otherwise build a fork.`, [
+            'A fork creates two winning columns on your next turn.'
+          ]);
+        }
+      }
+    }, 700);
   }
 
   function getWinningCells(row, col, player){
@@ -235,6 +294,8 @@
     state.turn += 1;
     renderBoard();
     updateUI();
+    updateTutorialGuide();
+    scheduleTutorialAi();
     return true;
   }
 
@@ -269,6 +330,10 @@
 
   function renderBoard(){
     dom.board.innerHTML = '';
+    dom.boardFrame?.style.setProperty('--selected-col', state.selectedCol + 1);
+    dom.colLabels.forEach((label, index) => {
+      label.classList.toggle('is-selected', index === state.selectedCol);
+    });
     const winningSet = new Set((state.winningCells || []).map(([r, c]) => `${r}-${c}`));
 
     for(let r = 0; r < ROWS; r += 1){
@@ -293,6 +358,7 @@
             return;
           }
 
+          if(tutorialMode && state.currentPlayer !== P1) return;
           applyDrop(c);
         });
 
@@ -317,9 +383,9 @@
   function updatePlayerCards(){
     if(!isOnlineGame()){
       dom.youName.textContent = 'YOU';
-      dom.enemyName.textContent = 'RIVAL';
+      dom.enemyName.textContent = tutorialMode ? 'COACH AI' : 'RIVAL';
       dom.youRole.textContent = 'Player 1';
-      dom.enemyRole.textContent = 'Player 2';
+      dom.enemyRole.textContent = tutorialMode ? 'Tutorial AI' : 'Player 2';
       return;
     }
 
@@ -346,13 +412,16 @@
       const myTurn = token === state.currentPlayer;
       dom.status.textContent = myTurn ? 'YOUR TURN' : 'RIVAL TURN';
       dom.status.style.color = myTurn ? '#f5efe8' : '#e84955';
+    }else if(tutorialMode){
+      dom.status.textContent = currentIsP1 ? 'YOUR TURN' : 'COACH AI';
+      dom.status.style.color = currentIsP1 ? '#f5efe8' : '#e84955';
     }else{
       dom.status.textContent = currentIsP1 ? 'PLAYER 1 TURN' : 'PLAYER 2 TURN';
       dom.status.style.color = currentIsP1 ? '#f5efe8' : '#e84955';
     }
 
     dom.selectedOrb.classList.toggle('enemy-selected', !currentIsP1);
-    dom.modeLabel.textContent = isOnlineGame() ? 'Online' : 'Local';
+    dom.modeLabel.textContent = tutorialMode ? 'Tutorial' : isOnlineGame() ? 'Online' : 'Local';
   }
 
   function showWin(forcedWinner = null, surrendered = false){
@@ -375,6 +444,11 @@
       }
     }));
 
+    if(tutorialMode){
+      tutorialGuide?.complete(localWin
+        ? 'You connected four before the coach AI. Good center control and threat scanning.'
+        : 'Coach AI connected four. Replay the tutorial and pause each turn to scan for immediate threats.');
+    }
     updateUI();
   }
 
@@ -416,6 +490,20 @@
     online.players = [];
     resetState();
     startGameView();
+  }
+
+  function startTutorialGame(){
+    online.gameId = null;
+    online.hostUsername = null;
+    online.players = [];
+    resetState();
+    tutorialGuide = tutorialGuide || window.TutorialGuide?.create({
+      title: 'Power 4 Tutorial',
+      steps: TUTORIAL_STEPS,
+      onBack: () => window.location.href = '/moonfall-p4/index.html'
+    });
+    startGameView();
+    updateTutorialGuide();
   }
 
   function applySnapshot(snapshot){
@@ -610,6 +698,7 @@
       resetState();
       renderBoard();
       updateUI();
+      updateTutorialGuide();
     });
 
     dom.surrenderBtn.addEventListener('click', () => {
@@ -630,6 +719,14 @@
         return;
       }
 
+      if(tutorialMode){
+        state.gameOver = true;
+        state.winner = P2;
+        state.winningCells = [];
+        showWin(P2, true);
+        return;
+      }
+
       state.gameOver = true;
       state.winner = state.currentPlayer === P1 ? P2 : P1;
       showWin(state.winner, true);
@@ -644,6 +741,7 @@
       renderBoard();
       updateUI();
       dom.winCard.classList.add('hidden');
+      if(tutorialMode) updateTutorialGuide();
     });
 
     dom.menuBtn.addEventListener('click', goToSetup);
@@ -664,6 +762,7 @@
             socket.emit('moonfall_p4_action', { gameId: online.gameId, action: { type: 'drop', col } });
           }
         }else{
+          if(tutorialMode && state.currentPlayer !== P1) return;
           applyDrop(col);
         }
       }
@@ -680,6 +779,7 @@
             socket.emit('moonfall_p4_action', { gameId: online.gameId, action: { type: 'drop', col } });
           }
         }else{
+          if(tutorialMode && state.currentPlayer !== P1) return;
           applyDrop(col);
         }
       }
@@ -700,6 +800,7 @@
     initEvents();
     renderOnlineLobbies();
     registerSocket();
+    if(tutorialMode) startTutorialGame();
   }
 
   init();

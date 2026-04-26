@@ -1,12 +1,13 @@
-const socket = io();
-window.StrategyLeagueSocket = socket;
+const tutorialMode = new URLSearchParams(window.location.search).get("tutorial") === "1";
+const socket = tutorialMode ? { emit(){}, on(){} } : io();
+if(!tutorialMode) window.StrategyLeagueSocket = socket;
 
 const user = JSON.parse(localStorage.getItem("user"));
 if(!user){
   window.location = "/login.html";
 }
 
-socket.emit("register_online", user.username);
+if(!tutorialMode) socket.emit("register_online", user.username);
 
 const COLOR_LABELS = {
   blue: "Blue",
@@ -26,6 +27,13 @@ let renderedScoreKey = "";
 let scoringToken = 0;
 let scoringPromise = Promise.resolve();
 let lastEndPayload = null;
+let tutorialGuide = null;
+let tutorialAiTimer = null;
+const TUTORIAL_STEPS = [
+  { title: "Draft with purpose", body: "You play against Coach AI. Select one color from a factory, then place it on a pattern line that can accept it.", tips: ["Bigger groups are not always better.", "Avoid overflow onto the floor."] },
+  { title: "Control the center", body: "Taking from the center can give you the first-player marker. Sometimes the small penalty is worth tempo.", tips: ["The marker goes to your floor.", "First pick next round can win a key tile group."] },
+  { title: "Build bonuses", body: "Your wall wins through rows, columns, and color sets. Draft tiles that connect to future bonuses.", tips: ["Completed columns are worth 7 bonus points.", "A completed color set is worth 10."] }
+];
 
 function escapeHtml(text){
   return String(text || "")
@@ -93,6 +101,11 @@ function clearSelection(){
 
 function submitMove(lineIndex){
   if(!selected || !isMyTurn()) return;
+  if(tutorialMode){
+    applyTutorialMove(state.mySeat, selected, lineIndex);
+    selected = null;
+    return;
+  }
   socket.emit("azul_move", { ...selected, lineIndex });
   selected = null;
 }
@@ -396,11 +409,23 @@ async function showRoundScorePopups(){
 
 function resign(){
   if(gameOver) return;
+  if(tutorialMode){
+    gameOver = true;
+    state.ended = true;
+    tutorialGuide?.message("Tutorial resigned. Return to the lobby and restart when you want another guided table.", ["In real Azul, resigning is rarely needed: floor penalties can be recovered with bonuses."]);
+    return;
+  }
   socket.emit("azul_resign");
 }
 
 function rematch(){
   if(!gameOver) return;
+  if(tutorialMode){
+    document.getElementById("endScreen").className = "end-screen";
+    document.getElementById("finalScores").innerHTML = "";
+    startTutorialGame();
+    return;
+  }
   socket.emit("azul_rematch");
   document.getElementById("rematchStatus").innerText = "Rematch requested. Waiting for opponent...";
 }
@@ -428,6 +453,206 @@ function updateStoredXp(xpChange){
   }catch(err){
     console.error(err);
   }
+}
+
+function createTutorialPlayer(seat, username){
+  return {
+    seat,
+    username,
+    score: 0,
+    active: true,
+    pattern: Array.from({ length: 5 }, (_, index) => ({ size: index + 1, count: 0, color: null })),
+    wall: Array.from({ length: 5 }, () => Array(5).fill(null)),
+    floor: []
+  };
+}
+
+function createTutorialFactories(){
+  const colors = ["blue", "yellow", "red", "black", "teal"];
+  const roundOffset = Number(state?.round) || 0;
+  return Array.from({ length: 5 }, (_, factoryIndex) =>
+    Array.from({ length: 4 }, (_, tileIndex) => colors[(factoryIndex * 2 + tileIndex + roundOffset) % colors.length])
+  );
+}
+
+function startTutorialGame(){
+  state = {
+    gameId: "azul-tutorial",
+    round: 1,
+    phase: "playing",
+    turnSeat: 0,
+    mySeat: 0,
+    turnTimeMs: 60000,
+    localTurnDeadlineAt: Date.now() + 60000,
+    ended: false,
+    wallPattern: [
+      ["blue", "yellow", "red", "black", "teal"],
+      ["teal", "blue", "yellow", "red", "black"],
+      ["black", "teal", "blue", "yellow", "red"],
+      ["red", "black", "teal", "blue", "yellow"],
+      ["yellow", "red", "black", "teal", "blue"]
+    ],
+    factories: [],
+    center: ["first"],
+    players: [createTutorialPlayer(0, user.username), createTutorialPlayer(1, "Coach AI")]
+  };
+  state.factories = createTutorialFactories();
+  gameOver = false;
+  selected = null;
+  tutorialGuide = tutorialGuide || window.TutorialGuide?.create({
+    title: "Azul Tutorial",
+    steps: TUTORIAL_STEPS,
+    onBack: () => window.location.href = "/azul/index.html"
+  });
+  render();
+  startTimerLoop();
+}
+
+function takeTutorialTiles(move){
+  const source = getSourceTiles(move.sourceType, move.sourceIndex);
+  const taken = source.filter(tile => tile === move.color);
+  if(move.sourceType === "factory"){
+    const leftovers = source.filter(tile => tile !== move.color);
+    state.factories[move.sourceIndex] = [];
+    state.center.push(...leftovers);
+  }else{
+    const takesMarker = state.center.includes("first");
+    state.center = state.center.filter(tile => tile !== move.color && tile !== "first");
+    if(takesMarker) taken.push("first");
+  }
+  return taken;
+}
+
+function placeTutorialTiles(player, tiles, lineIndex){
+  const color = tiles.find(tile => tile !== "first");
+  const markerCount = tiles.includes("first") ? 1 : 0;
+  let overflow = markerCount;
+  if(lineIndex < 0 || !color){
+    overflow += tiles.filter(tile => tile !== "first").length;
+  }else{
+    const line = player.pattern[lineIndex];
+    const space = line.size - line.count;
+    const placing = Math.min(space, tiles.filter(tile => tile === color).length);
+    line.color = line.color || color;
+    line.count += placing;
+    overflow += tiles.filter(tile => tile === color).length - placing;
+  }
+  for(let i = 0; i < overflow; i += 1){
+    if(player.floor.length < 7) player.floor.push(i === 0 && markerCount ? "first" : color);
+  }
+}
+
+function scorePlacement(player, row, col){
+  let horizontal = 1;
+  for(let x = col - 1; x >= 0 && player.wall[row][x]; x -= 1) horizontal += 1;
+  for(let x = col + 1; x < 5 && player.wall[row][x]; x += 1) horizontal += 1;
+  let vertical = 1;
+  for(let y = row - 1; y >= 0 && player.wall[y][col]; y -= 1) vertical += 1;
+  for(let y = row + 1; y < 5 && player.wall[y][col]; y += 1) vertical += 1;
+  return horizontal === 1 && vertical === 1 ? 1 : horizontal + vertical - 1;
+}
+
+function scoreTutorialRound(){
+  const lastRound = {};
+  let nextFirstSeat = null;
+  for(const player of state.players){
+    let total = 0;
+    const placements = [];
+    player.pattern.forEach((line, row) => {
+      if(line.count !== line.size || !line.color) return;
+      const col = state.wallPattern[row].indexOf(line.color);
+      player.wall[row][col] = line.color;
+      const points = scorePlacement(player, row, col);
+      total += points;
+      placements.push({ row, col, points });
+      line.count = 0;
+      line.color = null;
+    });
+    const floorPenalty = player.floor.reduce((sum, _tile, index) => sum + (FLOOR_PENALTIES[index] || -3), 0);
+    if(player.floor.includes("first")) nextFirstSeat = player.seat;
+    total += floorPenalty;
+    player.floor = [];
+    player.score = Math.max(0, player.score + total);
+    lastRound[player.username] = { placements, floorPenalty, bonus: 0 };
+  }
+  state.lastRound = lastRound;
+  state.round += 1;
+  state.factories = createTutorialFactories();
+  state.center = ["first"];
+  state.turnSeat = nextFirstSeat ?? 0;
+  state.localTurnDeadlineAt = Date.now() + 60000;
+  const winner = state.players.find(player => player.score >= 25 || player.wall.some(row => row.every(Boolean)));
+  if(winner || state.round > 5){
+    finishTutorialAzul();
+  }
+}
+
+function tutorialSourcesEmpty(){
+  return state.factories.every(factory => !factory.length) && state.center.every(tile => tile === "first");
+}
+
+function applyTutorialMove(seat, move, lineIndex){
+  const player = state.players.find(entry => entry.seat === seat);
+  if(!player || state.ended || state.turnSeat !== seat) return;
+  if(move.color !== "first" && lineIndex >= 0 && !canPlace(player, lineIndex, move.color)) return;
+  const tiles = takeTutorialTiles(move);
+  placeTutorialTiles(player, tiles, lineIndex);
+  playSound();
+  if(tutorialSourcesEmpty()){
+    scoreTutorialRound();
+  }else{
+    state.turnSeat = seat === 0 ? 1 : 0;
+    state.localTurnDeadlineAt = Date.now() + 60000;
+  }
+  render();
+  updateTutorialGuide();
+  scheduleTutorialAi();
+}
+
+function chooseTutorialAiMove(){
+  const ai = state.players.find(player => player.seat === 1);
+  const moves = [];
+  state.factories.forEach((factory, sourceIndex) => {
+    [...new Set(factory)].forEach(color => moves.push({ sourceType: "factory", sourceIndex, color }));
+  });
+  [...new Set(state.center.filter(tile => tile !== "first"))].forEach(color => moves.push({ sourceType: "center", sourceIndex: 0, color }));
+  for(const move of moves){
+    for(let row = 4; row >= 0; row -= 1){
+      if(canPlace(ai, row, move.color)) return { move, lineIndex: row };
+    }
+  }
+  return moves[0] ? { move: moves[0], lineIndex: -1 } : null;
+}
+
+function updateTutorialGuide(){
+  if(!tutorialMode || !tutorialGuide) return;
+  tutorialGuide.setStep(Math.min(TUTORIAL_STEPS.length - 1, Math.floor((state.round - 1) / 2)));
+}
+
+function scheduleTutorialAi(){
+  if(!tutorialMode || gameOver || state.turnSeat !== 1 || state.ended) return;
+  clearTimeout(tutorialAiTimer);
+  tutorialGuide?.message("Coach AI is drafting. Watch what it leaves in the center for you.", [
+    "If the AI leaves a clean group that fits your wall, take it."
+  ]);
+  tutorialAiTimer = setTimeout(() => {
+    const choice = chooseTutorialAiMove();
+    if(choice) applyTutorialMove(1, choice.move, choice.lineIndex);
+  }, 800);
+}
+
+function finishTutorialAzul(){
+  state.ended = true;
+  gameOver = true;
+  const scores = Object.fromEntries(state.players.map(player => [player.username, player.score]));
+  const winner = [...state.players].sort((a, b) => b.score - a.score)[0];
+  tutorialGuide?.complete(`${winner.username} wins the tutorial table. Final score: ${state.players.map(player => `${player.username} ${player.score}`).join(" - ")}.`);
+  const el = document.getElementById("endScreen");
+  el.className = `end-screen show ${winner.seat === 0 ? "victory" : "defeat"}`;
+  document.getElementById("winnerText").innerText = winner.seat === 0 ? "Victory" : "Defeat";
+  document.getElementById("endMessage").innerText = "Tutorial table complete.";
+  document.getElementById("finalScores").innerHTML = Object.entries(scores).map(([name, score]) => `<span>${escapeHtml(name)} <strong>${score}</strong></span>`).join("");
+  document.getElementById("xpReward").innerText = "+0 XP";
 }
 
 socket.on("online_users", users => {
@@ -488,3 +713,7 @@ socket.on("azul_rematch_start", () => {
   document.getElementById("rematchStatus").innerText = "";
   document.getElementById("finalScores").innerHTML = "";
 });
+
+if(tutorialMode){
+  startTutorialGame();
+}
