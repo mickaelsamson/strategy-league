@@ -1,8 +1,10 @@
 const express = require('express');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { GAME_ACCESS_DEFAULTS, GAME_CATALOG } = require('../config/constants');
 const { authCookieHeader, clearAuthCookieHeader, createAuthToken } = require('../services/auth-service');
+const { sendPasswordResetEmail } = require('../services/email-service');
 const {
   applyXpDelta,
   getGameOfWeek,
@@ -13,6 +15,98 @@ const {
 } = require('../services/user-service');
 
 const AVATAR_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg']);
+const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_RESET_TTL_MS = 1000 * 60 * 60;
+const PASSWORD_HASH_ALGORITHM = 'pbkdf2_sha256';
+const PASSWORD_HASH_ITERATIONS = 210000;
+const PASSWORD_HASH_KEY_LENGTH = 32;
+
+let bcrypt = null;
+try{
+  bcrypt = require('bcrypt');
+}catch(_err){
+  bcrypt = null;
+}
+
+function normalizeEmail(email){
+  return String(email || '').trim().toLowerCase();
+}
+
+function normalizeName(value){
+  return String(value || '').trim().replace(/\s+/g, ' ');
+}
+
+function isValidEmail(email){
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function isBcryptHash(value){
+  return /^\$2[aby]\$\d{2}\$/.test(String(value || ''));
+}
+
+function isPbkdf2Hash(value){
+  return String(value || '').startsWith(`${PASSWORD_HASH_ALGORITHM}$`);
+}
+
+function hashResetToken(token){
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+function getAppBaseUrl(req){
+  if(process.env.APP_BASE_URL){
+    return process.env.APP_BASE_URL.replace(/\/+$/, '');
+  }
+
+  const protocol = req.get('x-forwarded-proto') || req.protocol || 'http';
+  return `${protocol}://${req.get('host')}`;
+}
+
+async function hashPassword(password){
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = await new Promise((resolve, reject) => {
+    crypto.pbkdf2(
+      password,
+      salt,
+      PASSWORD_HASH_ITERATIONS,
+      PASSWORD_HASH_KEY_LENGTH,
+      'sha256',
+      (err, derivedKey) => err ? reject(err) : resolve(derivedKey.toString('hex'))
+    );
+  });
+
+  return `${PASSWORD_HASH_ALGORITHM}$${PASSWORD_HASH_ITERATIONS}$${salt}$${hash}`;
+}
+
+async function verifyPassword(password, storedPassword){
+  if(isBcryptHash(storedPassword)){
+    if(!bcrypt) return false;
+    return bcrypt.compare(password, storedPassword);
+  }
+
+  if(isPbkdf2Hash(storedPassword)){
+    const [_algorithm, iterations, salt, expectedHash] = String(storedPassword).split('$');
+    if(!iterations || !salt || !expectedHash) return false;
+    const iterationCount = Number(iterations);
+    const keyLength = Buffer.from(expectedHash, 'hex').length;
+    if(!Number.isInteger(iterationCount) || iterationCount <= 0 || keyLength <= 0) return false;
+
+    const actualHash = await new Promise((resolve, reject) => {
+      crypto.pbkdf2(
+        password,
+        salt,
+        iterationCount,
+        keyLength,
+        'sha256',
+        (err, derivedKey) => err ? reject(err) : resolve(derivedKey)
+      );
+    });
+
+    const expectedBuffer = Buffer.from(expectedHash, 'hex');
+    return actualHash.length === expectedBuffer.length && crypto.timingSafeEqual(actualHash, expectedBuffer);
+  }
+
+  return storedPassword === password;
+}
 
 function listAvailableAvatars(){
   const avatarsDir = path.join(process.cwd(), 'public', 'avatars');
@@ -101,16 +195,37 @@ function createApiRouter({ User, state, isGameAllowed, io }){
 
   async function createUser(req, res){
     try{
-      const { username, email, password } = req.body;
-      const exists = await User.findOne({ email });
-      if(exists){
-        return res.status(400).json({ error: 'User already exists' });
+      const email = normalizeEmail(req.body.email);
+      const username = normalizeName(req.body.username);
+      const firstName = normalizeName(req.body.firstName || req.body.prenom);
+      const password = String(req.body.password || '');
+
+      if(!email || !username || !firstName || !password){
+        return res.status(400).json({ error: 'Email, pseudo, prenom et mot de passe sont requis.' });
+      }
+
+      if(!isValidEmail(email)){
+        return res.status(400).json({ error: 'Email invalide.' });
+      }
+
+      if(password.length < PASSWORD_MIN_LENGTH){
+        return res.status(400).json({ error: `Le mot de passe doit contenir au moins ${PASSWORD_MIN_LENGTH} caracteres.` });
+      }
+
+      const exists = await User.findOne({ $or: [{ email }, { username }] });
+      if(exists?.email === email){
+        return res.status(400).json({ error: 'Cet email est deja utilise.' });
+      }
+
+      if(exists?.username === username){
+        return res.status(400).json({ error: 'Ce pseudo est deja utilise.' });
       }
 
       const user = new User({
         username,
+        firstName,
         email,
-        password,
+        password: await hashPassword(password),
         elo: 1000,
         chessElo: 1000,
         othelloElo: 1000,
@@ -126,7 +241,94 @@ function createApiRouter({ User, state, isGameAllowed, io }){
       });
 
       await user.save();
-      res.json({ success: true });
+      res.json({ success: true, username, email, firstName });
+    }catch(err){
+      console.error(err);
+      res.status(500).json({ error: 'Server error' });
+    }
+  }
+
+  async function forgotPassword(req, res){
+    const genericMessage = 'Si un compte existe avec cet email, un lien de reset vient d etre envoye.';
+
+    try{
+      const email = normalizeEmail(req.body.email);
+      if(!email || !isValidEmail(email)){
+        return res.json({ success: true, message: genericMessage });
+      }
+
+      const user = await User.findOne({ email });
+      let devResetLink = '';
+      let emailSent = false;
+
+      if(user){
+        const token = crypto.randomBytes(32).toString('hex');
+        user.passwordResetTokenHash = hashResetToken(token);
+        user.passwordResetExpiresAt = new Date(Date.now() + PASSWORD_RESET_TTL_MS);
+        await user.save();
+
+        const resetUrl = `${getAppBaseUrl(req)}/login.html?resetToken=${token}&email=${encodeURIComponent(user.email)}`;
+        const mailResult = await sendPasswordResetEmail({
+          to: user.email,
+          username: user.firstName || user.username,
+          resetUrl
+        });
+
+        emailSent = Boolean(mailResult.sent);
+        if(!emailSent){
+          console.info(`[password-reset] Reset link for ${user.email}: ${resetUrl}`);
+          if(process.env.NODE_ENV !== 'production'){
+            devResetLink = resetUrl;
+          }
+        }
+      }
+
+      res.json({
+        success: true,
+        message: genericMessage,
+        emailSent,
+        ...(devResetLink ? { devResetLink } : {})
+      });
+    }catch(err){
+      console.error(err);
+      res.status(500).json({ error: 'Server error' });
+    }
+  }
+
+  async function resetPassword(req, res){
+    try{
+      const token = String(req.body.token || '').trim();
+      const email = normalizeEmail(req.body.email);
+      const password = String(req.body.password || '');
+
+      if(!token || !password){
+        return res.status(400).json({ error: 'Lien invalide.' });
+      }
+
+      if(password.length < PASSWORD_MIN_LENGTH){
+        return res.status(400).json({ error: `Le mot de passe doit contenir au moins ${PASSWORD_MIN_LENGTH} caracteres.` });
+      }
+
+      const query = {
+        passwordResetTokenHash: hashResetToken(token),
+        passwordResetExpiresAt: { $gt: new Date() }
+      };
+
+      if(email){
+        query.email = email;
+      }
+
+      const user = await User.findOne(query);
+      if(!user){
+        return res.status(400).json({ error: 'Lien invalide ou expire.' });
+      }
+
+      user.password = await hashPassword(password);
+      user.passwordResetTokenHash = '';
+      user.passwordResetExpiresAt = null;
+      await user.save();
+
+      res.json({ success: true, message: 'Mot de passe mis a jour.' });
     }catch(err){
       console.error(err);
       res.status(500).json({ error: 'Server error' });
@@ -138,11 +340,17 @@ function createApiRouter({ User, state, isGameAllowed, io }){
 
   router.post('/login', async (req, res)=>{
     try{
-      const { email, password } = req.body;
+      const email = normalizeEmail(req.body.email);
+      const password = String(req.body.password || '');
       const user = await User.findOne({ email });
 
-      if(!user || user.password !== password){
+      if(!user || !(await verifyPassword(password, user.password))){
         return res.status(400).json({ error: 'Invalid credentials' });
+      }
+
+      if(!isBcryptHash(user.password) && !isPbkdf2Hash(user.password)){
+        user.password = await hashPassword(password);
+        await user.save();
       }
 
       res.setHeader('Set-Cookie', authCookieHeader(createAuthToken(user)));
@@ -150,6 +358,7 @@ function createApiRouter({ User, state, isGameAllowed, io }){
       res.json({
         username: profile.username,
         email: user.email,
+        firstName: user.firstName || '',
         avatar: profile.avatar,
         elo: profile.elo,
         chessElo: profile.chessElo,
@@ -177,6 +386,11 @@ function createApiRouter({ User, state, isGameAllowed, io }){
     res.setHeader('Set-Cookie', clearAuthCookieHeader());
     res.json({ success: true });
   });
+
+  router.post('/password/forgot', forgotPassword);
+  router.post('/forgot-password', forgotPassword);
+  router.post('/password/reset', resetPassword);
+  router.post('/reset-password', resetPassword);
 
   router.get('/games/status', (req, res)=>{
     const actor = req.authUser || null;

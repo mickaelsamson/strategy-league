@@ -1,144 +1,544 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="/assets/styles/theme.css">
 <script defer src="/assets/scripts/site-shell.js"></script>
-<title>Strategy Hub - Auth</title>
+<title>Strategy League - Connexion</title>
 
 <style>
 body{
   margin:0;
-  font-family:Arial;
-  background: radial-gradient(circle at top, #0f172a, #020617);
-  color:white;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
+  min-height:100vh;
+  display:grid;
+  place-items:center;
+  padding:28px;
+  color:var(--shell-text);
+  font-family:"Trebuchet MS", "Segoe UI", sans-serif;
+  background:
+    linear-gradient(115deg, rgba(2,7,11,0.96) 0%, rgba(7,16,22,0.82) 46%, rgba(7,16,22,0.58) 100%),
+    url("/chess/board.png") center/cover fixed,
+    #02070b;
 }
 
-.card{
-  background:#111827;
-  padding:30px;
-  border-radius:20px;
-  width:320px;
-  text-align:center;
-}
-
-.tabs{
-  display:flex;
-  margin-bottom:20px;
-}
-
-.tab{
-  flex:1;
-  padding:10px;
-  cursor:pointer;
-  border-radius:10px;
-}
-
-.active{
-  background:#3b82f6;
-}
-
+button,
 input{
-  width:100%;
-  padding:10px;
-  margin:6px 0;
-  border:none;
-  border-radius:8px;
+  font:inherit;
 }
 
-button{
-  width:100%;
-  padding:10px;
-  margin-top:10px;
-  border:none;
-  border-radius:10px;
-  background:#3b82f6;
-  color:white;
+.auth-shell{
+  width:min(1080px, 100%);
+  min-height:620px;
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) minmax(360px, 430px);
+  border:1px solid rgba(244,194,111,0.3);
+  border-radius:8px;
+  overflow:hidden;
+  background:rgba(5,12,18,0.78);
+  box-shadow:0 30px 90px rgba(0,0,0,0.42);
+  backdrop-filter:blur(18px);
+}
+
+.auth-visual{
+  position:relative;
+  padding:40px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  background:
+    linear-gradient(135deg, rgba(18,8,10,0.9), rgba(18,8,10,0.26) 62%),
+    url("/moonfall-settlers/assets/generated/moonfall-bg.png") center/cover;
+  isolation:isolate;
+}
+
+.auth-visual::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at 18% 20%, rgba(246,189,91,0.34), transparent 18rem),
+    linear-gradient(180deg, transparent, rgba(2,7,11,0.62));
+  z-index:-1;
+}
+
+.brand-mark{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  color:#fff8ef;
+  font-weight:900;
+  letter-spacing:0;
+}
+
+.brand-icon{
+  width:48px;
+  height:48px;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(255,231,179,0.54);
+  border-radius:8px;
+  background:linear-gradient(135deg, rgba(246,189,91,0.26), rgba(34,211,238,0.13));
+  color:#ffd98e;
+}
+
+.brand-icon svg{
+  width:27px;
+  height:27px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.visual-copy{
+  max-width:430px;
+}
+
+.visual-copy span{
+  color:var(--shell-amber);
+  font-size:13px;
+  font-weight:900;
+  text-transform:uppercase;
+}
+
+.visual-copy h1{
+  margin:12px 0 14px;
+  color:#fff8ef;
+  font-size:clamp(38px, 5vw, 64px);
+  line-height:0.96;
+  letter-spacing:0;
+}
+
+.visual-copy p{
+  max-width:380px;
+  color:#d9d0c5;
+  font-size:16px;
+  line-height:1.6;
+}
+
+.auth-panel{
+  padding:34px;
+  background:linear-gradient(180deg, rgba(8,17,24,0.97), rgba(5,11,16,0.97));
+  border-left:1px solid rgba(244,194,111,0.22);
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+
+.mobile-brand{
+  display:none;
+  margin-bottom:22px;
+}
+
+.auth-tabs{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+  padding:5px;
+  margin-bottom:26px;
+  border:1px solid rgba(244,194,111,0.2);
+  border-radius:8px;
+  background:rgba(255,255,255,0.04);
+}
+
+.auth-tab{
+  min-height:42px;
+  border:0;
+  border-radius:6px;
+  background:transparent;
+  color:#a9a197;
+  font-weight:900;
   cursor:pointer;
 }
 
-.error{
-  color:#f87171;
-  font-size:12px;
+.auth-tab.active{
+  color:#111827;
+  background:linear-gradient(135deg, #f6bd5b, #22d3ee);
 }
 
-.success{
-  color:#4ade80;
-  font-size:12px;
+.auth-view h2{
+  margin:0 0 8px;
+  color:#fff8ef;
+  font-size:28px;
+  letter-spacing:0;
+}
+
+.auth-view p{
+  margin:0 0 22px;
+  color:#afa79d;
+  line-height:1.45;
+}
+
+.auth-form{
+  display:grid;
+  gap:14px;
+}
+
+.field{
+  display:grid;
+  gap:8px;
+}
+
+.field label{
+  color:#d8cec2;
+  font-size:13px;
+  font-weight:900;
+}
+
+.input-wrap{
+  position:relative;
+}
+
+.field input{
+  width:100%;
+  min-height:50px;
+  border:1px solid rgba(244,194,111,0.18);
+  border-radius:8px;
+  outline:0;
+  padding:0 14px;
+  background:rgba(255,255,255,0.055);
+  color:#fff8ef;
+  transition:border-color .16s ease, background .16s ease, box-shadow .16s ease;
+}
+
+.field input::placeholder{
+  color:#756f68;
+}
+
+.field input:focus{
+  border-color:rgba(34,211,238,0.62);
+  background:rgba(255,255,255,0.08);
+  box-shadow:0 0 0 3px rgba(34,211,238,0.12);
+}
+
+.password-field input{
+  padding-right:52px;
+}
+
+.password-toggle{
+  position:absolute;
+  top:50%;
+  right:8px;
+  width:38px;
+  height:38px;
+  border:0;
+  border-radius:8px;
+  display:grid;
+  place-items:center;
+  transform:translateY(-50%);
+  color:#d8cec2;
+  background:transparent;
+  cursor:pointer;
+}
+
+.password-toggle:hover{
+  background:rgba(255,255,255,0.08);
+  color:#fff8ef;
+}
+
+.password-toggle svg{
+  width:20px;
+  height:20px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.primary-btn{
+  min-height:50px;
+  border:0;
+  border-radius:8px;
+  color:#111827;
+  background:linear-gradient(135deg, #f6bd5b, #22d3ee);
+  font-weight:900;
+  cursor:pointer;
+  box-shadow:0 16px 36px rgba(0,0,0,0.24);
+}
+
+.primary-btn:hover{
+  filter:brightness(1.06);
+}
+
+.text-btn{
+  width:max-content;
+  border:0;
+  padding:0;
+  background:transparent;
+  color:#77dce9;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.form-actions{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:16px;
+  margin-top:2px;
+}
+
+.message{
+  min-height:18px;
+  font-size:13px;
+  line-height:1.35;
+}
+
+.message.error{
+  color:#f87171;
+}
+
+.message.success{
+  color:#6ee787;
+}
+
+.dev-link{
+  display:block;
+  margin-top:8px;
+  overflow-wrap:anywhere;
+  color:#77dce9;
+}
+
+[hidden]{
+  display:none !important;
+}
+
+@media (max-width: 860px){
+  body{
+    padding:18px;
+    align-items:start;
+  }
+
+  .auth-shell{
+    min-height:auto;
+    grid-template-columns:1fr;
+  }
+
+  .auth-visual{
+    display:none;
+  }
+
+  .auth-panel{
+    min-height:calc(100vh - 36px);
+    border-left:0;
+    padding:26px;
+  }
+
+  .mobile-brand{
+    display:flex;
+  }
+}
+
+@media (max-width: 460px){
+  body{
+    padding:0;
+  }
+
+  .auth-shell{
+    width:100%;
+    min-height:100vh;
+    border:0;
+    border-radius:0;
+  }
+
+  .auth-panel{
+    min-height:100vh;
+    padding:22px;
+  }
 }
 </style>
 </head>
 
 <body>
+<main class="auth-shell">
+  <section class="auth-visual" aria-hidden="true">
+    <div class="brand-mark">
+      <span class="brand-icon">
+        <svg viewBox="0 0 24 24"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v4a5 5 0 0 1-10 0V4Z"/><path d="M17 5h3v2a4 4 0 0 1-4 4"/><path d="M7 5H4v2a4 4 0 0 0 4 4"/></svg>
+      </span>
+      <strong>Strategy League</strong>
+    </div>
+    <div class="visual-copy">
+      <span>CCA Game Strategy</span>
+      <h1>Play smart. Climb clean.</h1>
+      <p>Connecte-toi, lance une table et retrouve ton classement sur tous les jeux de strategie.</p>
+    </div>
+  </section>
 
-<div class="card">
+  <section class="auth-panel">
+    <div class="brand-mark mobile-brand">
+      <span class="brand-icon">
+        <svg viewBox="0 0 24 24"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v4a5 5 0 0 1-10 0V4Z"/><path d="M17 5h3v2a4 4 0 0 1-4 4"/><path d="M7 5H4v2a4 4 0 0 0 4 4"/></svg>
+      </span>
+      <strong>Strategy League</strong>
+    </div>
 
-<h2>🎮 Strategy Hub</h2>
+    <div id="authTabs" class="auth-tabs" role="tablist">
+      <button id="loginTab" class="auth-tab active" type="button" role="tab" aria-selected="true" data-mode="login">Connexion</button>
+      <button id="registerTab" class="auth-tab" type="button" role="tab" aria-selected="false" data-mode="register">Inscription</button>
+    </div>
 
-<div class="tabs">
-  <div id="loginTab" class="tab active">Login</div>
-  <div id="registerTab" class="tab">Sign Up</div>
-</div>
+    <section id="loginView" class="auth-view">
+      <h2>Bon retour</h2>
+      <p>Entre dans ton compte pour rejoindre une partie.</p>
+      <form id="loginForm" class="auth-form">
+        <div class="field">
+          <label for="loginEmail">Email</label>
+          <input id="loginEmail" type="email" autocomplete="email" placeholder="toi@email.com" required>
+        </div>
+        <div class="field password-field">
+          <label for="loginPassword">Mot de passe</label>
+          <div class="input-wrap">
+            <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Ton mot de passe" required>
+            <button class="password-toggle" type="button" data-target="loginPassword" aria-label="Afficher le mot de passe">
+              <svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button id="forgotLink" class="text-btn" type="button">Mot de passe oublie ?</button>
+        </div>
+        <div id="loginMessage" class="message error" aria-live="polite"></div>
+        <button id="loginBtn" class="primary-btn" type="submit">Connexion</button>
+      </form>
+    </section>
 
-<div id="loginForm">
-  <input id="loginEmail" placeholder="Email">
-  <input id="loginPassword" type="password" placeholder="Password">
-  <div id="loginError" class="error"></div>
-  <button id="loginBtn">Login</button>
-</div>
+    <section id="registerView" class="auth-view" hidden>
+      <h2>Creer un compte</h2>
+      <p>Un pseudo, ton prenom, et tu peux commencer a grimper.</p>
+      <form id="registerForm" class="auth-form">
+        <div class="field">
+          <label for="regEmail">Email</label>
+          <input id="regEmail" type="email" autocomplete="email" placeholder="toi@email.com" required>
+        </div>
+        <div class="field">
+          <label for="regUsername">Pseudo</label>
+          <input id="regUsername" type="text" autocomplete="username" placeholder="MoonfallMaster" required>
+        </div>
+        <div class="field">
+          <label for="regFirstName">Prenom</label>
+          <input id="regFirstName" type="text" autocomplete="given-name" placeholder="Mickael" required>
+        </div>
+        <div class="field password-field">
+          <label for="regPassword">Mot de passe</label>
+          <div class="input-wrap">
+            <input id="regPassword" type="password" autocomplete="new-password" minlength="8" placeholder="8 caracteres min." required>
+            <button class="password-toggle" type="button" data-target="regPassword" aria-label="Afficher le mot de passe">
+              <svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <div id="registerMessage" class="message" aria-live="polite"></div>
+        <button id="registerBtn" class="primary-btn" type="submit">Creer le compte</button>
+      </form>
+    </section>
 
-<div id="registerForm" style="display:none;">
-  <input id="regEmail" placeholder="Email">
-  <input id="regPassword" type="password" placeholder="Password">
-  <input id="regUsername" placeholder="Username">
-  <div id="regError" class="error"></div>
-  <div id="regSuccess" class="success"></div>
-  <button id="registerBtn">Create Account</button>
-</div>
+    <section id="forgotView" class="auth-view" hidden>
+      <h2>Reset password</h2>
+      <p>Indique ton email et on t envoie un lien pour choisir un nouveau mot de passe.</p>
+      <form id="forgotForm" class="auth-form">
+        <div class="field">
+          <label for="forgotEmail">Email</label>
+          <input id="forgotEmail" type="email" autocomplete="email" placeholder="toi@email.com" required>
+        </div>
+        <div id="forgotMessage" class="message" aria-live="polite"></div>
+        <button id="forgotBtn" class="primary-btn" type="submit">Envoyer le lien</button>
+        <button class="text-btn" type="button" data-mode="login">Retour connexion</button>
+      </form>
+    </section>
 
-</div>
+    <section id="resetView" class="auth-view" hidden>
+      <h2>Nouveau mot de passe</h2>
+      <p>Choisis un mot de passe de 8 caracteres minimum.</p>
+      <form id="resetForm" class="auth-form">
+        <div class="field">
+          <label for="resetEmail">Email</label>
+          <input id="resetEmail" type="email" autocomplete="email" placeholder="toi@email.com">
+        </div>
+        <div class="field password-field">
+          <label for="resetPassword">Nouveau mot de passe</label>
+          <div class="input-wrap">
+            <input id="resetPassword" type="password" autocomplete="new-password" minlength="8" placeholder="8 caracteres min." required>
+            <button class="password-toggle" type="button" data-target="resetPassword" aria-label="Afficher le mot de passe">
+              <svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <div id="resetMessage" class="message" aria-live="polite"></div>
+        <button id="resetBtn" class="primary-btn" type="submit">Mettre a jour</button>
+        <button class="text-btn" type="button" data-mode="login">Retour connexion</button>
+      </form>
+    </section>
+  </section>
+</main>
 
 <script>
-
-const loginForm = document.getElementById("loginForm");
-const registerForm = document.getElementById("registerForm");
-
-document.getElementById("loginTab").onclick = ()=>{
-  loginForm.style.display="block";
-  registerForm.style.display="none";
+const views = {
+  login: document.getElementById("loginView"),
+  register: document.getElementById("registerView"),
+  forgot: document.getElementById("forgotView"),
+  reset: document.getElementById("resetView")
 };
+const tabs = Array.from(document.querySelectorAll(".auth-tab"));
+const authTabs = document.getElementById("authTabs");
+const params = new URLSearchParams(window.location.search);
+const resetToken = params.get("resetToken") || "";
 
-document.getElementById("registerTab").onclick = ()=>{
-  loginForm.style.display="none";
-  registerForm.style.display="block";
-};
+function setMessage(id, text, type){
+  const element = document.getElementById(id);
+  element.classList.remove("error", "success");
+  if(type) element.classList.add(type);
+  element.innerHTML = text || "";
+}
 
-/* LOGIN */
-document.getElementById("loginBtn").onclick = async ()=>{
+function escapeHtml(text){
+  return String(text || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
 
-  const email = document.getElementById("loginEmail").value.trim();
-  const password = document.getElementById("loginPassword").value.trim();
+function setLoading(button, loading, label){
+  button.disabled = loading;
+  button.textContent = loading ? "Patiente..." : label;
+}
 
-  const res = await fetch("/api/login",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({email,password})
+function setMode(mode){
+  Object.entries(views).forEach(([key, view]) => {
+    view.hidden = key !== mode;
   });
 
-  const data = await res.json();
+  authTabs.hidden = mode === "forgot" || mode === "reset";
+  tabs.forEach(tab => {
+    const active = tab.dataset.mode === mode;
+    tab.classList.toggle("active", active);
+    tab.setAttribute("aria-selected", active ? "true" : "false");
+  });
+}
 
-  if(!res.ok){
-    document.getElementById("loginError").innerText = data.error;
-    return;
+async function postJson(url, payload){
+  const response = await fetch(url, {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify(payload)
+  });
+  const data = await response.json().catch(() => ({}));
+  if(!response.ok){
+    throw new Error(data.error || "Une erreur est survenue.");
   }
+  return data;
+}
 
-  /* 🔥 ADMIN FIX */
+function storeUser(data){
   localStorage.setItem("user", JSON.stringify({
     username: data.username,
     email: data.email,
+    firstName: data.firstName || "",
     avatar: data.avatar,
     elo: data.elo,
     chessElo: data.chessElo,
@@ -156,33 +556,137 @@ document.getElementById("loginBtn").onclick = async ()=>{
     levelInfo: data.levelInfo,
     isAdmin: data.isAdmin
   }));
+}
 
-  window.location.href = "/index.html";
-};
+tabs.forEach(tab => {
+  tab.addEventListener("click", () => setMode(tab.dataset.mode));
+});
 
-/* REGISTER */
-document.getElementById("registerBtn").onclick = async ()=>{
+document.querySelectorAll("[data-mode]:not(.auth-tab)").forEach(button => {
+  button.addEventListener("click", () => setMode(button.dataset.mode));
+});
 
-  const email = document.getElementById("regEmail").value.trim();
-  const password = document.getElementById("regPassword").value.trim();
-  const username = document.getElementById("regUsername").value.trim();
-
-  const res = await fetch("/api/register",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({email,password,username})
+document.querySelectorAll(".password-toggle").forEach(button => {
+  button.addEventListener("click", () => {
+    const input = document.getElementById(button.dataset.target);
+    const showPassword = input.type === "password";
+    input.type = showPassword ? "text" : "password";
+    button.setAttribute("aria-label", showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe");
   });
+});
 
-  const data = await res.json();
+document.getElementById("forgotLink").addEventListener("click", () => {
+  document.getElementById("forgotEmail").value = document.getElementById("loginEmail").value.trim();
+  setMode("forgot");
+});
 
-  if(data.error){
-    document.getElementById("regError").innerText = data.error;
-  }else{
-    document.getElementById("regSuccess").innerText = "Account created!";
+document.getElementById("loginForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  const button = document.getElementById("loginBtn");
+  setMessage("loginMessage", "", "error");
+  setLoading(button, true, "Connexion");
+
+  try{
+    const data = await postJson("/api/login", {
+      email: document.getElementById("loginEmail").value.trim(),
+      password: document.getElementById("loginPassword").value
+    });
+    storeUser(data);
+    window.location.href = "/index.html";
+  }catch(err){
+    setMessage("loginMessage", err.message, "error");
+  }finally{
+    setLoading(button, false, "Connexion");
   }
-};
+});
 
+document.getElementById("registerForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  const button = document.getElementById("registerBtn");
+  const password = document.getElementById("regPassword").value;
+  setMessage("registerMessage", "", "error");
+
+  if(password.length < 8){
+    setMessage("registerMessage", "Le mot de passe doit contenir au moins 8 caracteres.", "error");
+    return;
+  }
+
+  setLoading(button, true, "Creer le compte");
+  try{
+    const email = document.getElementById("regEmail").value.trim();
+    await postJson("/api/register", {
+      email,
+      username: document.getElementById("regUsername").value.trim(),
+      firstName: document.getElementById("regFirstName").value.trim(),
+      password
+    });
+    setMessage("registerMessage", "Compte cree. Tu peux te connecter.", "success");
+    document.getElementById("loginEmail").value = email;
+    document.getElementById("loginPassword").value = "";
+    setTimeout(() => setMode("login"), 650);
+  }catch(err){
+    setMessage("registerMessage", err.message, "error");
+  }finally{
+    setLoading(button, false, "Creer le compte");
+  }
+});
+
+document.getElementById("forgotForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  const button = document.getElementById("forgotBtn");
+  setMessage("forgotMessage", "", "success");
+  setLoading(button, true, "Envoyer le lien");
+
+  try{
+    const data = await postJson("/api/password/forgot", {
+      email: document.getElementById("forgotEmail").value.trim()
+    });
+    let message = data.message || "Si un compte existe avec cet email, un lien vient d etre envoye.";
+    if(data.devResetLink){
+      const devResetLink = escapeHtml(data.devResetLink);
+      message += `<a class="dev-link" href="${devResetLink}">Ouvrir le lien local de reset</a>`;
+    }
+    setMessage("forgotMessage", message, "success");
+  }catch(err){
+    setMessage("forgotMessage", err.message, "error");
+  }finally{
+    setLoading(button, false, "Envoyer le lien");
+  }
+});
+
+document.getElementById("resetForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  const button = document.getElementById("resetBtn");
+  const password = document.getElementById("resetPassword").value;
+  setMessage("resetMessage", "", "success");
+
+  if(password.length < 8){
+    setMessage("resetMessage", "Le mot de passe doit contenir au moins 8 caracteres.", "error");
+    return;
+  }
+
+  setLoading(button, true, "Mettre a jour");
+  try{
+    await postJson("/api/password/reset", {
+      token: resetToken,
+      email: document.getElementById("resetEmail").value.trim(),
+      password
+    });
+    setMessage("resetMessage", "Mot de passe mis a jour. Tu peux te connecter.", "success");
+    setTimeout(() => setMode("login"), 900);
+  }catch(err){
+    setMessage("resetMessage", err.message, "error");
+  }finally{
+    setLoading(button, false, "Mettre a jour");
+  }
+});
+
+if(resetToken){
+  document.getElementById("resetEmail").value = params.get("email") || "";
+  setMode("reset");
+}else{
+  setMode("login");
+}
 </script>
-
 </body>
 </html>
