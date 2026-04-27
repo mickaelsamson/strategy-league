@@ -1,6 +1,6 @@
 (function(){
   const PUBLIC_PATHS = ['/login.html', '/register.html'];
-  const GAME_LINKS = new Set(['home', 'games', 'leaderboard', 'profile', 'admin', 'logout']);
+  const GAME_LINKS = new Set(['home', 'games', 'leaderboard', 'challenges', 'tournaments', 'profile', 'settings', 'admin', 'logout']);
   let onlineSocket = null;
   let latestOnlineUsers = {};
   let invitePickerOpen = false;
@@ -32,7 +32,10 @@
     if(link === 'home') window.location.href = '/';
     if(link === 'games') window.location.href = '/games.html';
     if(link === 'leaderboard') window.location.href = '/leaderboard.html';
+    if(link === 'challenges') window.location.href = '/coming-soon.html?feature=weekly-challenge';
+    if(link === 'tournaments') window.location.href = '/coming-soon.html?feature=tournaments';
     if(link === 'profile') window.location.href = '/profile.html';
+    if(link === 'settings') window.location.href = '/coming-soon.html?feature=settings';
     if(link === 'admin') window.location.href = '/admin.html';
 
     if(link === 'logout'){
@@ -50,7 +53,10 @@
       home: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10.5V20h5v-6h4v6h5v-9.5"/>',
       games: '<path d="M6 12h4"/><path d="M8 10v4"/><path d="M15 11h.01"/><path d="M18 13h.01"/><path d="M8.5 7h7c3 0 5.5 2.4 5.5 5.4 0 3.5-1.5 5.6-3.4 5.6-1.2 0-2-1-2.8-2H9.2c-.8 1-1.6 2-2.8 2C4.5 18 3 15.9 3 12.4 3 9.4 5.5 7 8.5 7Z"/>',
       leaderboard: '<path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v4a5 5 0 0 1-10 0V4Z"/><path d="M17 5h3v2a4 4 0 0 1-4 4"/><path d="M7 5H4v2a4 4 0 0 0 4 4"/>',
+      challenges: '<path d="M12 3 4.5 6v5.5c0 4.3 3 7.9 7.5 9.5 4.5-1.6 7.5-5.2 7.5-9.5V6L12 3Z"/><path d="m9 12 2 2 4-5"/>',
+      tournaments: '<path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v4a5 5 0 0 1-10 0V4Z"/><path d="M17 5h3v2a4 4 0 0 1-4 4"/><path d="M7 5H4v2a4 4 0 0 0 4 4"/>',
       profile: '<path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/>',
+      settings: '<path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.8 1.8 0 0 0 15 19.4a1.8 1.8 0 0 0-1 .6 1.8 1.8 0 0 0-.4 1.1V21a2 2 0 1 1-4 0v-.09A1.8 1.8 0 0 0 8.6 19.4a1.8 1.8 0 0 0-1.98.36l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-1-.6 1.8 1.8 0 0 0-1.1-.4H2a2 2 0 1 1 0-4h.09a1.8 1.8 0 0 0 1.51-1A1.8 1.8 0 0 0 3.24 7l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.8 1.8 0 0 0 9 4.6a1.8 1.8 0 0 0 .6-1V3a2 2 0 1 1 4 0v.09A1.8 1.8 0 0 0 15 4.6a1.8 1.8 0 0 0 1.98-.36l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.8 1.8 0 0 0 19.4 9c.27.32.6.52 1 .6.35.07.72.1 1.1.1H22a2 2 0 1 1 0 4h-.09A1.8 1.8 0 0 0 19.4 15Z"/>',
       admin: '<path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3Z"/><path d="M9 12l2 2 4-5"/>',
       logout: '<path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M21 19V5a2 2 0 0 0-2-2h-5"/>',
       search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>'
@@ -64,6 +70,12 @@
     if(path === '/' || path.endsWith('/index.html')) return 'home';
     if(path.includes('/chess') || path.includes('/othello') || path.includes('/azul') || path.includes('/moonfall') || path.endsWith('/games.html')) return 'games';
     if(path.includes('/leaderboard')) return 'leaderboard';
+    if(path.includes('/coming-soon')){
+      const feature = new URLSearchParams(window.location.search).get('feature') || '';
+      if(feature.includes('weekly')) return 'challenges';
+      if(feature.includes('tournament')) return 'tournaments';
+      if(feature.includes('setting')) return 'settings';
+    }
     if(path.includes('/strategy') || path.includes('/moonfall-world-conquest')) return 'games';
     if(path.includes('/profile')) return 'profile';
     if(path.includes('/admin')) return 'admin';
@@ -103,13 +115,18 @@
     container.innerHTML = `
       <aside class="app-sidebar-left" aria-label="Main navigation">
         <button class="shell-brand" type="button" data-link="home" title="Strategy League">
+          <img src="/assets/images/games/Logo-SL.webp" alt="" onerror="this.remove()">
           <span>SL</span>
+          <b>Strategy<br>League</b>
         </button>
         <nav class="shell-nav">
-          ${navItem('home', 'Home', active)}
+          ${navItem('home', 'Dashboard', active)}
           ${navItem('games', 'Games', active)}
           ${navItem('leaderboard', 'Leaderboard', active)}
+          ${navItem('challenges', 'Weekly Challenge', active)}
+          ${navItem('tournaments', 'Tournaments', active)}
           ${navItem('profile', 'Profile', active)}
+          ${navItem('settings', 'Settings', active)}
           ${navItem('admin', 'Admin', active, !user.isAdmin)}
         </nav>
         <button class="shell-nav-item shell-logout" type="button" data-link="logout" title="Logout">

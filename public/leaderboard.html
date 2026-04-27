@@ -10,13 +10,14 @@ h2{margin:0 0 20px;font-size:42px}
 .leaderboard-page{max-width:980px;margin:0 auto}
 .tabs{margin:0 0 22px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
 button{min-height:42px;padding:0 16px;border-radius:8px;border:1px solid var(--shell-line);cursor:pointer;background:rgba(255,82,104,.1);color:white;transition:.18s}
-button:hover{background:rgba(255,82,104,.24);border-color:var(--shell-line-strong)}
+button{background:rgba(229,170,83,.1)}
+button:hover{background:rgba(229,170,83,.2);border-color:var(--shell-line-strong)}
 .table,.rules-card{width:100%;margin:auto;text-align:left;padding:16px;background:var(--shell-card);border:1px solid var(--shell-line);border-radius:8px;box-shadow:0 18px 70px rgba(0,0,0,.22)}
 .rules-card{margin-top:18px}
 .row{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid rgba(255,91,105,.14);border-radius:8px}
 .top{font-weight:700}
-.me{background:rgba(255,82,104,.16);border:1px solid var(--shell-line-strong)}
-.rank{margin-top:20px;font-size:18px;color:var(--shell-red)}
+.me{background:rgba(229,170,83,.14);border:1px solid var(--shell-line-strong)}
+.rank{margin-top:20px;font-size:18px;color:var(--shell-amber)}
 .loading{margin-top:20px;color:var(--shell-soft)}
 .badge{font-size:20px;margin-right:6px}
 .username-link{color:var(--shell-text);cursor:pointer;text-decoration:none;border-bottom:1px dashed transparent}
@@ -224,7 +225,7 @@ async function loadRules(){
     const lastXp = thresholds[thresholds.length - 1] || 0;
     document.getElementById("levelRules").innerHTML = `
       <p>Leveling uses fixed total XP thresholds from Level 1 to Level ${lastLevel}. Level 1 starts at 0 XP, and Level ${lastLevel} starts at ${lastXp} XP.</p>
-      <p>Game of the Week bonus: the first positive result of the day on the featured eligible game grants an extra reward equal to that game's normal XP gain.</p>
+      <p>Weekly Challenge bonus: positive results on the featured eligible game grant an extra reward equal to that game's normal XP gain.</p>
       <p>Abandon always applies a ${Math.abs(rules.chess?.abandonPenalty || 10)} XP penalty, regardless of the game.</p>
     `;
   }catch(err){

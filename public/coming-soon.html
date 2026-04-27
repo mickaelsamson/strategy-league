@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="/assets/styles/theme.css">
+<script defer src="/assets/scripts/site-shell.js"></script>
+<title>Coming Soon</title>
+<style>
+body{margin:0}
+.soon-page{min-height:calc(100vh - 68px);display:grid;align-items:center;max-width:1120px;margin:0 auto}
+.soon-hero{position:relative;min-height:560px;display:flex;align-items:flex-end;overflow:hidden;border:1px solid var(--shell-line);border-radius:8px;background:#071016 url("/assets/images/games/comingsoon-game.webp") center/cover;box-shadow:0 28px 90px rgba(0,0,0,.36)}
+.soon-hero::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(3,7,10,.18) 42%,rgba(3,7,10,.94))}
+.soon-hero::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 78%,rgba(229,170,83,.22),transparent 22rem);pointer-events:none}
+.soon-copy{position:relative;z-index:1;width:min(640px,100%);padding:42px}
+.soon-kicker{display:inline-flex;margin-bottom:14px;padding:8px 11px;border-radius:6px;border:1px solid rgba(229,170,83,.3);background:rgba(3,10,14,.66);color:#f6d79b;font-weight:900;text-transform:uppercase;font-size:12px}
+.soon-copy h1{margin:0 0 12px;font-size:clamp(42px,7vw,86px);line-height:.92;text-transform:uppercase}
+.soon-copy p{margin:0 0 24px;color:#d6cec2;line-height:1.6;font-size:16px}
+.soon-actions{display:flex;gap:12px;flex-wrap:wrap}
+.soon-actions button{min-height:44px;padding:0 18px;border-radius:8px;border:1px solid var(--shell-line);cursor:pointer;color:var(--shell-text);font-weight:900}
+.soon-actions .primary{background:linear-gradient(135deg,var(--shell-amber),var(--shell-red-dark))}
+.soon-actions .ghost{background:rgba(3,10,14,.7)}
+@media (max-width:760px){.soon-hero{min-height:500px}.soon-copy{padding:26px}.soon-actions button{width:100%}}
+</style>
+</head>
+<body class="with-navbar">
+<div id="navbar-container"></div>
+<main class="soon-page">
+  <section class="soon-hero">
+    <div class="soon-copy">
+      <span class="soon-kicker">Coming Soon</span>
+      <h1 id="soonTitle">Coming Soon</h1>
+      <p id="soonCopy">This section is being forged for Strategy League. For now, jump back into the available games and keep climbing.</p>
+      <div class="soon-actions">
+        <button class="primary" type="button" onclick="window.location.href='/games.html'">Browse Games</button>
+        <button class="ghost" type="button" onclick="window.location.href='/'">Dashboard</button>
+      </div>
+    </div>
+  </section>
+</main>
+<script>
+const user = JSON.parse(localStorage.getItem("user") || "null");
+if(!user){
+  window.location.href = "/login.html";
+}
+
+const content = {
+  "weekly-challenge": {
+    title: "Weekly Challenge",
+    copy: "Weekly objectives are coming soon. They will reward consistent strategic play across the current featured games."
+  },
+  tournaments: {
+    title: "Tournaments",
+    copy: "Tournament brackets are coming soon. The arena stays focused on ranked games until this mode is ready."
+  },
+  settings: {
+    title: "Settings",
+    copy: "Account settings are coming soon. Profile, avatar, XP and match history remain available from your profile page."
+  },
+  "world-conquest": {
+    title: "World Conquest",
+    copy: "World-scale conquest is coming soon."
+  },
+  "real-time-strategy": {
+    title: "Real-Time Strategy",
+    copy: "Real-time tactical battles are coming soon."
+  }
+};
+
+const feature = new URLSearchParams(window.location.search).get("feature") || "";
+const page = content[feature] || content[feature.replaceAll("_","-")] || {
+  title: "Coming Soon",
+  copy: "This Strategy League mode is coming soon."
+};
+document.title = `${page.title} · Strategy League`;
+document.getElementById("soonTitle").textContent = page.title;
+document.getElementById("soonCopy").textContent = page.copy;
+</script>
+</body>
+</html>

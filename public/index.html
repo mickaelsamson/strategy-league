@@ -551,6 +551,53 @@ body{
 .popular-thumb.strategy{background:url("/moonfall-world-conquest/map.svg") center/cover;}
 .popular-thumb.moonfall-settlers{background:linear-gradient(135deg, #173039, #d9b45f 44%, #6d5bb4);}
 
+.home-dashboard{max-width:1220px}
+.home-kicker{color:var(--shell-amber)}
+.home-search{background:rgba(3,10,14,.72);border-radius:8px}
+.home-search svg{stroke:var(--shell-soft)}
+.home-profile-fallback{background:linear-gradient(135deg,var(--shell-amber),#22313d)}
+.home-layout{grid-template-columns:minmax(0,1.35fr) minmax(300px,.85fr)}
+.hero-card{
+  background:
+    linear-gradient(90deg, rgba(3,7,10,.96) 0%, rgba(3,7,10,.78) 45%, rgba(3,7,10,.18) 100%),
+    url("/assets/images/games/chess-game.webp") center/cover;
+}
+.hero-card::after{
+  background:
+    linear-gradient(135deg, transparent 56%, rgba(229,170,83,.34)),
+    radial-gradient(circle at 76% 40%, rgba(229,170,83,.26), transparent 17rem);
+}
+.pill{background:rgba(229,170,83,.18);border-color:rgba(229,170,83,.28);color:#fff5df}
+.primary-action{background:linear-gradient(135deg,var(--shell-amber),var(--shell-red-dark));box-shadow:0 14px 36px rgba(229,170,83,.2)}
+.text-link{color:#f6d79b}
+.mini-stack span{background:linear-gradient(135deg,var(--shell-amber),#22313d)}
+.week-card{background:#081018 center/cover}
+.week-card.chess{background:url("/assets/images/games/chess-game.webp") center/cover}
+.week-card.othello{background:url("/assets/images/games/reversi-game.webp") center/cover}
+.week-card.azul{background:url("/assets/images/games/azul-game.webp") center/cover}
+.week-card.strategy{background:url("/assets/images/games/comingsoon-game.webp") center/cover}
+.week-card.moonfall-settlers{background:url("/assets/images/games/settlers-game.webp") center/cover}
+.week-card.moonfall-rts{background:url("/assets/images/games/comingsoon-game.webp") center/cover}
+.quick-game{background:linear-gradient(135deg,rgba(18,31,41,.78),rgba(6,13,19,.72))}
+.quick-game:hover{background:linear-gradient(135deg,rgba(39,56,67,.9),rgba(6,13,19,.78))}
+.quick-icon{background:linear-gradient(135deg,var(--shell-amber),#22313d)}
+.game-card{background:#081018 center/cover}
+.game-card:hover{border-color:rgba(244,194,111,.48)}
+.game-card.chess{background:url("/assets/images/games/chess-game.webp") center/cover}
+.game-card.othello{background:url("/assets/images/games/reversi-game.webp") center/cover}
+.game-card.azul{background:url("/assets/images/games/azul-game.webp") center/cover}
+.game-card.strategy{background:url("/assets/images/games/comingsoon-game.webp") center/cover}
+.game-card.moonfall-settlers{background:url("/assets/images/games/settlers-game.webp") center/cover}
+.new-pill{background:linear-gradient(135deg,#22313d,var(--shell-amber))}
+.stat-ring{background:radial-gradient(circle at center,#081018 0 58%,transparent 59%),conic-gradient(var(--shell-amber) 0 var(--win-rate,60%),var(--shell-cyan) var(--win-rate,60%) 75%,rgba(255,255,255,.1) 75% 100%)}
+.stat-row{background:rgba(3,10,14,.52)}
+.stat-mini{background:rgba(229,170,83,.08);border-color:rgba(229,170,83,.18)}
+.popular-thumb.chess{background:url("/assets/images/games/chess-game.webp") center/cover}
+.popular-thumb.othello{background:url("/assets/images/games/reversi-game.webp") center/cover}
+.popular-thumb.azul{background:url("/assets/images/games/azul-game.webp") center/cover}
+.popular-thumb.strategy{background:url("/assets/images/games/comingsoon-game.webp") center/cover}
+.popular-thumb.moonfall-settlers{background:url("/assets/images/games/settlers-game.webp") center/cover}
+
 .popular-item b,
 .popular-item span{
   display:block;
@@ -590,7 +637,7 @@ body{
   <header class="home-topbar">
     <div>
       <div class="home-kicker">Good evening, <strong id="heroUsername">Player</strong></div>
-      <p class="home-subtitle">Ready for some epic games?</p>
+      <p class="home-subtitle">Compete. Strategize. Conquer.</p>
     </div>
     <label class="home-search">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
@@ -643,11 +690,11 @@ body{
             <p>Tile Drafting</p>
             <span class="live-dot"><b data-playing="azul">0</b> playing</span>
           </a>
-          <a class="game-card strategy" href="/moonfall-world-conquest/index.html">
-            <span class="new-pill">New</span>
-            <h3>MOONFALL WORLD CONQUEST</h3>
-            <p>Risklike Conquest</p>
-            <span class="live-dot"><b data-playing="strategy">0</b> playing</span>
+          <a class="game-card strategy" href="/coming-soon.html?feature=world-conquest">
+            <span class="new-pill">Soon</span>
+            <h3>WORLD CONQUEST</h3>
+            <p>Rule the world</p>
+            <span class="live-dot">Coming soon</span>
           </a>
           <a class="game-card moonfall-settlers" href="/moonfall-settlers/index.html">
             <span class="new-pill">New</span>
@@ -661,9 +708,9 @@ body{
 
     <aside>
       <article id="gameOfWeek" class="week-card shell-surface chess">
-        <span class="pill">Game of the Week · 2x XP</span>
+        <span class="pill">Weekly Challenge · 2x XP</span>
         <h2 id="gameOfWeekTitle">Chess</h2>
-        <p>Double XP once per day on this weekly pick.</p>
+        <p>Double XP on the current weekly pick.</p>
         <button id="gameOfWeekBtn" class="primary-action" type="button">Play Weekly Game</button>
       </article>
 
@@ -683,7 +730,7 @@ body{
           <span><b>Azul Arena</b><small>Tile Drafting</small></span>
           <em>›</em>
         </a>
-        <a class="quick-game" href="/moonfall-world-conquest/index.html">
+        <a class="quick-game" href="/coming-soon.html?feature=world-conquest">
           <span class="quick-icon">W</span>
           <span><b>World Conquest</b><small>Territorial</small></span>
           <em>›</em>
@@ -729,7 +776,7 @@ body{
       <div class="popular-item"><span class="popular-thumb chess"></span><span><b>Chess</b><span><strong data-playing="chess">0</strong> playing</span></span></div>
       <div class="popular-item"><span class="popular-thumb othello"></span><span><b>Othello</b><span><strong data-playing="othello">0</strong> playing</span></span></div>
       <div class="popular-item"><span class="popular-thumb azul"></span><span><b>Azul Arena</b><span><strong data-playing="azul">0</strong> playing</span></span></div>
-      <div class="popular-item"><span class="popular-thumb strategy"></span><span><b>Moonfall World Conquest</b><span><strong data-playing="strategy">0</strong> playing</span></span></div>
+      <div class="popular-item"><span class="popular-thumb strategy"></span><span><b>World Conquest</b><span>Coming soon</span></span></div>
       <div class="popular-item"><span class="popular-thumb moonfall-settlers"></span><span><b>Moonfall Settlers</b><span>Local board</span></span></div>
     </div>
   </section>
@@ -855,7 +902,8 @@ document.getElementById("homeSearch").addEventListener("keydown", event => {
   else if(value.includes("othello")) window.location.href = "/othello/index.html";
   else if(value.includes("azul")) window.location.href = "/azul/index.html";
   else if(value.includes("catan") || value.includes("settlers") || value.includes("colonist")) window.location.href = "/moonfall-settlers/index.html";
-  else if(value.includes("strategy") || value.includes("world") || value.includes("conquest") || value.includes("moonfall")) window.location.href = "/moonfall-world-conquest/index.html";
+  else if(value.includes("rts") || value.includes("real time")) window.location.href = "/coming-soon.html?feature=real-time-strategy";
+  else if(value.includes("strategy") || value.includes("world") || value.includes("conquest") || value.includes("moonfall")) window.location.href = "/coming-soon.html?feature=world-conquest";
   else window.location.href = `/profile.html?username=${encodeURIComponent(value)}`;
 });
 

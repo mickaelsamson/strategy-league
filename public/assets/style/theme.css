@@ -1,18 +1,20 @@
 :root{
-  --shell-bg:#16070b;
-  --shell-bg-deep:#090305;
-  --shell-card:rgba(64,18,24,0.66);
-  --shell-card-strong:rgba(87,26,32,0.76);
-  --shell-line:rgba(255,91,105,0.24);
-  --shell-line-strong:rgba(255,91,105,0.45);
-  --shell-text:#fff7f5;
-  --shell-soft:#d7b8b2;
-  --shell-muted:#98706d;
-  --shell-red:#ff5268;
-  --shell-red-dark:#b92639;
+  --shell-bg:#071016;
+  --shell-bg-deep:#02070b;
+  --shell-card:rgba(10,18,25,0.76);
+  --shell-card-strong:rgba(14,27,37,0.88);
+  --shell-line:rgba(229,170,83,0.22);
+  --shell-line-strong:rgba(244,194,111,0.48);
+  --shell-text:#f7f4ed;
+  --shell-soft:#b8b0a3;
+  --shell-muted:#7f7a73;
+  --shell-red:#f0aa3d;
+  --shell-red-dark:#8b4e13;
   --shell-green:#5ee46d;
-  --shell-amber:#ffbb54;
-  --shell-purple:#c45cff;
+  --shell-amber:#f6bd5b;
+  --shell-purple:#a855f7;
+  --shell-cyan:#22d3ee;
+  --shell-danger:#ef4444;
 }
 
 *{box-sizing:border-box;}
@@ -53,15 +55,16 @@ html{
 body{
   min-height:100vh;
   background:
-    radial-gradient(circle at 20% 10%, rgba(255,82,104,0.18), transparent 28rem),
-    radial-gradient(circle at 78% 18%, rgba(184,38,57,0.16), transparent 24rem),
-    linear-gradient(135deg, var(--shell-bg-deep), var(--shell-bg) 48%, #24090f);
+    radial-gradient(circle at 22% 6%, rgba(229,170,83,0.13), transparent 26rem),
+    radial-gradient(circle at 82% 8%, rgba(34,211,238,0.08), transparent 24rem),
+    radial-gradient(circle at 56% 100%, rgba(168,85,247,0.08), transparent 28rem),
+    linear-gradient(135deg, var(--shell-bg-deep), var(--shell-bg) 52%, #03090d);
   color:var(--shell-text);
   font-family:"Trebuchet MS", "Segoe UI", sans-serif;
 }
 
 body.app-shell-active{
-  padding:32px 82px 32px 96px !important;
+  padding:34px 92px 34px 218px !important;
   display:block !important;
 }
 
@@ -83,35 +86,57 @@ body.app-shell-active.with-navbar{
 
 .app-sidebar-left{
   left:18px;
-  width:64px;
-  padding:14px 7px;
+  width:176px;
+  padding:22px 12px;
   display:flex;
   flex-direction:column;
-  align-items:center;
-  gap:14px;
-  background:linear-gradient(180deg, rgba(43,13,18,0.94), rgba(27,8,12,0.88));
+  align-items:stretch;
+  gap:18px;
+  background:linear-gradient(180deg, rgba(6,14,20,0.96), rgba(4,10,15,0.9));
   border:1px solid var(--shell-line-strong);
-  border-radius:18px;
+  border-radius:0;
   box-shadow:0 22px 80px rgba(0,0,0,0.36), inset 0 1px 0 rgba(255,255,255,0.05);
   backdrop-filter:blur(18px);
 }
 
 .shell-brand{
-  width:48px;
-  height:48px;
+  width:100%;
+  min-height:132px;
   border:0;
-  border-radius:16px;
-  background:#fff7f5;
-  color:#21090f;
+  border-radius:0;
+  background:transparent;
+  color:var(--shell-amber);
   font-weight:900;
   font-size:18px;
   cursor:pointer;
-  box-shadow:0 16px 42px rgba(0,0,0,0.36), inset 0 -10px 22px rgba(43,9,15,0.05);
+  box-shadow:none;
   letter-spacing:0;
-  display:grid;
-  place-items:center;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
   line-height:1;
   font-family:Georgia, "Trebuchet MS", sans-serif;
+}
+
+.shell-brand img{
+  width:78px;
+  height:78px;
+  object-fit:contain;
+  filter:drop-shadow(0 12px 22px rgba(0,0,0,0.48));
+}
+
+.shell-brand img + span{
+  display:none;
+}
+
+.shell-brand b{
+  color:var(--shell-amber);
+  font:900 13px/1.25 "Trebuchet MS", "Segoe UI", sans-serif;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  text-align:center;
 }
 
 .shell-nav{
@@ -123,16 +148,17 @@ body.app-shell-active.with-navbar{
 
 .shell-nav-item{
   width:100%;
-  min-height:50px;
+  min-height:48px;
   border:1px solid transparent;
-  border-radius:14px;
+  border-radius:6px;
   background:transparent;
-  color:#dfc6c2;
+  color:#aba39a;
   display:flex;
-  flex-direction:column;
+  flex-direction:row;
   align-items:center;
-  justify-content:center;
-  gap:0;
+  justify-content:flex-start;
+  gap:11px;
+  padding:0 10px;
   cursor:pointer;
   transition:transform .18s ease, background .18s ease, color .18s ease, border-color .18s ease;
 }
@@ -148,27 +174,38 @@ body.app-shell-active.with-navbar{
 }
 
 .shell-nav-item span{
-  display:none;
+  display:block;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:13px;
+  font-weight:800;
 }
 
 .shell-nav-item:hover,
 .shell-nav-item.active{
   color:#fff7f5;
-  background:linear-gradient(135deg, rgba(255,82,104,0.26), rgba(110,28,38,0.55));
-  border-color:rgba(255,82,104,0.35);
-  transform:translateY(-2px);
+  background:linear-gradient(90deg, rgba(229,170,83,0.18), rgba(229,170,83,0.06));
+  border-color:rgba(229,170,83,0.34);
+  transform:translateX(2px);
 }
 
 .shell-nav-item.active svg{
-  color:var(--shell-red);
+  color:var(--shell-amber);
+}
+
+.shell-nav-item.active{
+  color:#ffd98e;
+  box-shadow:inset 3px 0 0 var(--shell-amber);
 }
 
 .shell-logout{
   margin-top:auto;
   min-height:50px;
   color:var(--shell-red);
-  background:rgba(255,82,104,0.1);
-  border-color:rgba(255,82,104,0.2);
+  background:rgba(229,170,83,0.08);
+  border-color:rgba(229,170,83,0.18);
 }
 
 .app-sidebar-right{
@@ -185,7 +222,7 @@ body.app-shell-active.with-navbar{
   padding:0;
   border:1px solid var(--shell-line);
   border-radius:18px;
-  background:linear-gradient(180deg, rgba(65,18,25,0.88), rgba(31,8,13,0.86));
+  background:linear-gradient(180deg, rgba(10,20,28,0.92), rgba(5,12,18,0.88));
   color:var(--shell-text);
   display:grid;
   place-items:center;
@@ -214,7 +251,7 @@ body.app-shell-active.with-navbar{
   width:214px;
   height:100%;
   padding:16px 10px;
-  background:linear-gradient(180deg, rgba(65,18,25,0.88), rgba(31,8,13,0.86));
+  background:linear-gradient(180deg, rgba(10,20,28,0.94), rgba(5,12,18,0.9));
   border:1px solid var(--shell-line);
   border-radius:8px;
   box-shadow:0 22px 80px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.05);
@@ -406,7 +443,7 @@ body.app-shell-active.with-navbar{
   width:260px;
   padding:18px;
   color:var(--shell-text);
-  background:linear-gradient(145deg, rgba(76,20,27,0.98), rgba(25,7,11,0.96));
+  background:linear-gradient(145deg, rgba(14,27,37,0.98), rgba(5,12,18,0.96));
   border:1px solid var(--shell-line-strong);
   border-radius:8px;
   box-shadow:0 20px 60px rgba(0,0,0,0.48);
@@ -426,7 +463,7 @@ body.app-shell-active.with-navbar{
 .shell-toast{
   padding:14px;
   border-radius:8px;
-  background:linear-gradient(145deg, rgba(76,20,27,0.98), rgba(25,7,11,0.96));
+  background:linear-gradient(145deg, rgba(14,27,37,0.98), rgba(5,12,18,0.96));
   border:1px solid var(--shell-line-strong);
   box-shadow:0 18px 60px rgba(0,0,0,0.42);
 }
@@ -474,7 +511,7 @@ body.app-shell-active.with-navbar{
   align-items:center;
   padding:10px 12px;
   border-radius:8px;
-  background:linear-gradient(145deg, rgba(76,20,27,0.98), rgba(25,7,11,0.96));
+  background:linear-gradient(145deg, rgba(14,27,37,0.98), rgba(5,12,18,0.96));
   border:1px solid var(--shell-line-strong);
   box-shadow:0 18px 60px rgba(0,0,0,0.42);
 }
@@ -564,6 +601,14 @@ body.app-shell-active.with-navbar{
   backdrop-filter:blur(14px);
 }
 
+.game-art-chess{background-image:url("/assets/images/games/chess-game.webp") !important;}
+.game-art-othello{background-image:url("/assets/images/games/reversi-game.webp") !important;}
+.game-art-azul{background-image:url("/assets/images/games/azul-game.webp") !important;}
+.game-art-hexblitz{background-image:url("/assets/images/games/hexblitz-game.webp") !important;}
+.game-art-p4{background-image:url("/assets/images/games/p4-game.webp") !important;}
+.game-art-settlers{background-image:url("/assets/images/games/settlers-game.webp") !important;}
+.game-art-comingsoon{background-image:url("/assets/images/games/comingsoon-game.webp") !important;}
+
 body.app-shell-active .card,
 body.app-shell-active .player-card,
 body.app-shell-active .timer,
@@ -618,6 +663,7 @@ select{
 @media (max-width:1200px){
   body.app-shell-active{
     padding-right:32px !important;
+    padding-left:204px !important;
   }
 
   .shell-toast-stack{
@@ -645,14 +691,21 @@ select{
     padding:8px 10px;
     flex-direction:row;
     border-radius:22px;
+    align-items:center;
   }
 
   .shell-brand{
     width:50px;
     height:50px;
+    min-height:50px;
     border-radius:18px;
     font-size:18px;
     flex:0 0 auto;
+  }
+
+  .shell-brand img,
+  .shell-brand b{
+    display:none;
   }
 
   .shell-nav{
@@ -668,6 +721,8 @@ select{
     min-height:50px;
     border-radius:14px;
     gap:0;
+    justify-content:center;
+    padding:0;
   }
 
   .shell-nav-item svg{
