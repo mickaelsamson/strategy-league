@@ -404,6 +404,8 @@
     dom.turnCount.textContent = String(state.turn);
 
     const p1Turn = state.current === P1;
+    dom.gameView.classList.toggle('p1-turn', p1Turn);
+    dom.gameView.classList.toggle('p2-turn', !p1Turn);
     dom.p1Card.classList.toggle('active', p1Turn);
     dom.p2Card.classList.toggle('active', !p1Turn);
 
