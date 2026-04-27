@@ -54,6 +54,9 @@
     </div>
 
     <section class="game-mode-card">
+      <div class="tutorial-launch">
+        <button type="button" class="tutorial-btn" onclick="window.location.href='/chess/chess-game.html?tutorial=1'">Tutorial</button>
+      </div>
       <span class="eyebrow">Classic duel</span>
       <h1>Chess</h1>
       <p class="game-mode-copy">Use the same Moonfall Settlers entry flow everywhere: choose Local or Online first, then launch the mode you want with the same visual rhythm.</p>
@@ -69,7 +72,6 @@
           <strong>Hot-seat chess is coming soon</strong>
           <p>This tab is already in place so every game now exposes the same entry pattern. The local board flow is intentionally blocked until the full offline match logic is ready.</p>
           <div class="mode-actions">
-            <button type="button" class="ghost-btn" onclick="window.location.href='/chess/chess-game.html?tutorial=1'">TUTORIAL</button>
             <button type="button" disabled>Coming soon</button>
             <button type="button" class="ghost-btn" onclick="goBack()">Back</button>
           </div>
@@ -93,7 +95,6 @@
           </div>
           <div class="mode-actions">
             <button onclick="createLobby()">Create Lobby</button>
-            <button type="button" class="ghost-btn" onclick="window.location.href='/chess/chess-game.html?tutorial=1'">TUTORIAL</button>
             <button type="button" class="ghost-btn" onclick="openInvitePicker()">Invite player</button>
             <button type="button" class="ghost-btn" onclick="goBack()">Back</button>
           </div>

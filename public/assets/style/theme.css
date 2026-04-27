@@ -17,6 +17,35 @@
 
 *{box-sizing:border-box;}
 
+.tutorial-launch{
+  display:flex;
+  justify-content:flex-start;
+  margin:0 0 16px;
+}
+
+.tutorial-launch .tutorial-btn{
+  min-height:38px;
+  padding:0 16px;
+  border:1px solid rgba(255,187,84,0.46) !important;
+  border-radius:8px;
+  background:linear-gradient(135deg, rgba(255,187,84,0.92), rgba(185,65,46,0.94)) !important;
+  color:#fff7f5;
+  font:inherit;
+  font-size:13px;
+  font-weight:900;
+  letter-spacing:0;
+  text-transform:uppercase;
+  cursor:pointer;
+  box-shadow:0 10px 26px rgba(0,0,0,0.24);
+  transition:transform .16s ease, border-color .16s ease, filter .16s ease;
+}
+
+.tutorial-launch .tutorial-btn:hover{
+  transform:translateY(-1px);
+  border-color:rgba(255,230,179,0.72) !important;
+  filter:brightness(1.06);
+}
+
 html{
   min-height:100%;
 }

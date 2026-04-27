@@ -364,7 +364,7 @@ button:disabled{
   background:rgba(255,255,255,.07);
 }
 
-body.app-shell-active.moonsettlers-page button:not(.shell-nav-item):not(.shell-brand):not(.online-player):not(.online-tab):not(.online-plus):not(.online-invite-target){
+body.app-shell-active.moonsettlers-page button:not(.shell-nav-item):not(.shell-brand):not(.online-player):not(.online-tab):not(.online-plus):not(.online-invite-target):not(.tutorial-btn){
   border-color:rgba(230,203,135,.24) !important;
   background:#263d47 !important;
 }
