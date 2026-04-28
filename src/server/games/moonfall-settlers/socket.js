@@ -56,7 +56,8 @@ function createMoonfallSettlersModule({ io, socket, state, updatePresence, isGam
           name: game.name,
           maxPlayers: game.maxPlayers,
           boardMode: game.boardMode,
-          targetScore: game.targetScore
+          targetScore: game.targetScore,
+          turnTimerSeconds: game.turnTimerSeconds || 0
         }
       });
     });
@@ -112,6 +113,7 @@ function createMoonfallSettlersModule({ io, socket, state, updatePresence, isGam
       maxPlayers: lobby.maxPlayers,
       boardMode: lobby.boardMode,
       targetScore: lobby.targetScore,
+      turnTimerSeconds: lobby.turnTimerSeconds || 0,
       hostUsername: lobby.players[0].username,
       hostSocketId: lobby.players[0].id,
       players: lobby.players.map(player => ({
@@ -190,7 +192,7 @@ function createMoonfallSettlersModule({ io, socket, state, updatePresence, isGam
   }
 
   function register(){
-    socket.on('create_moonfall_settlers_lobby', ({ name, maxPlayers, boardMode, targetScore } = {}) => {
+    socket.on('create_moonfall_settlers_lobby', ({ name, maxPlayers, boardMode, targetScore, turnTimerSeconds } = {}) => {
       if(isGameAllowed && !isGameAllowed('moonfall_settlers', socket)) return;
       if(!socket.username) return;
       if(findLobbyByUsername(socket.username) || findGameByUsername(socket.username)) return;
@@ -204,6 +206,7 @@ function createMoonfallSettlersModule({ io, socket, state, updatePresence, isGam
         maxPlayers: parsedMaxPlayers,
         boardMode: boardMode === 'wild' ? 'wild' : 'balanced',
         targetScore: Math.max(8, Math.min(12, Number(targetScore) || 10)),
+        turnTimerSeconds: Math.max(0, Math.min(300, Number(turnTimerSeconds) || 0)),
         players: [{ id: socket.id, username: socket.username, ready: false }]
       };
       updatePresence();
@@ -290,7 +293,7 @@ function createMoonfallSettlersModule({ io, socket, state, updatePresence, isGam
         gameKey: 'moonfall_settlers',
         usernames,
         winnerUsername: winnerFromSnapshot(game, snapshot),
-        reason: snapshot?.winner !== null && snapshot?.winner !== undefined ? 'game_end' : 'draw',
+        reason: snapshot?.resultReason || (snapshot?.winner !== null && snapshot?.winner !== undefined ? 'game_end' : 'draw'),
         scoreFinal: settlersScoreFinal(snapshot)
       })
         .then(result => {

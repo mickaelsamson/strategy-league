@@ -61,6 +61,8 @@
   const PORT_BAG = ['generic', 'generic', 'generic', 'generic', 'cedar', 'clay', 'rice', 'wisteria', 'sunsteel'];
   const MAX_PIECES = { roads: 15, settlements: 5, cities: 4 };
   const TARGET_DEFAULT = 10;
+  const TURN_TIMER_DEFAULT = 60;
+  const TIMEOUT_LIMIT = 3;
   const tutorialMode = new URLSearchParams(window.location.search).get('tutorial') === '1';
   const TUTORIAL_STEPS = [
     { title: 'Settle strong numbers', body: 'You are playing a guided local game against AI clans. During setup, place settlements near 6 and 8 when possible.', tips: ['6 and 8 produce most often.', 'Diversify wood, brick, wheat, sheep, and ore.'] },
@@ -114,11 +116,13 @@
     playerCount: document.getElementById('playerCount'),
     boardMode: document.getElementById('boardMode'),
     targetScore: document.getElementById('targetScore'),
+    turnTimer: document.getElementById('turnTimer'),
     shuffleBtn: document.getElementById('shuffleBtn'),
     onlineLobbyName: document.getElementById('onlineLobbyName'),
     onlineMaxPlayers: document.getElementById('onlineMaxPlayers'),
     onlineBoardMode: document.getElementById('onlineBoardMode'),
     onlineTargetScore: document.getElementById('onlineTargetScore'),
+    onlineTurnTimer: document.getElementById('onlineTurnTimer'),
     createOnlineLobbyBtn: document.getElementById('createOnlineLobbyBtn'),
     refreshOnlineBtn: document.getElementById('refreshOnlineBtn'),
     onlineLobbyList: document.getElementById('onlineLobbyList'),
@@ -132,8 +136,10 @@
     diceHud: document.getElementById('diceHud'),
     pointsHud: document.getElementById('pointsHud'),
     targetHud: document.getElementById('targetHud'),
+    timerHud: document.getElementById('timerHud'),
     rollBtn: document.getElementById('rollBtn'),
     endTurnBtn: document.getElementById('endTurnBtn'),
+    surrenderBtn: document.getElementById('surrenderBtn'),
     newGameBtn: document.getElementById('newGameBtn'),
     roadBtn: document.getElementById('roadBtn'),
     settlementBtn: document.getElementById('settlementBtn'),
@@ -191,6 +197,7 @@
   let noticeTimer = null;
   let aiTimer = null;
   let autoRollTimer = null;
+  let timerTickTimer = null;
   let tradeResponseTimer = null;
   let tutorialGuide = null;
 
@@ -326,6 +333,7 @@
       if(dom.onlineMaxPlayers) dom.onlineMaxPlayers.disabled = true;
       if(dom.onlineBoardMode) dom.onlineBoardMode.disabled = true;
       if(dom.onlineTargetScore) dom.onlineTargetScore.disabled = true;
+      if(dom.onlineTurnTimer) dom.onlineTurnTimer.disabled = true;
       dom.onlineLobbyList.innerHTML = '<div class="online-empty">Online play needs a logged-in Strategy League profile.</div>';
       return;
     }
@@ -336,6 +344,7 @@
     if(dom.onlineMaxPlayers) dom.onlineMaxPlayers.disabled = false;
     if(dom.onlineBoardMode) dom.onlineBoardMode.disabled = false;
     if(dom.onlineTargetScore) dom.onlineTargetScore.disabled = false;
+    if(dom.onlineTurnTimer) dom.onlineTurnTimer.disabled = false;
 
     const lobbies = Object.values(onlineState.lobbies || {});
     if(!lobbies.length){
@@ -363,7 +372,7 @@
             <strong>${escapeHtml(lobby.name)}</strong>
             <span>${lobby.players.length}/${lobby.maxPlayers} players</span>
           </div>
-          <div class="online-lobby-meta">${escapeHtml(lobby.boardMode)} board · ${lobby.targetScore} points${everyoneReady ? ' · ready to start' : ''}</div>
+          <div class="online-lobby-meta">${escapeHtml(lobby.boardMode)} board · ${lobby.targetScore} points · ${timerLabel(lobby.turnTimerSeconds)} timer${everyoneReady ? ' · ready to start' : ''}</div>
           <div class="online-lobby-players">
             ${lobby.players.map(player => `<span class="online-player-chip ${player.ready ? 'is-ready' : ''}">${escapeHtml(player.username)}${player.ready ? ' ready' : ''}</span>`).join('')}
           </div>
@@ -495,8 +504,18 @@
       longestRoad: 0,
       hasLongestRoad: false,
       hasLargestArmy: false,
+      timeoutStrikes: 0,
       alive: true
     };
+  }
+
+  function readTimerValue(element){
+    const seconds = Number(element?.value || TURN_TIMER_DEFAULT);
+    return seconds > 0 ? clamp(seconds, 10, 300) : 0;
+  }
+
+  function timerLabel(seconds){
+    return Number(seconds) > 0 ? `${seconds}s` : 'off';
   }
 
   function createTradeState(players){
@@ -543,12 +562,19 @@
         enabled: Boolean(options.online),
         gameId: options.gameId || null,
         hostUsername: options.hostUsername || null
+      },
+      timer: {
+        enabled: Number(options.turnTimerSeconds) > 0,
+        seconds: Number(options.turnTimerSeconds) > 0 ? Number(options.turnTimerSeconds) : 0,
+        startedAt: Date.now(),
+        key: ''
       }
     };
   }
 
   function enterGame(nextState){
     state = nextState;
+    normalizeState();
     if(!state.view){
       state.view = { width: 1, height: 1, scale: 1, offsetX: 0, offsetY: 0 };
     }
@@ -571,12 +597,27 @@
     updateAll();
   }
 
+  function normalizeState(){
+    if(!state) return;
+    state.players = state.players || [];
+    state.players.forEach(player => {
+      if(player.timeoutStrikes === undefined) player.timeoutStrikes = 0;
+      if(player.alive === undefined) player.alive = true;
+    });
+    if(!state.timer){
+      state.timer = { enabled: false, seconds: 0, startedAt: Date.now(), key: '' };
+    }
+    state.resultReason = state.resultReason || null;
+  }
+
   function startLocalGame(event){
     event.preventDefault();
     if(onlineState.setupMode !== 'local') return;
     const players = readSetup();
     const targetScore = Number(dom.targetScore.value) || TARGET_DEFAULT;
-    const nextState = createInitialState(players, dom.boardMode.value, targetScore);
+    const nextState = createInitialState(players, dom.boardMode.value, targetScore, {
+      turnTimerSeconds: readTimerValue(dom.turnTimer)
+    });
     logLocal(nextState, 'The clans enter the Moonfall night.');
     enterGame(nextState);
     notice('Initial placement: settlement, then road.');
@@ -587,7 +628,9 @@
     const players = PLAYER_PRESETS.slice(0, 4).map((preset, index) =>
       createPlayer(index, index === 0 ? getSavedName() : preset.name, index === 0 ? 'human' : 'ai', preset)
     );
-    const nextState = createInitialState(players, 'balanced', 8);
+    const nextState = createInitialState(players, 'balanced', 8, {
+      turnTimerSeconds: 0
+    });
     logLocal(nextState, 'Tutorial begins: build a Moonfall economy faster than the AI clans.');
     tutorialGuide = tutorialGuide || window.TutorialGuide?.create({
       title: 'Moonfall Settlers Tutorial',
@@ -1486,6 +1529,8 @@
       }
     }
 
+    markPlayerActed(player?.id);
+
     if(state.phase === 'setup'){
       handleSetupClick(player, hit);
       return;
@@ -1677,6 +1722,7 @@
       requestOnlineAction({ type: 'roll' });
       return;
     }
+    markPlayerActed(currentPlayer()?.id);
     rollDice();
   }
 
@@ -1685,6 +1731,7 @@
       requestOnlineAction({ type: 'end_turn' });
       return;
     }
+    markPlayerActed(currentPlayer()?.id);
     endTurn();
   }
 
@@ -1693,6 +1740,7 @@
       requestOnlineAction({ type: 'buy_dev' });
       return;
     }
+    markPlayerActed(currentPlayer()?.id);
     buyDevCard();
   }
 
@@ -1709,6 +1757,7 @@
       requestOnlineAction(action);
       return;
     }
+    markPlayerActed(currentPlayer()?.id);
     playDevCard(type);
   }
 
@@ -2105,6 +2154,7 @@
         closeTradeModal();
         return;
       }
+      markPlayerActed(currentPlayer()?.id);
       bankTrade();
       return;
     }
@@ -2120,6 +2170,7 @@
       closeTradeModal();
       return;
     }
+    markPlayerActed(currentPlayer()?.id);
     playerTrade();
   }
 
@@ -2275,9 +2326,110 @@
     scheduleAi();
   }
 
+  function turnTimerKey(){
+    if(!state) return '';
+    if(state.phase === 'setup'){
+      return `setup:${state.setupStep}:${state.setupPart}`;
+    }
+    return `${state.turn}:${state.turnNumber}:${state.phase}`;
+  }
+
+  function timerRemainingMs(){
+    if(!state?.timer?.enabled) return 0;
+    const duration = Math.max(1, Number(state.timer.seconds) || TURN_TIMER_DEFAULT) * 1000;
+    return Math.max(0, duration - (Date.now() - Number(state.timer.startedAt || Date.now())));
+  }
+
+  function formatTimer(ms){
+    const seconds = Math.ceil(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const rest = seconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(rest).padStart(2, '0')}`;
+  }
+
+  function renderTimerHud(){
+    if(!dom.timerHud) return;
+    if(!state?.timer?.enabled || state.winner || state.phase === 'ended'){
+      dom.timerHud.textContent = state?.timer?.enabled ? '--' : 'Off';
+      dom.timerHud.classList.remove('danger');
+      return;
+    }
+
+    const player = getInteractionPlayer();
+    if(!player || player.type !== 'human'){
+      dom.timerHud.textContent = '--';
+      dom.timerHud.classList.remove('danger');
+      return;
+    }
+
+    const remaining = timerRemainingMs();
+    dom.timerHud.textContent = formatTimer(remaining);
+    dom.timerHud.classList.toggle('danger', remaining <= 10000);
+  }
+
+  function autoCompleteTimedOutTurn(player){
+    if(!state || state.winner || !player) return;
+    if(state.phase === 'setup'){
+      runAiSetup(player);
+      return;
+    }
+
+    if(state.phase === 'roll'){
+      rollDice();
+    }
+
+    if(state.winner || currentPlayer()?.id !== player.id) return;
+
+    if(state.phase === 'robber'){
+      moveRobber(player.id, chooseRobberTile(player.id));
+    }
+
+    if(!state.winner && state.phase === 'main' && currentPlayer()?.id === player.id){
+      finishTurn();
+    }
+  }
+
+  function handleTurnTimerExpired(expectedKey){
+    if(!state || state.winner || state.timer?.key !== expectedKey) return;
+    if(isOnlineGame() && !isOnlineHost()) return;
+
+    const player = getInteractionPlayer();
+    if(!player || player.type !== 'human') return;
+
+    player.timeoutStrikes = (player.timeoutStrikes || 0) + 1;
+    log(`${player.name} times out (${player.timeoutStrikes}/${TIMEOUT_LIMIT}).`);
+    notice(`${player.name} timed out. Automatic turn.`);
+
+    if(player.timeoutStrikes >= TIMEOUT_LIMIT){
+      applyPlayerSurrender(player.id, 'timeout');
+      return;
+    }
+
+    autoCompleteTimedOutTurn(player);
+    syncOnlineState();
+  }
+
   function scheduleAutoRoll(){
     clearTimeout(autoRollTimer);
-    return;
+    clearInterval(timerTickTimer);
+
+    const player = getInteractionPlayer();
+    if(!state?.timer?.enabled || state.winner || state.phase === 'ended' || !player || player.type !== 'human'){
+      renderTimerHud();
+      return;
+    }
+
+    const key = turnTimerKey();
+    if(state.timer.key !== key){
+      state.timer.key = key;
+      state.timer.startedAt = Date.now();
+    }
+
+    renderTimerHud();
+    timerTickTimer = setInterval(renderTimerHud, 250);
+
+    if(isOnlineGame() && !isOnlineHost()) return;
+    autoRollTimer = setTimeout(() => handleTurnTimerExpired(key), timerRemainingMs() + 80);
   }
 
   function spend(player, cost){
@@ -2406,6 +2558,7 @@
     const player = state.players[playerId];
     if(victoryPoints(player) >= state.targetScore){
       state.winner = playerId;
+      state.resultReason = state.resultReason || 'game_end';
       state.phase = 'ended';
       state.activeMode = null;
       log(`${player.name} wins Moonfall Settlers.`);
@@ -2448,6 +2601,80 @@
     if(!player || state.winner) return false;
     if(isOnlineGame()) return player.username === onlineState.me;
     return player.type === 'human';
+  }
+
+  function visiblePlayer(){
+    if(!state) return null;
+    if(isOnlineGame()){
+      return myOnlinePlayer() || getInteractionPlayer() || currentPlayer();
+    }
+    return state.players.find(player => player.type === 'human' && player.alive !== false) || getInteractionPlayer() || currentPlayer();
+  }
+
+  function activeHumanPlayers(){
+    if(!state) return [];
+    return state.players.filter(player => player.type === 'human' && player.alive !== false);
+  }
+
+  function markPlayerActed(playerId){
+    const player = state?.players[playerId];
+    if(player) player.timeoutStrikes = 0;
+  }
+
+  function surrenderTargetPlayer(){
+    if(!state || state.winner) return null;
+    if(isOnlineGame()){
+      const player = myOnlinePlayer();
+      return player?.type === 'human' && player.alive !== false ? player : null;
+    }
+    const player = getInteractionPlayer();
+    return player?.type === 'human' ? player : null;
+  }
+
+  function requestSurrender(){
+    const player = surrenderTargetPlayer();
+    if(!player || state.winner) return;
+    if(isOnlineGame() && !isOnlineHost()){
+      requestOnlineAction({ type: 'surrender' });
+      return;
+    }
+    applyPlayerSurrender(player.id, 'surrender');
+  }
+
+  function applyPlayerSurrender(playerId, reason = 'surrender'){
+    if(!state || state.winner) return false;
+    const player = state.players[playerId];
+    if(!player) return false;
+
+    const remainingHumans = activeHumanPlayers().filter(entry => entry.id !== playerId);
+    if(remainingHumans.length <= 1){
+      const winner = remainingHumans[0] || state.players
+        .filter(entry => entry.id !== playerId)
+        .sort((a, b) => victoryPoints(b) - victoryPoints(a))[0];
+      state.winner = winner?.id ?? playerId;
+      state.resultReason = reason;
+      state.phase = 'ended';
+      state.activeMode = null;
+      clearTimeout(aiTimer);
+      closeTradeResponse();
+      closeTradeModal();
+      log(`${player.name} surrenders. ${state.players[state.winner].name} wins Moonfall Settlers.`);
+      notice(`${state.players[state.winner].name} wins by ${reason === 'timeout' ? 'timeout' : 'surrender'}.`);
+      updateAll();
+      syncOnlineState();
+      return true;
+    }
+
+    player.type = 'ai';
+    player.surrendered = true;
+    player.timeoutStrikes = 0;
+    player.name = player.name.includes('AI') ? player.name : `${player.name} AI`;
+    log(`${player.username || player.name} surrenders and is replaced by AI.`);
+    notice(`${player.username || player.name} is now controlled by AI.`);
+    if(getInteractionPlayer()?.id === player.id) scheduleAi();
+    updateAll();
+    syncOnlineState();
+    return true;
   }
 
   function scheduleAi(){
@@ -2638,9 +2865,16 @@
     if(!player) return;
     const interactionPlayer = getInteractionPlayer();
     const actionType = action.type;
-    const canActOutOfTurn = actionType === 'respond_trade';
+    const canActOutOfTurn = actionType === 'respond_trade' || actionType === 'surrender';
 
     if(!canActOutOfTurn && (!interactionPlayer || interactionPlayer.id !== player.id)) return;
+
+    if(actionType === 'surrender'){
+      applyPlayerSurrender(player.id, 'surrender');
+      return;
+    }
+
+    if(actionType !== 'respond_trade') markPlayerActed(player.id);
 
     if(actionType === 'roll'){
       rollDice();
@@ -2751,7 +2985,7 @@
     if(state.turnNumber >= 5 || state.players.some(player => victoryPoints(player) >= Math.max(4, state.targetScore - 3))) step = 3;
     tutorialGuide.setStep(step);
     if(state.winner){
-      tutorialGuide.complete(`${state.winner.name} wins. You completed a guided Moonfall Settlers game against AI clans.`);
+      tutorialGuide.complete(`${state.players[state.winner]?.name || 'A clan'} wins. You completed a guided Moonfall Settlers game against AI clans.`);
     }
   }
 
@@ -2829,6 +3063,7 @@
     dom.settlementBtn.disabled = !mainHuman || !canAfford(player, COSTS.settlement);
     dom.cityBtn.disabled = !mainHuman || !canAfford(player, COSTS.city);
     dom.devBtn.disabled = !mainHuman || !canAfford(player, COSTS.dev) || !state.devDeck.length;
+    if(dom.surrenderBtn) dom.surrenderBtn.disabled = !surrenderTargetPlayer();
     dom.tradeOpenBtn.style.pointerEvents = mainHuman ? 'auto' : 'none';
     dom.tradeOpenBtn.style.opacity = mainHuman ? '1' : '.46';
 
@@ -2847,7 +3082,11 @@
   }
 
   function renderResourcePanel(){
-    const player = getInteractionPlayer() || currentPlayer();
+    const player = visiblePlayer();
+    if(!player){
+      dom.resourcePanel.innerHTML = '';
+      return;
+    }
     dom.resourcePanel.innerHTML = RESOURCE_KEYS.map(key => `
       <div class="resource-row">
         <img src="${RESOURCES[key].icon}" alt="">
@@ -2982,10 +3221,10 @@
     dom.playersPanel.innerHTML = state.players.map(player => {
       const ports = [...getPlayerPorts(player.id)].map(port => port === 'generic' ? '3:1' : `${RESOURCES[port].short} 2:1`).join(', ') || 'No port';
       return `
-        <div class="player-row ${getInteractionPlayer()?.id === player.id ? 'active' : ''}" style="color:${player.color}">
+        <div class="player-row ${getInteractionPlayer()?.id === player.id ? 'active' : ''} ${player.surrendered ? 'out' : ''}" style="color:${player.color}">
           <img class="player-crest" src="${player.crest}" alt="">
           <strong>${escapeHtml(player.name)} - ${victoryPoints(player)} pts</strong>
-          <span>${sumResources(player.resources)} resources, ${player.devCards.length} cards</span>
+          <span>${sumResources(player.resources)} resources, ${player.devCards.length} cards${player.surrendered ? ', AI replacement' : ''}</span>
           <span>Road ${player.longestRoad}, Army ${player.knights}, ${ports}</span>
         </div>
       `;
@@ -3027,6 +3266,7 @@
   function resetToSetup(){
     clearTimeout(aiTimer);
     clearTimeout(autoRollTimer);
+    clearInterval(timerTickTimer);
     clearTimeout(tradeResponseTimer);
     state = null;
     onlineState.gameId = null;
@@ -3076,7 +3316,12 @@
           players,
           payload?.lobby?.boardMode || 'balanced',
           Number(payload?.lobby?.targetScore) || TARGET_DEFAULT,
-          { online: true, gameId: payload.gameId, hostUsername: payload.hostUsername }
+          {
+            online: true,
+            gameId: payload.gameId,
+            hostUsername: payload.hostUsername,
+            turnTimerSeconds: Number(payload?.lobby?.turnTimerSeconds) || 0
+          }
         );
         logLocal(nextState, 'The clans enter the Moonfall night.');
         enterGame(nextState);
@@ -3107,6 +3352,7 @@
   dom.rollBtn.addEventListener('click', requestRollDice);
   dom.endTurnBtn.addEventListener('click', requestEndTurn);
   dom.newGameBtn.addEventListener('click', resetToSetup);
+  dom.surrenderBtn?.addEventListener('click', requestSurrender);
   dom.roadBtn.addEventListener('click', () => setMode('road'));
   dom.settlementBtn.addEventListener('click', () => setMode('settlement'));
   dom.cityBtn.addEventListener('click', () => setMode('city'));
@@ -3146,7 +3392,8 @@
       name: dom.onlineLobbyName.value,
       maxPlayers: Number(dom.onlineMaxPlayers.value) || 4,
       boardMode: dom.onlineBoardMode.value,
-      targetScore: Number(dom.onlineTargetScore.value) || TARGET_DEFAULT
+      targetScore: Number(dom.onlineTargetScore.value) || TARGET_DEFAULT,
+      turnTimerSeconds: readTimerValue(dom.onlineTurnTimer)
     });
   });
   dom.refreshOnlineBtn?.addEventListener('click', renderOnlineStateFromLobbies);
