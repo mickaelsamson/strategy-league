@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="/assets/styles/theme.css">
+<script defer src="/assets/scripts/site-shell.js"></script>
+<title>Weekly Challenge</title>
+<style>
+body{margin:0}
+.weekly-page{max-width:1180px;margin:0 auto}
+.weekly-hero{min-height:260px;display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:24px;align-items:end;margin-bottom:22px;padding:28px;border:1px solid var(--shell-line);border-radius:8px;background:linear-gradient(180deg,rgba(3,10,14,.54),rgba(3,10,14,.92)),url("/assets/images/games/comingsoon-game.webp") center/cover;box-shadow:0 28px 90px rgba(0,0,0,.32)}
+.weekly-kicker{display:inline-flex;margin-bottom:12px;padding:8px 10px;border-radius:6px;background:rgba(229,170,83,.12);border:1px solid rgba(229,170,83,.3);color:#f6d79b;font-weight:900;text-transform:uppercase;font-size:12px}
+.weekly-hero h1{margin:0 0 10px;font-size:clamp(42px,7vw,78px);line-height:.92;text-transform:uppercase}
+.weekly-hero p{margin:0;color:#d8d0c7;line-height:1.55;font-size:17px}
+.reward-card{align-self:stretch;display:grid;align-content:center;gap:8px;padding:18px;border-radius:8px;border:1px solid rgba(244,194,111,.28);background:rgba(5,12,17,.78)}
+.reward-card span{color:var(--shell-soft);font-weight:800;text-transform:uppercase;font-size:12px}
+.reward-card strong{font-size:42px;color:#f6c56d}
+.weekly-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;align-items:start}
+.weekly-card{padding:20px;border:1px solid var(--shell-line);border-radius:8px;background:var(--shell-card);box-shadow:0 18px 70px rgba(0,0,0,.22)}
+.weekly-card h2{margin:0 0 10px;font-size:22px}
+.weekly-card p{color:var(--shell-soft);line-height:1.55}
+.game-list{display:grid;gap:10px;margin-top:14px}
+.game-row{display:grid;grid-template-columns:36px 1fr auto;gap:12px;align-items:center;padding:12px;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:rgba(255,255,255,.04)}
+.game-row b{display:block}
+.game-row small{color:var(--shell-soft)}
+.game-row .status{font-weight:900;color:var(--shell-amber)}
+.dot{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:rgba(229,170,83,.12);border:1px solid rgba(229,170,83,.28);font-weight:900;color:#f6c56d}
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+button{min-height:44px;padding:0 18px;border-radius:8px;border:1px solid var(--shell-line);cursor:pointer;color:var(--shell-text);font-weight:900}
+.primary{background:linear-gradient(135deg,var(--shell-amber),var(--shell-red-dark))}
+.ghost{background:rgba(3,10,14,.7)}
+.rule-list{display:grid;gap:10px;margin-top:12px}
+.rule{padding:12px;border-left:3px solid var(--shell-amber);background:rgba(229,170,83,.08);color:#eadfd2}
+.loading{color:var(--shell-soft)}
+@media (max-width:900px){.weekly-hero,.weekly-grid{grid-template-columns:1fr}.reward-card{align-self:auto}}
+</style>
+</head>
+<body class="with-navbar">
+<div id="navbar-container"></div>
+<main class="weekly-page">
+  <section class="weekly-hero">
+    <div>
+      <span class="weekly-kicker">Live Challenge</span>
+      <h1 id="challengeTitle">Weekly Challenge</h1>
+      <p id="challengeCopy" class="loading">Loading current challenge...</p>
+      <div class="actions">
+        <button id="primaryAction" class="primary" type="button">Play Now</button>
+        <button class="ghost" type="button" onclick="window.location.href='/games.html'">All Games</button>
+      </div>
+    </div>
+    <aside class="reward-card">
+      <span>Reward</span>
+      <strong id="rewardValue">...</strong>
+      <span id="weekId">This week</span>
+    </aside>
+  </section>
+
+  <section class="weekly-grid">
+    <article class="weekly-card">
+      <h2 id="objectiveTitle">Objective</h2>
+      <p id="objectiveCopy">The weekly challenge is controlled from the admin panel.</p>
+      <div id="gameList" class="game-list"></div>
+    </article>
+
+    <aside class="weekly-card">
+      <h2>Rules</h2>
+      <div id="rulesList" class="rule-list"></div>
+    </aside>
+  </section>
+</main>
+
+<script>
+const user = JSON.parse(localStorage.getItem("user") || "null");
+if(!user){
+  window.location.href = "/login.html";
+}
+
+function escapeHtml(text){
+  return String(text || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function gameRow(game, index){
+  return `
+    <div class="game-row">
+      <span class="dot">${index + 1}</span>
+      <span>
+        <b>${escapeHtml(game.name || game.key)}</b>
+        <small>${escapeHtml(game.key || "")}</small>
+      </span>
+      <span class="status">Required</span>
+    </div>
+  `;
+}
+
+function renderChallenge(challenge){
+  const title = document.getElementById("challengeTitle");
+  const copy = document.getElementById("challengeCopy");
+  const reward = document.getElementById("rewardValue");
+  const week = document.getElementById("weekId");
+  const objectiveTitle = document.getElementById("objectiveTitle");
+  const objectiveCopy = document.getElementById("objectiveCopy");
+  const gameList = document.getElementById("gameList");
+  const rules = document.getElementById("rulesList");
+  const primaryAction = document.getElementById("primaryAction");
+
+  week.textContent = challenge.weekId ? `Week of ${challenge.weekId}` : "This week";
+
+  if(!challenge.enabled){
+    title.textContent = "Weekly Challenge Paused";
+    copy.textContent = "No weekly challenge is active right now. The admin panel can publish the next one anytime.";
+    reward.textContent = "0 XP";
+    objectiveTitle.textContent = "Paused";
+    objectiveCopy.textContent = "Check back after the next admin update.";
+    gameList.innerHTML = "";
+    rules.innerHTML = `<div class="rule">ELO and normal games remain available.</div>`;
+    primaryAction.onclick = () => { window.location.href = "/games.html"; };
+    return;
+  }
+
+  if(challenge.mode === "multi_game_bonus"){
+    const games = Array.isArray(challenge.games) ? challenge.games : [];
+    title.textContent = "Weekly Circuit";
+    copy.textContent = `Play every selected game without surrendering to earn ${challenge.extraXp || 0} extra XP.`;
+    reward.textContent = `+${challenge.extraXp || 0} XP`;
+    objectiveTitle.textContent = "Play All Games";
+    objectiveCopy.textContent = "A surrender, resign, or abandon does not count for the circuit. Finish each selected game cleanly.";
+    gameList.innerHTML = games.map(gameRow).join("");
+    rules.innerHTML = `
+      <div class="rule">You only need to complete each selected game once during the current week.</div>
+      <div class="rule">The extra XP is awarded once when the final required game is recorded.</div>
+      <div class="rule">ELO remains active normally.</div>
+    `;
+    primaryAction.onclick = () => { window.location.href = games[0]?.url || "/games.html"; };
+    return;
+  }
+
+  title.textContent = `${challenge.name || "Featured Game"} Double XP`;
+  copy.textContent = `Positive results on ${challenge.name || "the featured game"} grant double match XP this week.`;
+  reward.textContent = "2x XP";
+  objectiveTitle.textContent = "Featured Game";
+  objectiveCopy.textContent = "Wins, losses, and draws with positive XP are doubled for the selected game. Abandon penalties are never doubled.";
+  gameList.innerHTML = gameRow({ key: challenge.key, name: challenge.name }, 0);
+  rules.innerHTML = `
+    <div class="rule">Only the admin-selected weekly game receives the double XP bonus.</div>
+    <div class="rule">No XP game toggles still override XP rewards.</div>
+    <div class="rule">ELO remains active normally.</div>
+  `;
+  primaryAction.onclick = () => { window.location.href = challenge.url || "/games.html"; };
+}
+
+async function loadChallenge(){
+  try{
+    const response = await fetch("/api/games/game-of-week");
+    const challenge = await response.json();
+    if(!response.ok) throw new Error(challenge?.error || "Challenge unavailable");
+    renderChallenge(challenge);
+  }catch(err){
+    document.getElementById("challengeCopy").textContent = err.message || "Challenge unavailable.";
+    document.getElementById("rewardValue").textContent = "...";
+  }
+}
+
+loadChallenge();
+setInterval(loadChallenge, 30000);
+</script>
+</body>
+</html>

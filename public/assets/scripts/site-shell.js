@@ -32,7 +32,7 @@
     if(link === 'home') window.location.href = '/';
     if(link === 'games') window.location.href = '/games.html';
     if(link === 'leaderboard') window.location.href = '/leaderboard.html';
-    if(link === 'challenges') window.location.href = '/coming-soon.html?feature=weekly-challenge';
+    if(link === 'challenges') window.location.href = '/weekly-challenge';
     if(link === 'tournaments') window.location.href = '/coming-soon.html?feature=tournaments';
     if(link === 'profile') window.location.href = '/profile.html';
     if(link === 'settings') window.location.href = '/coming-soon.html?feature=settings';
@@ -70,6 +70,7 @@
     if(path === '/' || path.endsWith('/index.html')) return 'home';
     if(path.includes('/chess') || path.includes('/othello') || path.includes('/azul') || path.includes('/moonfall') || path.endsWith('/games.html')) return 'games';
     if(path.includes('/leaderboard')) return 'leaderboard';
+    if(path.includes('/weekly-challenge')) return 'challenges';
     if(path.includes('/coming-soon')){
       const feature = new URLSearchParams(window.location.search).get('feature') || '';
       if(feature.includes('weekly')) return 'challenges';

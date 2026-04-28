@@ -89,7 +89,7 @@ body{margin:0}
       <article class="side-card">
         <h3>Weekly Challenge</h3>
         <div id="weeklyChallengeList" class="challenge-list"></div>
-        <button class="side-action" type="button" onclick="window.location.href='/leaderboard.html'">View Challenge</button>
+        <button class="side-action" type="button" onclick="window.location.href='/weekly-challenge'">View Challenge</button>
       </article>
 
       <article class="side-card">
@@ -238,6 +238,7 @@ loadGames().catch(err => {
 });
 loadWeeklyChallenge();
 loadSideLeaderboard();
+setInterval(loadWeeklyChallenge, 30000);
 </script>
 </body>
 </html>

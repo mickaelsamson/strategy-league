@@ -45,6 +45,10 @@ app.get('/admin.html', (req, res)=>{
   res.sendFile(path.join(process.cwd(), 'public', 'admin.html'));
 });
 
+app.get(['/weekly-challenge', '/weekly-challenge/'], (req, res)=>{
+  res.sendFile(path.join(process.cwd(), 'public', 'weekly-challenge.html'));
+});
+
 registerSockets({ io, User, state, isGameAllowed, applyRankedResult, applyOthelloResult, applyAzulResult, applyStructuredGameResult });
 
 async function startServer(){
