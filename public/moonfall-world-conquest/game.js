@@ -3,22 +3,22 @@
   const DEFAULT_NAMES = ['Mickael', 'Akari', 'Kuro', 'Ren', 'Sora', 'Nami'];
   const FACTIONS = ['Dawn House', 'Red Moon', 'Iron Lotus', 'Mist Clan', 'Sand Crown', 'Shadow Pact'];
   const LEADERS = [
-    { mark: 'DA', title: 'Daimyo', signature: 'Commandement net' },
-    { mark: 'RO', title: 'Ronin', signature: 'Attaques rapides' },
-    { mark: 'ON', title: 'Onmyoji', signature: 'Defense tenace' },
-    { mark: 'SH', title: 'Shogun', signature: 'Expansion froide' },
-    { mark: 'KA', title: 'Kage', signature: 'Fronts caches' },
-    { mark: 'AD', title: 'Amiral', signature: 'Ponts et iles' }
+    { mark: 'DA', title: 'Daimyo', signature: 'Clean command' },
+    { mark: 'RO', title: 'Ronin', signature: 'Fast strikes' },
+    { mark: 'ON', title: 'Onmyoji', signature: 'Stubborn defense' },
+    { mark: 'SH', title: 'Shogun', signature: 'Cold expansion' },
+    { mark: 'KA', title: 'Kage', signature: 'Hidden fronts' },
+    { mark: 'AD', title: 'Admiral', signature: 'Bridges and islands' }
   ];
   const CARD_SYMBOLS = ['moon', 'saber', 'banner'];
 
   const REGIONS = {
-    divin: { name: 'Continent Divin', bonus: 3 },
-    forets: { name: 'Continent des Forets', bonus: 4 },
-    fer: { name: 'Continent de Fer', bonus: 5 },
-    sables: { name: 'Continent des Sables', bonus: 2 },
-    soleil: { name: 'Continent du Soleil Levant', bonus: 4 },
-    demons: { name: 'Ile des Demons', bonus: 2 }
+    divin: { name: 'Divine Continent', bonus: 3 },
+    forets: { name: 'Forest Continent', bonus: 4 },
+    fer: { name: 'Iron Continent', bonus: 5 },
+    sables: { name: 'Sands Continent', bonus: 2 },
+    soleil: { name: 'Rising Sun Continent', bonus: 4 },
+    demons: { name: 'Demon Isles', bonus: 2 }
   };
 
   const BRIDGE_PAIRS =   [
@@ -71,7 +71,7 @@
   const TERRITORIES =   [
       {
           "id": "divin-1",
-          "name": "Porte de l'Aube",
+          "name": "Dawn Gate",
           "region": "divin",
           "label": {
               "x": 317,
@@ -90,7 +90,7 @@
       },
       {
           "id": "divin-2",
-          "name": "Sanctuaire du Nord",
+          "name": "Northern Sanctuary",
           "region": "divin",
           "label": {
               "x": 524,
@@ -108,7 +108,7 @@
       },
       {
           "id": "divin-3",
-          "name": "Citadelle Stellaire",
+          "name": "Star Citadel",
           "region": "divin",
           "label": {
               "x": 532,
@@ -127,7 +127,7 @@
       },
       {
           "id": "divin-4",
-          "name": "Jardins Sacres",
+          "name": "Sacred Gardens",
           "region": "divin",
           "label": {
               "x": 435,
@@ -147,7 +147,7 @@
       },
       {
           "id": "forets-1",
-          "name": "Bois d'Argent",
+          "name": "Silverwood",
           "region": "forets",
           "label": {
               "x": 762,
@@ -166,7 +166,7 @@
       },
       {
           "id": "forets-2",
-          "name": "Canopes du Renard",
+          "name": "Fox Canopies",
           "region": "forets",
           "label": {
               "x": 888,
@@ -182,7 +182,7 @@
       },
       {
           "id": "forets-3",
-          "name": "Marche des Pins",
+          "name": "Pine March",
           "region": "forets",
           "label": {
               "x": 1057,
@@ -198,7 +198,7 @@
       },
       {
           "id": "forets-4",
-          "name": "Val des Mousses",
+          "name": "Moss Vale",
           "region": "forets",
           "label": {
               "x": 794,
@@ -217,7 +217,7 @@
       },
       {
           "id": "forets-5",
-          "name": "Couronne Verte",
+          "name": "Green Crown",
           "region": "forets",
           "label": {
               "x": 918,
@@ -238,7 +238,7 @@
       },
       {
           "id": "forets-6",
-          "name": "Passe des Lucioles",
+          "name": "Firefly Pass",
           "region": "forets",
           "label": {
               "x": 1047,
@@ -257,7 +257,7 @@
       },
       {
           "id": "fer-1",
-          "name": "Bastion Ouest",
+          "name": "Western Bastion",
           "region": "fer",
           "label": {
               "x": 1136,
@@ -274,7 +274,7 @@
       },
       {
           "id": "fer-2",
-          "name": "Forgerie Haute",
+          "name": "High Forge",
           "region": "fer",
           "label": {
               "x": 1253,
@@ -293,7 +293,7 @@
       },
       {
           "id": "fer-3",
-          "name": "Remparts de Cendre",
+          "name": "Ash Ramparts",
           "region": "fer",
           "label": {
               "x": 1399,
@@ -309,7 +309,7 @@
       },
       {
           "id": "fer-4",
-          "name": "Porte d'Acier",
+          "name": "Steel Gate",
           "region": "fer",
           "label": {
               "x": 1108,
@@ -329,7 +329,7 @@
       },
       {
           "id": "fer-5",
-          "name": "Bassin des Forges",
+          "name": "Forge Basin",
           "region": "fer",
           "label": {
               "x": 1257,
@@ -348,7 +348,7 @@
       },
       {
           "id": "fer-6",
-          "name": "Tour Ecarlate",
+          "name": "Scarlet Tower",
           "region": "fer",
           "label": {
               "x": 1092,
@@ -368,7 +368,7 @@
       },
       {
           "id": "fer-7",
-          "name": "Baie du Marteau",
+          "name": "Hammer Bay",
           "region": "fer",
           "label": {
               "x": 1283,
@@ -385,7 +385,7 @@
       },
       {
           "id": "sables-1",
-          "name": "Dunes de Jade",
+          "name": "Jade Dunes",
           "region": "sables",
           "label": {
               "x": 686,
@@ -402,7 +402,7 @@
       },
       {
           "id": "sables-2",
-          "name": "Oasis des Nomades",
+          "name": "Nomad Oasis",
           "region": "sables",
           "label": {
               "x": 817,
@@ -420,7 +420,7 @@
       },
       {
           "id": "sables-3",
-          "name": "Mer de Verre",
+          "name": "Glass Sea",
           "region": "sables",
           "label": {
               "x": 928,
@@ -436,7 +436,7 @@
       },
       {
           "id": "sables-4",
-          "name": "Temple Rouge",
+          "name": "Red Temple",
           "region": "sables",
           "label": {
               "x": 1064,
@@ -453,7 +453,7 @@
       },
       {
           "id": "soleil-1",
-          "name": "Port Sakura",
+          "name": "Sakura Port",
           "region": "soleil",
           "label": {
               "x": 230,
@@ -472,7 +472,7 @@
       },
       {
           "id": "soleil-2",
-          "name": "Riziere de l'Est",
+          "name": "Eastern Ricefields",
           "region": "soleil",
           "label": {
               "x": 407,
@@ -491,7 +491,7 @@
       },
       {
           "id": "soleil-3",
-          "name": "Plateau du Dragon",
+          "name": "Dragon Plateau",
           "region": "soleil",
           "label": {
               "x": 151,
@@ -507,7 +507,7 @@
       },
       {
           "id": "soleil-4",
-          "name": "Baie des Lanternes",
+          "name": "Lantern Bay",
           "region": "soleil",
           "label": {
               "x": 305,
@@ -526,7 +526,7 @@
       },
       {
           "id": "soleil-5",
-          "name": "Cote des Vents",
+          "name": "Wind Coast",
           "region": "soleil",
           "label": {
               "x": 169,
@@ -542,7 +542,7 @@
       },
       {
           "id": "soleil-6",
-          "name": "Mont Amateru",
+          "name": "Mount Amateru",
           "region": "soleil",
           "label": {
               "x": 328,
@@ -558,7 +558,7 @@
       },
       {
           "id": "soleil-7",
-          "name": "Archipel Sud",
+          "name": "Southern Archipelago",
           "region": "soleil",
           "label": {
               "x": 477,
@@ -577,7 +577,7 @@
       },
       {
           "id": "demons-1",
-          "name": "Crique Oni",
+          "name": "Oni Cove",
           "region": "demons",
           "label": {
               "x": 679,
@@ -597,7 +597,7 @@
       },
       {
           "id": "demons-2",
-          "name": "Caldeira Noire",
+          "name": "Black Caldera",
           "region": "demons",
           "label": {
               "x": 806,
@@ -618,7 +618,7 @@
       },
       {
           "id": "demons-3",
-          "name": "Autel des Masques",
+          "name": "Mask Altar",
           "region": "demons",
           "label": {
               "x": 703,
@@ -634,7 +634,7 @@
       },
       {
           "id": "demons-4",
-          "name": "Fort de Brume",
+          "name": "Mist Fort",
           "region": "demons",
           "label": {
               "x": 825,
@@ -786,15 +786,15 @@
       )).join('');
       row.innerHTML = `
         <div class="slot-number">${i + 1}</div>
-        <label>Nom<input data-field="name" value="${escapeHtml(i === 0 ? getSavedName() : DEFAULT_NAMES[i])}"></label>
-        <label>Chef<select data-field="leader">${leaderOptions}</select></label>
-        <label>Maison<select data-field="faction">
+        <label>Name<input data-field="name" value="${escapeHtml(i === 0 ? getSavedName() : DEFAULT_NAMES[i])}"></label>
+        <label>Commander<select data-field="leader">${leaderOptions}</select></label>
+        <label>House<select data-field="faction">
           ${FACTIONS.map((faction, index) => `<option value="${escapeHtml(faction)}"${index === i ? ' selected' : ''}>${escapeHtml(faction)}</option>`).join('')}
         </select></label>
         <label>Type<select data-field="type">
           <option value="human"${i === 0 ? ' selected' : ''}>Human</option>
           <option value="ai"${i !== 0 ? ' selected' : ''}>AI</option>
-          <option value="closed">Ferme</option>
+          <option value="closed">Closed</option>
         </select></label>
       `;
       dom.slots.appendChild(row);
@@ -827,7 +827,7 @@
     event.preventDefault();
     const players = readSetup();
     if(players.length < 2){
-      notice('Ouvre au moins deux joueurs.');
+      notice('Open at least two players.');
       return;
     }
 
@@ -1052,27 +1052,27 @@
 
   function shortName(name){
     const compact = {
-      "Porte de l'Aube": 'Porte Aube',
-      'Sanctuaire du Nord': 'Sanct. Nord',
-      'Citadelle Stellaire': 'Citadelle',
-      'Jardins Sacres': 'Jardins',
-      "Bois d'Argent": 'Bois Argent',
-      'Canopes du Renard': 'Canopes',
-      'Marche des Pins': 'Pins',
-      'Val des Mousses': 'Mousses',
-      'Couronne Verte': 'Couronne',
-      'Passe des Lucioles': 'Lucioles',
-      "Porte d'Acier": 'Porte Acier',
-      'Bassin des Forges': 'Forges',
-      'Baie du Marteau': 'Marteau',
-      'Oasis des Nomades': 'Oasis',
-      'Mer de Verre': 'Verre',
-      "Riziere de l'Est": 'Riziere Est',
-      'Baie des Lanternes': 'Lanternes',
-      'Cote des Vents': 'Vents',
-      'Archipel Sud': 'Archipel',
-      'Autel des Masques': 'Masques',
-      'Fort de Brume': 'Brume'
+      'Dawn Gate': 'Dawn Gate',
+      'Northern Sanctuary': 'North Sanct.',
+      'Star Citadel': 'Star Citadel',
+      'Sacred Gardens': 'Gardens',
+      'Silverwood': 'Silverwood',
+      'Fox Canopies': 'Fox Canopies',
+      'Pine March': 'Pine March',
+      'Moss Vale': 'Moss Vale',
+      'Green Crown': 'Green Crown',
+      'Firefly Pass': 'Firefly Pass',
+      'Steel Gate': 'Steel Gate',
+      'Forge Basin': 'Forge Basin',
+      'Hammer Bay': 'Hammer Bay',
+      'Nomad Oasis': 'Nomad Oasis',
+      'Glass Sea': 'Glass Sea',
+      'Eastern Ricefields': 'Eastern Fields',
+      'Lantern Bay': 'Lantern Bay',
+      'Wind Coast': 'Wind Coast',
+      'Southern Archipelago': 'Archipelago',
+      'Mask Altar': 'Mask Altar',
+      'Mist Fort': 'Mist Fort'
     };
     return compact[name] || name;
   }
@@ -1158,7 +1158,7 @@
   function renderRegions(){
     dom.regionsPanel.innerHTML = Object.entries(REGIONS).map(([regionId, region]) => {
       const owner = regionOwner(regionId);
-      const ownerName = owner === null ? 'Conteste' : playerById(owner).name;
+      const ownerName = owner === null ? 'Contested' : playerById(owner).name;
       const territories = regionTerritories(regionId).map(territory => territory.name).join(', ');
       return `<div class="region-row">
         <strong>${escapeHtml(region.name)} +${region.bonus}</strong>
@@ -1170,7 +1170,7 @@
   function renderLog(){
     dom.logList.innerHTML = state.logs.length
       ? state.logs.map(entry => `<div class="log-entry">${escapeHtml(entry)}</div>`).join('')
-      : '<div class="log-entry">La guerre commence.</div>';
+      : '<div class="log-entry">The war begins.</div>';
   }
 
   function renderControls(){
@@ -1298,8 +1298,8 @@
       state.targetId = target.id;
       summary.captured = true;
       if(!silent){
-        addLog(`${attacker.name} prend ${targetName} depuis ${originName}.`);
-        notice(`${targetName} conquis.`);
+        addLog(`${attacker.name} takes ${targetName} from ${originName}.`);
+        notice(`${targetName} conquered.`);
       }
       updatePlayerLife(defender.id);
       checkWinner();
@@ -1345,7 +1345,7 @@
     `;
     dom.battleHud.classList.add('visible');
     animateAttack(origin.id, target.id, captured);
-    if(captured) notice(`${targetName} conquis par blitz.`);
+    if(captured) notice(`${targetName} conquered by blitz.`);
     render();
   }
 
@@ -1603,7 +1603,7 @@
     if(amount <= 0) return;
     interior.troops -= amount;
     target.troops += amount;
-    addLog(`${playerById(owner).name} fortifie ${byId(target.id).name}.`);
+    addLog(`${playerById(owner).name} fortifies ${byId(target.id).name}.`);
   }
 
   function shuffleSetup(){

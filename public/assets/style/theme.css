@@ -607,6 +607,7 @@ body.app-shell-active.with-navbar{
 .game-art-hexblitz{background-image:url("/assets/images/games/hexblitz-game.webp") !important;}
 .game-art-p4{background-image:url("/assets/images/games/p4-game.webp") !important;}
 .game-art-settlers{background-image:url("/assets/images/games/settlers-game.webp") !important;}
+.game-art-world-conquest{background-image:url("/assets/images/games/world-conquest-game.svg") !important;}
 .game-art-comingsoon{background-image:url("/assets/images/games/comingsoon-game.webp") !important;}
 
 body.app-shell-active .card,

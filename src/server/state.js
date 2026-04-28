@@ -7,7 +7,7 @@ const WEEKLY_MODES = new Set(['double_xp', 'multi_game_bonus']);
 const DEFAULT_WEEKLY_CHALLENGE = {
   enabled: true,
   mode: 'double_xp',
-  doubleXpGameKey: '',
+  doubleXpGameKey: 'chess',
   selectedGameKeys: ['chess', 'othello', 'azul'],
   extraXp: 150
 };
@@ -58,15 +58,18 @@ function normalizeWeeklyChallenge(weekly = {}){
   const selectedGameKeys = Array.isArray(weekly.selectedGameKeys)
     ? weekly.selectedGameKeys.filter(key => GAME_ACCESS_DEFAULTS[key])
     : DEFAULT_WEEKLY_CHALLENGE.selectedGameKeys;
-  const doubleXpGameKey = GAME_ACCESS_DEFAULTS[weekly.doubleXpGameKey] ? weekly.doubleXpGameKey : '';
   const extraXp = Number(weekly.extraXp);
+  const safeSelectedGameKeys = selectedGameKeys.length ? [...new Set(selectedGameKeys)] : DEFAULT_WEEKLY_CHALLENGE.selectedGameKeys;
+  const doubleXpGameKey = GAME_ACCESS_DEFAULTS[weekly.doubleXpGameKey]
+    ? weekly.doubleXpGameKey
+    : safeSelectedGameKeys[0] || DEFAULT_WEEKLY_CHALLENGE.doubleXpGameKey;
 
   return {
     ...DEFAULT_WEEKLY_CHALLENGE,
     enabled: typeof weekly.enabled === 'boolean' ? weekly.enabled : DEFAULT_WEEKLY_CHALLENGE.enabled,
     mode: WEEKLY_MODES.has(weekly.mode) ? weekly.mode : DEFAULT_WEEKLY_CHALLENGE.mode,
     doubleXpGameKey,
-    selectedGameKeys: selectedGameKeys.length ? [...new Set(selectedGameKeys)] : DEFAULT_WEEKLY_CHALLENGE.selectedGameKeys,
+    selectedGameKeys: safeSelectedGameKeys,
     extraXp: Math.max(0, Math.round(Number.isFinite(extraXp) ? extraXp : DEFAULT_WEEKLY_CHALLENGE.extraXp))
   };
 }

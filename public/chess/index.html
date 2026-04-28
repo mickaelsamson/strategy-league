@@ -20,6 +20,20 @@
   font-size:14px;
   color:var(--shell-soft);
 }
+.lobby-mode{
+  display:inline-flex;
+  min-height:26px;
+  align-items:center;
+  margin-left:8px;
+  padding:0 9px;
+  border:1px solid rgba(232,189,108,0.34);
+  border-radius:999px;
+  color:#f2d59b;
+  background:rgba(232,189,108,0.1);
+  font-size:12px;
+  font-weight:900;
+  text-transform:uppercase;
+}
 .rules{
   text-align:left;
   color:var(--shell-soft);
@@ -85,11 +99,17 @@
               <input id="name" placeholder="Lobby name">
             </label>
             <label>Clock
-              <select id="mode">
+              <select id="timeControl">
                 <option value="120">Bullet (2 min)</option>
                 <option value="300">Blitz (5 min)</option>
                 <option value="600">Fast (10 min)</option>
                 <option value="1800">Slow (30 min)</option>
+              </select>
+            </label>
+            <label>Mode
+              <select id="gameMode">
+                <option value="classic">Classic chess</option>
+                <option value="moonveil">Moonveil powers</option>
               </select>
             </label>
           </div>
@@ -100,6 +120,7 @@
           </div>
           <div class="rules">
             <strong>Time controls:</strong> Bullet 2 min, Blitz 5 min, Fast 10 min, Slow 30 min.<br>
+            <strong>Moonveil mode:</strong> each player gets one use of each tactical power per game.<br>
             <strong>Rules:</strong> timer at 0 = loss, and a disconnection longer than 1 minute = forfeit.
           </div>
         </div>
@@ -166,11 +187,15 @@ async function checkGamesAccess(){
   socket.on("online_users", users=>{
     window.dispatchEvent(new CustomEvent("site-shell-online-users", { detail: users }));
   });
-  const modeLabels = {
+  const timeLabels = {
     120: "Bullet (2 min)",
     300: "Blitz (5 min)",
     600: "Fast (10 min)",
     1800: "Slow (30 min)"
+  };
+  const gameModeLabels = {
+    classic: "Classic",
+    moonveil: "Moonveil"
   };
   
   socket.on("lobbies_update", lobbies=>{
@@ -189,7 +214,8 @@ async function checkGamesAccess(){
 
         return `
           <div class="lobby">
-            <strong>${l.name}</strong> (${modeLabels[l.time] || `${l.time}s`})
+            <strong>${l.name}</strong> (${timeLabels[l.time] || `${l.time}s`})
+            <span class="lobby-mode">${gameModeLabels[l.gameMode] || "Classic"}</span>
             
             <div class="players">
               ${l.players.map(p=>`
@@ -211,8 +237,9 @@ async function checkGamesAccess(){
 
   function createLobby(){
     const name = document.getElementById("name").value || "Chess Room";
-    const time = parseInt(document.getElementById("mode").value);
-    socket.emit("create_lobby",{ name, time });
+    const time = parseInt(document.getElementById("timeControl").value);
+    const gameMode = document.getElementById("gameMode").value;
+    socket.emit("create_lobby",{ name, time, gameMode });
   }
 
   function joinLobby(id){

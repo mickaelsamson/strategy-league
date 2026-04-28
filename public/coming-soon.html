@@ -75,6 +75,16 @@ document.getElementById("soonTitle").textContent = page.title;
 document.getElementById("soonCopy").textContent = page.copy;
 
 async function hydrateLiveFeature(){
+  if(feature === "world-conquest" || feature === "moonfall_world_conquest"){
+    try{
+      const response = await fetch("/api/games/catalog", { cache: "no-store" });
+      const data = await response.json();
+      const access = data.access?.moonfall_world_conquest;
+      if(response.ok && access?.allowed && access?.enabled && !access?.comingSoon && !access?.adminOnly){
+        window.location.replace("/moonfall-world-conquest/index.html");
+      }
+    }catch(err){}
+  }
   if(feature === "weekly-challenge"){
     try{
       const response = await fetch("/api/games/game-of-week", { cache: "no-store" });

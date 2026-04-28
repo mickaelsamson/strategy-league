@@ -1,4 +1,4 @@
-const { CHESS_TIME_CONTROLS } = require('../../config/constants');
+const { CHESS_GAME_MODES, CHESS_TIME_CONTROLS } = require('../../config/constants');
 
 function randomId(){
   return Math.random().toString(36).substr(2, 9);
@@ -27,6 +27,7 @@ function createChessModule({ io, socket, state, updatePresence, applyRankedResul
       s.emit('chess_start', {
         color: player.color,
         fen: game.fen,
+        gameMode: game.gameMode,
         timeControl: game.timeControl,
         players: {
           white: game.players.find(pl => pl.color === 'w').username,
@@ -50,10 +51,11 @@ function createChessModule({ io, socket, state, updatePresence, applyRankedResul
   }
 
   function register(){
-    socket.on('create_lobby', ({ name, time })=>{
+    socket.on('create_lobby', ({ name, time, gameMode })=>{
       if(isGameAllowed && !isGameAllowed('chess', socket)) return;
       const parsedTime = Number(time);
       if(!CHESS_TIME_CONTROLS.includes(parsedTime)) return;
+      const selectedGameMode = CHESS_GAME_MODES.includes(gameMode) ? gameMode : 'classic';
 
       const existing = Object.values(state.lobbies).find(l =>
         l.players.some(p => p.username === socket.username)
@@ -64,6 +66,7 @@ function createChessModule({ io, socket, state, updatePresence, applyRankedResul
       state.lobbies[id] = {
         id,
         name,
+        gameMode: selectedGameMode,
         time: parsedTime,
         players: [{ id: socket.id, username: socket.username, ready: false }]
       };
@@ -109,6 +112,7 @@ function createChessModule({ io, socket, state, updatePresence, applyRankedResul
           fen: null,
           ended: false,
           rated: false,
+          gameMode: lobby.gameMode || 'classic',
           timeControl: lobby.time
         };
 

@@ -1,4 +1,5 @@
 const CHESS_TIME_CONTROLS = [120, 300, 600, 1800];
+const CHESS_GAME_MODES = ['classic', 'moonveil'];
 const DISCONNECT_FORFEIT_MS = 60 * 1000;
 
 const LEVEL_THRESHOLDS = [
@@ -114,7 +115,7 @@ const GAME_ACCESS_DEFAULTS = {
   moonfall_p4: { enabled: true, adminOnly: false, comingSoon: false, noXp: false },
   hexblitz: { enabled: true, adminOnly: false, comingSoon: false, noXp: false },
   moonfall_settlers: { enabled: true, adminOnly: false, comingSoon: false, noXp: false },
-  moonfall_world_conquest: { enabled: false, adminOnly: true, comingSoon: true, noXp: false },
+  moonfall_world_conquest: { enabled: true, adminOnly: false, comingSoon: false, noXp: false },
   moonfall_rts: { enabled: false, adminOnly: true, comingSoon: true, noXp: false }
 };
 
@@ -131,6 +132,7 @@ const PROTECTED_PAGE_RULES = {
 
 module.exports = {
   CHESS_TIME_CONTROLS,
+  CHESS_GAME_MODES,
   DISCONNECT_FORFEIT_MS,
   LEVEL_THRESHOLDS,
   XP_RULES,
