@@ -16,7 +16,7 @@
     divin: { name: 'Divine Continent', bonus: 3 },
     forets: { name: 'Forest Continent', bonus: 4 },
     fer: { name: 'Iron Continent', bonus: 5 },
-    sables: { name: 'Sands Continent', bonus: 2 },
+    sables: { name: 'Sands Continent', bonus: 4 },
     soleil: { name: 'Rising Sun Continent', bonus: 4 },
     demons: { name: 'Demon Isles', bonus: 2 }
   };
@@ -394,6 +394,8 @@
           "path": "m 597.11032,808.41266 11.70804,-24.25238 80.56251,-56.31012 58.26146,18.95588 10.31423,64.95178 -63.83672,43.48702 z",
           "neighbors": [
               "sables-2",
+              "sables-5",
+              "sables-8",
               "soleil-7"
           ],
           "bridgeNeighbors": [
@@ -412,7 +414,8 @@
           "neighbors": [
               "demons-4",
               "sables-1",
-              "sables-3"
+              "sables-3",
+              "sables-8"
           ],
           "bridgeNeighbors": [
               "demons-4"
@@ -450,6 +453,73 @@
           "bridgeNeighbors": [
               "fer-6"
           ]
+      },
+      {
+          "id": "sables-5",
+          "name": "Amber Coast",
+          "region": "sables",
+          "label": {
+              "x": 585,
+              "y": 846
+          },
+          "path": "m 595.7165,808.69143 -46.55342,29.27011 6.83692,44.03846 53.8,-6.9 18.2,-39.5 z",
+          "neighbors": [
+              "sables-1",
+              "sables-6",
+              "sables-8",
+              "soleil-7"
+          ],
+          "bridgeNeighbors": []
+      },
+      {
+          "id": "sables-6",
+          "name": "Salt Basin",
+          "region": "sables",
+          "label": {
+              "x": 558,
+              "y": 900
+          },
+          "path": "m 549.16308,837.96154 -36.79671,39.30558 43.63363,37.53288 53.8,-39.7 -53.8,6.9 z",
+          "neighbors": [
+              "sables-5",
+              "sables-7",
+              "soleil-6",
+              "soleil-7"
+          ],
+          "bridgeNeighbors": []
+      },
+      {
+          "id": "sables-7",
+          "name": "Mirage Steppe",
+          "region": "sables",
+          "label": {
+              "x": 613,
+              "y": 927
+          },
+          "path": "m 556,914.8 45.84929,39.4057 58.54023,5.01774 -28.38952,-44.22344 -22.2,-39.9 z",
+          "neighbors": [
+              "sables-6",
+              "sables-8",
+              "soleil-6"
+          ],
+          "bridgeNeighbors": []
+      },
+      {
+          "id": "sables-8",
+          "name": "Sunken Cliffs",
+          "region": "sables",
+          "label": {
+              "x": 658,
+              "y": 885
+          },
+          "path": "m 628,835.6 -18.2,39.5 22.2,39.9 28.38952,44.22344 33.73032,-104.53612 z",
+          "neighbors": [
+              "sables-1",
+              "sables-2",
+              "sables-5",
+              "sables-7"
+          ],
+          "bridgeNeighbors": []
       },
       {
           "id": "soleil-1",
@@ -552,7 +622,9 @@
           "neighbors": [
               "soleil-4",
               "soleil-5",
-              "soleil-7"
+              "soleil-7",
+              "sables-6",
+              "sables-7"
           ],
           "bridgeNeighbors": []
       },
@@ -567,6 +639,8 @@
           "path": "m 430.74123,803.36286 83.89846,-48.74547 8.90542,-35.62169 74.52432,-37.96522 -30.46592,-71.24338 -69.36855,-32.34075 -45.93323,58.58831 -44.52712,4.21835 -45.93323,68.89985 z",
           "neighbors": [
               "sables-1",
+              "sables-5",
+              "sables-6",
               "soleil-2",
               "soleil-4",
               "soleil-6"
@@ -660,6 +734,7 @@
     playerCount: document.getElementById('playerCount'),
     pace: document.getElementById('pace'),
     aiStyle: document.getElementById('aiStyle'),
+    deploymentStyle: document.getElementById('deploymentStyle'),
     slots: document.getElementById('slots'),
     shuffleBtn: document.getElementById('shuffleBtn'),
     activePlayer: document.getElementById('activePlayer'),
@@ -739,8 +814,8 @@
   function showBattleRoll(originId, targetId, attackRolls, defenseRolls, summary){
     const origin = byId(originId);
     const target = byId(targetId);
-    const attackDice = attackRolls.map(value => `<span class="die attack">${value}</span>`).join('');
-    const defenseDice = defenseRolls.map(value => `<span class="die defend">${value}</span>`).join('');
+    const attackDice = attackRolls.map((value, index) => `<span class="die attack" style="--i:${index}">${value}</span>`).join('');
+    const defenseDice = defenseRolls.map((value, index) => `<span class="die defend" style="--i:${index + attackRolls.length}">${value}</span>`).join('');
     dom.battleHud.innerHTML = `
       <strong>${escapeHtml(shortName(origin.name))} -> ${escapeHtml(shortName(target.name))}</strong>
       <div class="dice-line"><span>Attack</span>${attackDice}</div>
@@ -754,12 +829,15 @@
     const origin = byId(originId);
     const target = byId(targetId);
     if(!origin || !target || !dom.fxLayer) return;
+    const points = arrowPoints(origin, target, 34, 38);
+    const markerId = ensureArrowMarker(captured ? '#8ee1bb' : '#fff1b8', captured ? 'captureArrowHead' : 'attackArrowHead');
     const shot = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     shot.setAttribute('class', captured ? 'attack-vector captured' : 'attack-vector');
-    shot.setAttribute('x1', origin.label.x);
-    shot.setAttribute('y1', origin.label.y);
-    shot.setAttribute('x2', target.label.x);
-    shot.setAttribute('y2', target.label.y);
+    shot.setAttribute('x1', points.x1);
+    shot.setAttribute('y1', points.y1);
+    shot.setAttribute('x2', points.x2);
+    shot.setAttribute('y2', points.y2);
+    shot.setAttribute('marker-end', `url(#${markerId})`);
 
     const spark = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     spark.setAttribute('class', captured ? 'attack-spark captured' : 'attack-spark');
@@ -772,6 +850,57 @@
       shot.remove();
       spark.remove();
     }, 760);
+  }
+
+  function arrowPoints(origin, target, startOffset = 34, endOffset = 42){
+    const dx = target.label.x - origin.label.x;
+    const dy = target.label.y - origin.label.y;
+    const length = Math.max(1, Math.hypot(dx, dy));
+    const ux = dx / length;
+    const uy = dy / length;
+    return {
+      x1: origin.label.x + ux * startOffset,
+      y1: origin.label.y + uy * startOffset,
+      x2: target.label.x - ux * endOffset,
+      y2: target.label.y - uy * endOffset
+    };
+  }
+
+  function ensureArrowMarker(color, id){
+    if(dom.fxLayer.querySelector(`#${id}`)) return id;
+    const defs = dom.fxLayer.querySelector('defs') || document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    if(!defs.parentNode) dom.fxLayer.prepend(defs);
+    const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+    marker.setAttribute('id', id);
+    marker.setAttribute('viewBox', '0 0 10 10');
+    marker.setAttribute('refX', '8');
+    marker.setAttribute('refY', '5');
+    marker.setAttribute('markerWidth', '7');
+    marker.setAttribute('markerHeight', '7');
+    marker.setAttribute('orient', 'auto-start-reverse');
+    marker.innerHTML = `<path d="M 0 0 L 10 5 L 0 10 z" fill="${color}"></path>`;
+    defs.appendChild(marker);
+    return id;
+  }
+
+  function renderAttackPreview(){
+    dom.fxLayer.querySelectorAll('.attack-preview').forEach(node => node.remove());
+    const originState = selectedTerritory();
+    const targetState = targetTerritory();
+    if(!canAttack(originState, targetState)) return;
+
+    const origin = byId(originState.id);
+    const target = byId(targetState.id);
+    const points = arrowPoints(origin, target, 36, 42);
+    const markerId = ensureArrowMarker('#fff1b8', 'previewArrowHead');
+    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    group.setAttribute('class', 'attack-preview');
+    group.innerHTML = `
+      <line class="attack-preview-line" x1="${points.x1}" y1="${points.y1}" x2="${points.x2}" y2="${points.y2}" marker-end="url(#${markerId})"></line>
+      <text class="attack-preview-label" x="${(origin.label.x + target.label.x) / 2}" y="${(origin.label.y + target.label.y) / 2 - 12}">Confirm attack</text>
+    `;
+    group.addEventListener('click', () => confirmAttack(false));
+    dom.fxLayer.appendChild(group);
   }
 
   function renderSlots(){
@@ -854,15 +983,22 @@
       aiQueued: false,
       aiRunning: false,
       gameOver: false,
-      aiStyle: dom.aiStyle.value
+      aiStyle: dom.aiStyle.value,
+      deploymentStyle: dom.deploymentStyle.value,
+      draftStep: null,
+      draftReserves: {}
     };
     dom.battleHud.innerHTML = '';
     dom.battleHud.classList.remove('visible');
     dom.fxLayer.innerHTML = '';
 
-    seedTerritories();
-    state.pendingReinforcements = calculateReinforcements(currentPlayer().id);
-    addLog(`${currentPlayer().name} opens the conquest with ${state.pendingReinforcements} reinforcements.`);
+    if(state.deploymentStyle === 'draft'){
+      beginDraftDeployment();
+    }else{
+      seedTerritories();
+      state.pendingReinforcements = calculateReinforcements(currentPlayer().id);
+      addLog(`${currentPlayer().name} opens the conquest with ${state.pendingReinforcements} reinforcements.`);
+    }
 
     dom.setupView.hidden = true;
     dom.setupView.classList.add('is-hidden');
@@ -888,6 +1024,25 @@
         reserve -= 1;
       }
     }
+  }
+
+  function beginDraftDeployment(){
+    const total = startingTroops(state.players.length);
+    state.phase = 'draft';
+    state.draftStep = 'territories';
+    state.draftReserves = Object.fromEntries(state.players.map(player => [player.id, total]));
+    state.pendingReinforcements = 0;
+    state.selectedId = null;
+    state.targetId = null;
+    addLog(`${currentPlayer().name} starts the territory draft.`);
+  }
+
+  function unclaimedTerritories(){
+    return state.territories.filter(territory => territory.owner === null);
+  }
+
+  function totalDraftReserve(){
+    return Object.values(state.draftReserves || {}).reduce((sum, value) => sum + value, 0);
   }
 
   function currentPlayer(){
@@ -965,6 +1120,7 @@
   }
 
   function phaseLabel(phase = state.phase){
+    if(phase === 'draft') return state.draftStep === 'armies' ? 'Army Draft' : 'Territory Draft';
     if(phase === 'reinforce') return 'Reinforce';
     if(phase === 'attack') return 'Attack';
     if(phase === 'fortify') return 'Fortification';
@@ -990,7 +1146,9 @@
     dom.activePlayer.style.color = player.color;
     dom.turnHud.textContent = String(state.turn);
     dom.phaseHud.textContent = phaseLabel();
-    dom.reserveHud.textContent = String(state.pendingReinforcements);
+    dom.reserveHud.textContent = state.phase === 'draft'
+      ? String(state.draftReserves?.[player.id] || 0)
+      : String(state.pendingReinforcements);
     dom.cardsHud.textContent = String(player.cards.length);
   }
 
@@ -1005,7 +1163,7 @@
         const neighbor = byId(neighborId);
         const aState = territoryState(territory.id);
         const bState = territoryState(neighborId);
-        const relation = aState.owner === bState.owner ? 'owned' : 'front';
+        const relation = aState.owner !== null && aState.owner === bState.owner ? 'owned' : 'front';
         const bridge = territory.bridgeNeighbors.includes(neighborId) ? 'bridge' : 'local';
         edges.push(`<line class="connection-line ${relation} ${bridge}" x1="${territory.label.x}" y1="${territory.label.y}" x2="${neighbor.label.x}" y2="${neighbor.label.y}"></line>`);
       }
@@ -1023,12 +1181,23 @@
         targeted ? 'targeted' : '',
         selectable ? 'selectable' : ''
       ].filter(Boolean).join(' ');
-      return `<path class="${className}" data-territory-id="${territory.id}" d="${territory.path}" style="--territory-fill:${hexToRgba(owner.color, .36)};--territory-hover:${hexToRgba(owner.color, .58)}"><title>${escapeHtml(territory.name)}</title></path>`;
+      const fill = owner ? hexToRgba(owner.color, .36) : 'rgba(255,255,255,.08)';
+      const hover = owner ? hexToRgba(owner.color, .58) : 'rgba(255,241,184,.22)';
+      return `<path class="${className}" data-territory-id="${territory.id}" d="${territory.path}" style="--territory-fill:${fill};--territory-hover:${hover}"><title>${escapeHtml(territory.name)}</title></path>`;
     }).join('');
 
     const tokens = TERRITORIES.map(territory => {
       const info = territoryState(territory.id);
       const owner = playerById(info.owner);
+      if(!owner){
+        return `
+          <g class="territory-token unclaimed" transform="translate(${territory.label.x} ${territory.label.y})" style="--owner-color:#f0c76e">
+            <circle r="21"></circle>
+            <text y="1">?</text>
+            <text class="territory-label" y="39">${escapeHtml(shortName(territory.name))}</text>
+          </g>
+        `;
+      }
       return `
         <g class="territory-token" transform="translate(${territory.label.x} ${territory.label.y})" style="--owner-color:${owner.color}">
           <circle r="25"></circle>
@@ -1048,6 +1217,8 @@
     dom.territoryLayer.querySelectorAll('[data-territory-id]').forEach(path => {
       path.addEventListener('click', () => selectTerritory(path.dataset.territoryId));
     });
+
+    renderAttackPreview();
   }
 
   function shortName(name){
@@ -1067,6 +1238,10 @@
       'Hammer Bay': 'Hammer Bay',
       'Nomad Oasis': 'Nomad Oasis',
       'Glass Sea': 'Glass Sea',
+      'Amber Coast': 'Amber Coast',
+      'Salt Basin': 'Salt Basin',
+      'Mirage Steppe': 'Mirage',
+      'Sunken Cliffs': 'Sunken Cliffs',
       'Eastern Ricefields': 'Eastern Fields',
       'Lantern Bay': 'Lantern Bay',
       'Wind Coast': 'Wind Coast',
@@ -1080,6 +1255,10 @@
   function isSelectableTerritory(territory){
     const player = currentPlayer();
     if(player.type !== 'human' || state.gameOver) return false;
+    if(state.phase === 'draft'){
+      if(state.draftStep === 'territories') return territory.owner === null;
+      return territory.owner === player.id && (state.draftReserves?.[player.id] || 0) > 0;
+    }
     if(state.phase === 'reinforce') return territory.owner === player.id;
     if(state.phase === 'attack'){
       if(territory.owner === player.id && territory.troops > 1) return true;
@@ -1108,17 +1287,17 @@
       const neighborState = territoryState(id);
       const neighborOwner = playerById(neighborState.owner);
       const bridge = territory.bridgeNeighbors.includes(id) ? ' bridge' : '';
-      return `${byId(id).name}${bridge} (${neighborOwner.name}, ${neighborState.troops})`;
+      return `${byId(id).name}${bridge} (${neighborOwner?.name || 'Unclaimed'}, ${neighborState.troops})`;
     }).join(', ');
 
     dom.territoryInfo.innerHTML = `
       <div class="info-card">
         <strong>${escapeHtml(territory.name)}</strong>
-        <span>Control: ${escapeHtml(owner.name)} · Armies: ${selected.troops}</span>
+        <span>Control: ${escapeHtml(owner?.name || 'Unclaimed')} · Armies: ${selected.troops}</span>
         <span>Region: ${escapeHtml(REGIONS[territory.region].name)}</span>
         <span>Neighbors: ${escapeHtml(neighbors)}</span>
       </div>
-      ${target ? `<div class="info-card"><strong>Target</strong><span>${escapeHtml(byId(target.id).name)} · ${escapeHtml(playerById(target.owner).name)} · ${target.troops} armies</span></div>` : ''}
+      ${target ? `<div class="info-card"><strong>Target</strong><span>${escapeHtml(byId(target.id).name)} · ${escapeHtml(playerById(target.owner)?.name || 'Unclaimed')} · ${target.troops} armies</span></div>` : ''}
     `;
   }
 
@@ -1128,7 +1307,7 @@
       const troops = territoryTroops(player.id);
       return `<div class="player-row ${player.alive ? '' : 'defeated'}" style="color:${player.color}">
         <strong><span style="background:${player.color}">${escapeHtml(player.leader.mark)}</span> ${escapeHtml(player.name)}</strong>
-        <span>${escapeHtml(player.leader.title)} · ${escapeHtml(player.faction)} · ${player.type === 'ai' ? 'AI' : 'Human'} · ${territories} territories · ${troops} armies · ${player.cards.length} cards</span>
+        <span>${escapeHtml(player.leader.title)} · ${escapeHtml(player.faction)} · ${player.type === 'ai' ? 'AI' : 'Human'} · ${territories} territories · ${troops} armies · ${player.cards.length} cards${state.phase === 'draft' ? ` · ${state.draftReserves?.[player.id] || 0} draft` : ''}</span>
       </div>`;
     }).join('');
   }
@@ -1180,16 +1359,22 @@
     const target = targetTerritory();
     const tradeSet = findTradeSet(player.cards);
     const mandatoryTrade = player.cards.length >= 5;
+    const draftingArmies = state.phase === 'draft' && state.draftStep === 'armies';
 
     dom.cardsBtn.disabled = !human || state.phase !== 'reinforce' || !tradeSet;
-    dom.reinforceBtn.disabled = !human || state.phase !== 'reinforce' || state.pendingReinforcements <= 0 || !selected || selected.owner !== player.id;
+    dom.reinforceBtn.disabled = !human || (
+      state.phase === 'reinforce'
+        ? state.pendingReinforcements <= 0 || !selected || selected.owner !== player.id
+        : !draftingArmies || !selected || selected.owner !== player.id || (state.draftReserves?.[player.id] || 0) <= 0
+    );
     dom.attackBtn.disabled = !human || !canAttack(selected, target);
     dom.blitzBtn.disabled = !human || !canAttack(selected, target);
     dom.fortifyBtn.disabled = !human || !canFortify(selected, target);
     dom.maxFortifyBtn.disabled = !human || !canFortify(selected, target);
-    dom.nextBtn.disabled = !human || (state.phase === 'reinforce' && (state.pendingReinforcements > 0 || mandatoryTrade));
+    dom.nextBtn.disabled = !human || state.phase === 'draft' || (state.phase === 'reinforce' && (state.pendingReinforcements > 0 || mandatoryTrade));
 
-    dom.nextBtn.textContent = state.phase === 'fortify' ? 'End Turn' : 'Next Phase';
+    dom.reinforceBtn.textContent = draftingArmies ? 'Draft +1' : 'Reinforce +1';
+    dom.nextBtn.textContent = state.phase === 'draft' ? 'Drafting' : (state.phase === 'fortify' ? 'End Turn' : 'Next Phase');
   }
 
   function selectTerritory(id){
@@ -1199,6 +1384,21 @@
     if(player.type !== 'human' || state.gameOver){
       state.selectedId = id;
       state.targetId = null;
+      render();
+      return;
+    }
+
+    if(state.phase === 'draft'){
+      if(state.draftStep === 'territories' && clicked.owner === null){
+        claimDraftTerritory(id);
+        return;
+      }
+      if(state.draftStep === 'armies' && clicked.owner === player.id){
+        state.selectedId = id;
+        state.targetId = null;
+        placeDraftArmy(id);
+        return;
+      }
       render();
       return;
     }
@@ -1252,12 +1452,83 @@
   function reinforceSelected(){
     const selected = selectedTerritory();
     const player = currentPlayer();
+    if(state.phase === 'draft' && state.draftStep === 'armies'){
+      if(selected && selected.owner === player.id) placeDraftArmy(selected.id);
+      return;
+    }
     if(!selected || selected.owner !== player.id || state.pendingReinforcements <= 0) return;
     selected.troops += 1;
     state.pendingReinforcements -= 1;
     if(state.pendingReinforcements === 0){
       addLog(`${player.name} finishes reinforcements.`);
     }
+    render();
+  }
+
+  function claimDraftTerritory(territoryId, silent = false){
+    const territory = territoryState(territoryId);
+    const player = currentPlayer();
+    if(!territory || territory.owner !== null || state.phase !== 'draft' || state.draftStep !== 'territories') return;
+
+    territory.owner = player.id;
+    territory.troops = 1;
+    state.draftReserves[player.id] = Math.max(0, (state.draftReserves[player.id] || 0) - 1);
+    state.selectedId = territoryId;
+    state.targetId = null;
+    addLog(`${player.name} claims ${byId(territoryId).name}.`);
+
+    if(unclaimedTerritories().length === 0){
+      state.draftStep = 'armies';
+      state.activeIndex = state.players.findIndex(item => (state.draftReserves[item.id] || 0) > 0);
+      if(state.activeIndex < 0){
+        beginFirstTurn();
+        return;
+      }
+      addLog(`${currentPlayer().name} starts drafting remaining armies.`);
+    }else{
+      advanceDraftTurn();
+    }
+    if(!silent) render();
+  }
+
+  function placeDraftArmy(territoryId, silent = false){
+    const territory = territoryState(territoryId);
+    const player = currentPlayer();
+    if(!territory || territory.owner !== player.id || state.phase !== 'draft' || state.draftStep !== 'armies') return;
+    if((state.draftReserves[player.id] || 0) <= 0) return;
+
+    territory.troops += 1;
+    state.draftReserves[player.id] -= 1;
+    state.selectedId = territoryId;
+    state.targetId = null;
+    addLog(`${player.name} drafts +1 army to ${byId(territoryId).name}.`);
+
+    if(totalDraftReserve() <= 0){
+      beginFirstTurn();
+      return;
+    }
+    advanceDraftTurn();
+    if(!silent) render();
+  }
+
+  function advanceDraftTurn(){
+    if(state.phase !== 'draft') return;
+    const needsReserve = state.draftStep === 'armies';
+    let next = state.activeIndex;
+    do{
+      next = (next + 1) % state.players.length;
+    }while(needsReserve && (state.draftReserves[state.players[next].id] || 0) <= 0);
+    state.activeIndex = next;
+  }
+
+  function beginFirstTurn(){
+    state.phase = 'reinforce';
+    state.draftStep = null;
+    state.activeIndex = 0;
+    state.selectedId = null;
+    state.targetId = null;
+    state.pendingReinforcements = calculateReinforcements(currentPlayer().id);
+    addLog(`${currentPlayer().name} opens the conquest with ${state.pendingReinforcements} reinforcements.`);
     render();
   }
 
@@ -1315,7 +1586,42 @@
     return summary;
   }
 
+  function confirmAttack(blitz = false){
+    const origin = selectedTerritory();
+    const target = targetTerritory();
+    if(!canAttack(origin, target)) return;
+
+    const originName = byId(origin.id).name;
+    const targetName = byId(target.id).name;
+    const attackerDice = Math.min(3, origin.troops - 1);
+    const defenderDice = Math.min(2, target.troops);
+    animateAttack(origin.id, target.id, false);
+
+    const confirmed = window.confirm(
+      `${blitz ? 'Blitz attack' : 'Attack'} ${targetName} from ${originName}?\n\n` +
+      `Attack dice: ${attackerDice}\nDefense dice: ${defenderDice}`
+    );
+    if(!confirmed){
+      notice('Attack cancelled.');
+      return;
+    }
+
+    if(blitz){
+      runBlitzAttack();
+    }else{
+      resolveAttack(false);
+      render();
+    }
+  }
+
   function blitzAttack(){
+    const origin = selectedTerritory();
+    const target = targetTerritory();
+    if(!canAttack(origin, target)) return;
+    confirmAttack(true);
+  }
+
+  function runBlitzAttack(){
     const origin = selectedTerritory();
     const target = targetTerritory();
     if(!canAttack(origin, target)) return;
@@ -1430,7 +1736,7 @@
     state.gameOver = true;
     state.phase = 'victory';
     state.pendingReinforcements = 0;
-    addLog(`${alive[0].name} remporte Moonfall World Conquest.`);
+    addLog(`${alive[0].name} wins Moonfall World Conquest.`);
     notice(`${alive[0].name} wins the conquest.`);
   }
 
@@ -1523,6 +1829,11 @@
 
   function runAiTurn(){
     const player = currentPlayer();
+    if(state.phase === 'draft'){
+      runAiDraftAction(player);
+      return;
+    }
+
     while(findTradeSet(player.cards) && (player.cards.length >= 5 || Math.random() > .48)){
       tradeCards(true);
     }
@@ -1554,6 +1865,18 @@
     state.phase = 'fortify';
     aiFortify(player.id);
     finishTurn();
+  }
+
+  function runAiDraftAction(player){
+    if(state.draftStep === 'territories'){
+      const choices = unclaimedTerritories();
+      const target = choices.sort((a, b) => byId(b.id).neighbors.length - byId(a.id).neighbors.length + Math.random() - .5)[0];
+      if(target) claimDraftTerritory(target.id, true);
+      return;
+    }
+
+    const target = bestReinforcementTarget(player.id);
+    if(target) placeDraftArmy(target.id, true);
   }
 
   function bestReinforcementTarget(owner){
@@ -1628,10 +1951,7 @@
       renderSlots();
     });
     dom.reinforceBtn.addEventListener('click', reinforceSelected);
-    dom.attackBtn.addEventListener('click', () => {
-      resolveAttack(false);
-      render();
-    });
+    dom.attackBtn.addEventListener('click', () => confirmAttack(false));
     dom.blitzBtn.addEventListener('click', blitzAttack);
     dom.fortifyBtn.addEventListener('click', () => fortifySelected(false));
     dom.maxFortifyBtn.addEventListener('click', () => fortifySelected(true));
