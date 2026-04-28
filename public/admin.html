@@ -15,6 +15,11 @@ body{margin:0;color:var(--shell-text)}
 .admin-card{background:var(--shell-card);border:1px solid var(--shell-line);border-radius:8px;padding:22px;box-shadow:0 18px 70px rgba(0,0,0,.22)}
 .admin-card h2{margin:0 0 10px}
 .admin-card p{color:var(--shell-soft);line-height:1.5}
+.admin-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}
+.admin-tab{background:rgba(229,170,83,.1)}
+.admin-tab.active{background:linear-gradient(135deg,var(--shell-amber),var(--shell-red-dark));border-color:var(--shell-line-strong)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
 .switch-wrap,.status-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .admin-toolbar{justify-content:space-between}
 .admin-toolbar-title{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -32,9 +37,9 @@ button:disabled{cursor:not-allowed;filter:grayscale(.55);opacity:.62}
 .save-btn{min-width:148px}
 .form-grid,.game-access-grid{display:grid;gap:12px}
 label{display:grid;gap:6px;color:var(--shell-soft);font-weight:800;font-size:13px}
-input,textarea{width:100%;box-sizing:border-box;border:1px solid var(--shell-line);border-radius:8px;background:rgba(3,10,14,.68);color:var(--shell-text);padding:11px 12px;font-size:14px}
+input,textarea,select{width:100%;box-sizing:border-box;border:1px solid var(--shell-line);border-radius:8px;background:rgba(3,10,14,.68);color:var(--shell-text);padding:11px 12px;font-size:14px}
 textarea{min-height:92px;resize:vertical}
-.game-row{display:grid;grid-template-columns:minmax(180px,1.1fr) repeat(3,120px);gap:10px;align-items:center;padding:14px;border:1px solid rgba(255,91,105,.14);border-radius:10px;background:rgba(16,4,7,.34)}
+.game-row{display:grid;grid-template-columns:minmax(180px,1.1fr) repeat(4,120px);gap:10px;align-items:center;padding:14px;border:1px solid rgba(255,91,105,.14);border-radius:10px;background:rgba(16,4,7,.34)}
 .game-row strong{display:block}
 .game-row small{display:block;color:var(--shell-soft);margin-top:3px}
 .pill{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:0 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);font-size:12px;font-weight:800}
@@ -42,7 +47,16 @@ textarea{min-height:92px;resize:vertical}
 .pill.locked{color:#ffd7d1;border-color:rgba(255,82,104,.34);background:rgba(255,82,104,.12)}
 .toggle-cell{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .toggle-cell span{font-size:12px;color:var(--shell-soft);font-weight:800}
+.weekly-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.check-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:8px}
+.check-row{display:flex;align-items:center;gap:9px;color:var(--shell-text);font-weight:800}
+.check-row input{width:auto}
+.tournament-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.participant-list{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.participant-chip{display:inline-flex;align-items:center;gap:7px;min-height:30px;padding:0 9px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05)}
+.participant-chip button{min-height:24px;padding:0 7px;border-radius:999px;background:rgba(255,255,255,.08)}
 @media (max-width:980px){.admin-grid{grid-template-columns:1fr}.game-row{grid-template-columns:1fr}.toggle-cell{justify-content:flex-start}}
+@media (max-width:760px){.weekly-grid,.tournament-grid,.check-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body class="with-navbar">
@@ -54,21 +68,79 @@ textarea{min-height:92px;resize:vertical}
     <p>Lock games down server-side, manage coming soon access, and adjust student XP with an audit reason.</p>
   </header>
 
-  <section class="admin-grid">
-    <article class="admin-card">
-      <h2>Global Access</h2>
-      <p>Turning this off blocks new public lobby creation and ready-up across the platform. Admins keep access for moderation and testing.</p>
-      <div class="switch-wrap">
-        <span>Public games</span>
-        <label class="switch">
-          <input id="gamesSwitch" type="checkbox">
-          <span class="slider"></span>
-        </label>
-        <strong id="switchLabel">ON</strong>
-      </div>
-      <p id="status">Loading status...</p>
-    </article>
+  <nav class="admin-tabs" aria-label="Admin sections">
+    <button class="admin-tab active" type="button" data-tab="access">Access</button>
+    <button class="admin-tab" type="button" data-tab="weekly">Weekly Challenge</button>
+    <button class="admin-tab" type="button" data-tab="xp">XP Tools</button>
+    <button class="admin-tab" type="button" data-tab="tournament">Tournament</button>
+  </nav>
 
+  <section class="admin-card" style="margin-bottom:18px">
+    <div class="status-row admin-toolbar">
+      <div class="admin-toolbar-title">
+        <h2 style="margin:0">Admin Settings</h2>
+        <span class="pill live">Server enforced</span>
+      </div>
+      <button id="saveSettingsBtn" class="save-btn" type="button" disabled>Save Settings</button>
+    </div>
+    <p id="accessStatus">Loading settings...</p>
+  </section>
+
+  <section id="tab-access" class="tab-panel active">
+    <section class="admin-grid">
+      <article class="admin-card">
+        <h2>Global Access</h2>
+        <p>Turning this off blocks new public lobby creation and ready-up across the platform. Admins keep access for moderation and testing.</p>
+        <div class="switch-wrap">
+          <span>Public games</span>
+          <label class="switch">
+            <input id="gamesSwitch" type="checkbox">
+            <span class="slider"></span>
+          </label>
+          <strong id="switchLabel">ON</strong>
+        </div>
+        <p id="status">Loading status...</p>
+      </article>
+
+      <article class="admin-card">
+        <h2>Game Access Matrix</h2>
+        <p>Adjust toggles, then save once. `No XP` blocks match XP for that game while ELO remains active.</p>
+        <div id="gameAccessGrid" class="game-access-grid"></div>
+      </article>
+    </section>
+  </section>
+
+  <section id="tab-weekly" class="tab-panel">
+    <article class="admin-card">
+      <h2>Weekly Challenge</h2>
+      <p>These settings feed the leaderboard rules, the Games page challenge card, and match XP awards automatically.</p>
+      <div class="weekly-grid">
+        <label class="toggle-cell">
+          <span>Challenge enabled</span>
+          <span class="switch"><input id="weeklyEnabled" type="checkbox"><span class="slider"></span></span>
+        </label>
+        <label>
+          <span>Mode</span>
+          <select id="weeklyMode">
+            <option value="double_xp">Game double XP</option>
+            <option value="multi_game_bonus">Play selected games for extra XP</option>
+          </select>
+        </label>
+        <label>
+          <span>Double XP game</span>
+          <select id="doubleXpGame"></select>
+        </label>
+        <label>
+          <span>Extra XP for selected-games challenge</span>
+          <input id="weeklyExtraXp" type="number" min="0" step="1" placeholder="150">
+        </label>
+      </div>
+      <h3>Selected games</h3>
+      <div id="weeklyGames" class="check-grid"></div>
+    </article>
+  </section>
+
+  <section id="tab-xp" class="tab-panel">
     <article class="admin-card">
       <h2>XP Adjustment</h2>
       <p>Use positive XP for rewards and negative XP for penalties. A reason is mandatory and stored in match history.</p>
@@ -91,17 +163,53 @@ textarea{min-height:92px;resize:vertical}
     </article>
   </section>
 
-  <section class="admin-card" style="margin-top:18px">
-    <div class="status-row admin-toolbar">
-      <div class="admin-toolbar-title">
-        <h2 style="margin:0">Game Access Matrix</h2>
-        <span class="pill live">Server enforced</span>
+  <section id="tab-tournament" class="tab-panel">
+    <article class="admin-card">
+      <h2>Tournament Control</h2>
+      <p>Manage CCA tournament participants separately from the full class roster.</p>
+      <div class="tournament-grid">
+        <label class="toggle-cell">
+          <span>Tournament active</span>
+          <span class="switch"><input id="tournamentEnabled" type="checkbox"><span class="slider"></span></span>
+        </label>
+        <label>
+          <span>Tournament name</span>
+          <input id="tournamentName" placeholder="CCA Tournament">
+        </label>
+        <label>
+          <span>Format</span>
+          <select id="tournamentFormat">
+            <option value="swiss">Swiss</option>
+            <option value="round_robin">Round robin</option>
+            <option value="knockout">Knockout</option>
+            <option value="ladder">Ladder</option>
+          </select>
+        </label>
+        <label>
+          <span>Status</span>
+          <select id="tournamentStatus">
+            <option value="draft">Draft</option>
+            <option value="registration">Registration</option>
+            <option value="live">Live</option>
+            <option value="complete">Complete</option>
+          </select>
+        </label>
+        <label>
+          <span>Round</span>
+          <input id="tournamentRound" type="number" min="1" step="1">
+        </label>
+        <label>
+          <span>Add participant</span>
+          <input id="participantInput" placeholder="Student username">
+        </label>
       </div>
-      <button id="saveSettingsBtn" class="save-btn" type="button" disabled>Save Settings</button>
-    </div>
-    <p>Adjust toggles, then save once. `Enabled` controls public access, `Admin only` restricts to admins, and `Coming soon` marks the game in the hub and leaderboard copy.</p>
-    <div id="gameAccessGrid" class="game-access-grid"></div>
-    <p id="accessStatus"></p>
+      <button id="addParticipantBtn" class="ghost-btn" type="button">Add Participant</button>
+      <div id="participantList" class="participant-list"></div>
+      <label style="margin-top:14px">
+        <span>Notes</span>
+        <textarea id="tournamentNotes" placeholder="Pairing notes, room groups, special rules..."></textarea>
+      </label>
+    </article>
   </section>
 
   <button class="ghost-btn" onclick="window.location.href='/'">Back to Home</button>
@@ -118,6 +226,7 @@ const labels = {
   moonfall_world_conquest: { title: "Moonfall World Conquest", copy: "Risk-like campaign" },
   moonfall_rts: { title: "Moonfall RTS", copy: "Real-time strategy prototype" }
 };
+const gameKeys = Object.keys(labels);
 
 const gamesSwitch = document.getElementById("gamesSwitch");
 const switchLabel = document.getElementById("switchLabel");
@@ -127,32 +236,56 @@ const adjustStatus = document.getElementById("adjustStatus");
 const accessGrid = document.getElementById("gameAccessGrid");
 const accessStatus = document.getElementById("accessStatus");
 const saveSettingsBtn = document.getElementById("saveSettingsBtn");
+const weeklyEnabled = document.getElementById("weeklyEnabled");
+const weeklyMode = document.getElementById("weeklyMode");
+const doubleXpGame = document.getElementById("doubleXpGame");
+const weeklyExtraXp = document.getElementById("weeklyExtraXp");
+const weeklyGames = document.getElementById("weeklyGames");
+const tournamentEnabled = document.getElementById("tournamentEnabled");
+const tournamentName = document.getElementById("tournamentName");
+const tournamentFormat = document.getElementById("tournamentFormat");
+const tournamentStatus = document.getElementById("tournamentStatus");
+const tournamentRound = document.getElementById("tournamentRound");
+const tournamentNotes = document.getElementById("tournamentNotes");
+const participantInput = document.getElementById("participantInput");
+const participantList = document.getElementById("participantList");
+const addParticipantBtn = document.getElementById("addParticipantBtn");
+
 let draftAccess = {};
 let draftEnabled = true;
+let draftWeekly = {};
+let draftTournament = {};
 let hasUnsavedChanges = false;
 
-function cloneAccess(access){
-  return JSON.parse(JSON.stringify(access || {}));
+function clone(value){
+  return JSON.parse(JSON.stringify(value || {}));
 }
 
 function setSaveState(dirty, message = ""){
   hasUnsavedChanges = dirty;
   saveSettingsBtn.disabled = !dirty;
-  if(message){
-    accessStatus.textContent = message;
-  }else{
-    accessStatus.textContent = dirty ? "Unsaved changes. Click Save Settings to apply them." : "Settings are saved.";
-  }
+  accessStatus.textContent = message || (dirty ? "Unsaved changes. Click Save Settings to apply them." : "Settings are saved.");
 }
 
 function renderGlobal(enabled, pending = false){
   gamesSwitch.checked = enabled;
   switchLabel.textContent = enabled ? "ON" : "OFF";
-  if(pending){
-    statusEl.textContent = enabled ? "Public access will be enabled after saving." : "Public access will be disabled after saving. Admin bypass stays active.";
-    return;
-  }
-  statusEl.textContent = enabled ? "Public access is enabled." : "Public access is disabled. Admin bypass stays active.";
+  statusEl.textContent = pending
+    ? (enabled ? "Public access will be enabled after saving." : "Public access will be disabled after saving. Admin bypass stays active.")
+    : (enabled ? "Public access is enabled." : "Public access is disabled. Admin bypass stays active.");
+}
+
+function markDirty(message){
+  setSaveState(true, message);
+}
+
+function bindTabs(){
+  document.querySelectorAll(".admin-tab").forEach(button => {
+    button.addEventListener("click", () => {
+      document.querySelectorAll(".admin-tab").forEach(tab => tab.classList.toggle("active", tab === button));
+      document.querySelectorAll(".tab-panel").forEach(panel => panel.classList.toggle("active", panel.id === `tab-${button.dataset.tab}`));
+    });
+  });
 }
 
 function rowMarkup(gameKey, config){
@@ -166,83 +299,141 @@ function rowMarkup(gameKey, config){
           <span class="pill ${config.enabled ? "live" : "locked"}">${config.enabled ? "Enabled" : "Disabled"}</span>
           ${config.adminOnly ? '<span class="pill locked">Admin only</span>' : ''}
           ${config.comingSoon ? '<span class="pill locked">Coming soon</span>' : ''}
+          ${config.noXp ? '<span class="pill locked">No XP</span>' : ''}
         </div>
       </div>
-      <label class="toggle-cell">
-        <span>Enabled</span>
-        <span class="switch">
-          <input type="checkbox" data-field="enabled" ${config.enabled ? "checked" : ""}>
-          <span class="slider"></span>
-        </span>
-      </label>
-      <label class="toggle-cell">
-        <span>Admin only</span>
-        <span class="switch">
-          <input type="checkbox" data-field="adminOnly" ${config.adminOnly ? "checked" : ""}>
-          <span class="slider"></span>
-        </span>
-      </label>
-      <label class="toggle-cell">
-        <span>Coming soon</span>
-        <span class="switch">
-          <input type="checkbox" data-field="comingSoon" ${config.comingSoon ? "checked" : ""}>
-          <span class="slider"></span>
-        </span>
-      </label>
+      ${["enabled","adminOnly","comingSoon","noXp"].map(field => `
+        <label class="toggle-cell">
+          <span>${field === "adminOnly" ? "Admin only" : field === "comingSoon" ? "Coming soon" : field === "noXp" ? "No XP" : "Enabled"}</span>
+          <span class="switch">
+            <input type="checkbox" data-field="${field}" ${config[field] ? "checked" : ""}>
+            <span class="slider"></span>
+          </span>
+        </label>
+      `).join("")}
     </div>
   `;
-}
-
-function renderAccess(access){
-  draftAccess = cloneAccess(access);
-  renderDraftAccess();
 }
 
 function renderDraftAccess(){
   accessGrid.innerHTML = Object.entries(draftAccess).map(([gameKey, config]) => rowMarkup(gameKey, config)).join("");
   accessGrid.querySelectorAll("input[data-field]").forEach(input => {
     input.addEventListener("change", event => {
-      const row = event.target.closest("[data-game]");
-      const gameKey = row?.dataset.game;
+      const gameKey = event.target.closest("[data-game]")?.dataset.game;
       if(!gameKey) return;
-      draftAccess[gameKey] = {
-        ...draftAccess[gameKey],
-        [event.target.dataset.field]: event.target.checked
-      };
+      draftAccess[gameKey] = { ...draftAccess[gameKey], [event.target.dataset.field]: event.target.checked };
       renderDraftAccess();
-      setSaveState(true, `${labels[gameKey]?.title || gameKey} changed. Save Settings to apply it.`);
+      markDirty(`${labels[gameKey]?.title || gameKey} changed. Save Settings to apply it.`);
     });
   });
 }
 
-async function fetchAccess(){
-  const response = await fetch("/api/admin/game-access");
+function renderWeekly(){
+  doubleXpGame.innerHTML = `<option value="">Auto weekly rotation</option>` + gameKeys.map(key => `<option value="${key}">${labels[key].title}</option>`).join("");
+  weeklyGames.innerHTML = gameKeys.map(key => `
+    <label class="check-row">
+      <input type="checkbox" value="${key}" ${draftWeekly.selectedGameKeys?.includes(key) ? "checked" : ""}>
+      <span>${labels[key].title}</span>
+    </label>
+  `).join("");
+  weeklyEnabled.checked = draftWeekly.enabled !== false;
+  weeklyMode.value = draftWeekly.mode || "double_xp";
+  doubleXpGame.value = draftWeekly.doubleXpGameKey || "";
+  weeklyExtraXp.value = draftWeekly.extraXp ?? 150;
+  weeklyGames.querySelectorAll("input").forEach(input => {
+    input.addEventListener("change", () => {
+      draftWeekly.selectedGameKeys = [...weeklyGames.querySelectorAll("input:checked")].map(el => el.value);
+      markDirty("Weekly challenge changed. Save Settings to publish it.");
+    });
+  });
+}
+
+function renderTournament(){
+  tournamentEnabled.checked = Boolean(draftTournament.enabled);
+  tournamentName.value = draftTournament.name || "CCA Tournament";
+  tournamentFormat.value = draftTournament.format || "swiss";
+  tournamentStatus.value = draftTournament.status || "draft";
+  tournamentRound.value = draftTournament.round || 1;
+  tournamentNotes.value = draftTournament.notes || "";
+  participantList.innerHTML = (draftTournament.participants || []).map(name => `
+    <span class="participant-chip">${name}<button type="button" data-remove="${name}">x</button></span>
+  `).join("");
+  participantList.querySelectorAll("[data-remove]").forEach(button => {
+    button.addEventListener("click", () => {
+      draftTournament.participants = (draftTournament.participants || []).filter(name => name !== button.dataset.remove);
+      renderTournament();
+      markDirty("Tournament participants changed. Save Settings to apply it.");
+    });
+  });
+}
+
+function syncWeeklyDraft(){
+  draftWeekly = {
+    ...draftWeekly,
+    enabled: weeklyEnabled.checked,
+    mode: weeklyMode.value,
+    doubleXpGameKey: doubleXpGame.value,
+    extraXp: Number(weeklyExtraXp.value) || 0,
+    selectedGameKeys: [...weeklyGames.querySelectorAll("input:checked")].map(el => el.value)
+  };
+}
+
+function syncTournamentDraft(){
+  draftTournament = {
+    ...draftTournament,
+    enabled: tournamentEnabled.checked,
+    name: tournamentName.value.trim() || "CCA Tournament",
+    format: tournamentFormat.value,
+    status: tournamentStatus.value,
+    round: Number(tournamentRound.value) || 1,
+    notes: tournamentNotes.value.trim(),
+    participants: draftTournament.participants || []
+  };
+}
+
+async function fetchSettings(){
+  const response = await fetch("/api/admin/settings");
   const data = await response.json();
-  if(!response.ok) throw new Error(data?.error || "Access unavailable");
+  if(!response.ok) throw new Error(data?.error || "Settings unavailable");
   draftEnabled = Boolean(data.enabled);
+  draftAccess = clone(data.access);
+  draftWeekly = clone(data.weeklyChallenge);
+  draftTournament = clone(data.tournament);
   renderGlobal(draftEnabled);
-  renderAccess(data.access || {});
+  renderDraftAccess();
+  renderWeekly();
+  renderTournament();
   setSaveState(false, "Settings loaded.");
 }
 
 async function saveAllSettings(){
   if(!hasUnsavedChanges) return;
+  syncWeeklyDraft();
+  syncTournamentDraft();
   saveSettingsBtn.disabled = true;
   accessStatus.textContent = "Saving admin settings...";
   try{
-    const response = await fetch("/api/admin/game-access", {
+    const response = await fetch("/api/admin/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ enabled: draftEnabled, access: draftAccess })
+      body: JSON.stringify({
+        enabled: draftEnabled,
+        access: draftAccess,
+        weeklyChallenge: draftWeekly,
+        tournament: draftTournament
+      })
     });
     const data = await response.json();
-    if(!response.ok){
-      throw new Error(data?.error || "Save rejected");
-    }
+    if(!response.ok) throw new Error(data?.error || "Save rejected");
     draftEnabled = Boolean(data.enabled);
+    draftAccess = clone(data.access);
+    draftWeekly = clone(data.weeklyChallenge);
+    draftTournament = clone(data.tournament);
     renderGlobal(draftEnabled);
-    renderAccess(data.access || draftAccess);
-    setSaveState(false, "Settings saved. They will stay active until the next saved change.");
+    renderDraftAccess();
+    renderWeekly();
+    renderTournament();
+    setSaveState(false, "Settings saved. Changes are live everywhere.");
   }catch(err){
     accessStatus.textContent = err.message || "Server error.";
     saveSettingsBtn.disabled = false;
@@ -253,7 +444,30 @@ async function saveAllSettings(){
 gamesSwitch.addEventListener("change", event => {
   draftEnabled = event.target.checked;
   renderGlobal(draftEnabled, true);
-  setSaveState(true, "Global access changed. Save Settings to apply it.");
+  markDirty("Global access changed. Save Settings to apply it.");
+});
+
+[weeklyEnabled, weeklyMode, doubleXpGame, weeklyExtraXp].forEach(input => {
+  input.addEventListener("input", () => {
+    syncWeeklyDraft();
+    markDirty("Weekly challenge changed. Save Settings to publish it.");
+  });
+});
+
+[tournamentEnabled, tournamentName, tournamentFormat, tournamentStatus, tournamentRound, tournamentNotes].forEach(input => {
+  input.addEventListener("input", () => {
+    syncTournamentDraft();
+    markDirty("Tournament settings changed. Save Settings to apply it.");
+  });
+});
+
+addParticipantBtn.addEventListener("click", () => {
+  const name = participantInput.value.trim();
+  if(!name) return;
+  draftTournament.participants = [...new Set([...(draftTournament.participants || []), name])];
+  participantInput.value = "";
+  renderTournament();
+  markDirty("Tournament participants changed. Save Settings to apply it.");
 });
 
 saveSettingsBtn.addEventListener("click", saveAllSettings);
@@ -272,9 +486,7 @@ adjustForm.addEventListener("submit", async event => {
       })
     });
     const data = await response.json();
-    if(!response.ok){
-      throw new Error(data?.error || "Adjustment rejected");
-    }
+    if(!response.ok) throw new Error(data?.error || "Adjustment rejected");
     adjustStatus.textContent = `${data.amount > 0 ? "+" : ""}${data.amount} XP applied to ${data.username}. New total: ${data.xp}.`;
     adjustForm.reset();
   }catch(err){
@@ -282,9 +494,10 @@ adjustForm.addEventListener("submit", async event => {
   }
 });
 
-fetchAccess().catch(err => {
+bindTabs();
+fetchSettings().catch(err => {
   statusEl.textContent = err.message || "Unable to load admin controls.";
-  accessStatus.textContent = err.message || "Unable to load game access.";
+  accessStatus.textContent = err.message || "Unable to load admin settings.";
 });
 </script>
 </body>

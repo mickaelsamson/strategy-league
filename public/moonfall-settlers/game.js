@@ -1161,15 +1161,79 @@
       const mx = (a.x + b.x) / 2;
       const my = (a.y + b.y) / 2;
       const angle = Math.atan2(my - state.view.height / 2, mx - state.view.width / 2);
-      const px = mx + Math.cos(angle) * 34;
-      const py = my + Math.sin(angle) * 34;
-      const label = edge.port === 'generic' ? '3:1' : `${RESOURCES[edge.port].short} 2:1`;
+      const outX = Math.cos(angle);
+      const outY = Math.sin(angle);
+      const shipX = mx + outX * 42;
+      const shipY = my + outY * 42;
+      const badge = portBadgePosition(mx, my, outX, outY, edge.port);
 
-      drawShip(px, py, angle + Math.PI / 2, label, edge.port);
+      drawPortAnchors(a, b, badge.x, badge.y, edge.port);
+      drawShip(shipX, shipY, angle + Math.PI / 2);
+      drawPortBadge(badge.x, badge.y, edge.port);
     });
   }
 
-  function drawShip(x, y, rotation, label, port){
+  function portBadgePosition(x, y, outX, outY, port){
+    const { width, height } = portBadgeSize(port);
+    const distance = state.view.width < 700 ? 82 : 108;
+    const pad = 12;
+    return {
+      x: clamp(x + outX * distance, width / 2 + pad, state.view.width - width / 2 - pad),
+      y: clamp(y + outY * distance, height / 2 + pad, state.view.height - height / 2 - pad)
+    };
+  }
+
+  function portBadgeSize(port){
+    return {
+      width: RESOURCES[port] ? 70 : 48,
+      height: 30
+    };
+  }
+
+  function drawPortAnchors(a, b, x, y, port){
+    const resource = RESOURCES[port];
+    const color = resource?.color || '#f4d28a';
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 12;
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = .72;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+
+    ctx.globalAlpha = .88;
+    ctx.lineWidth = 3;
+    [a, b].forEach(point => {
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, 16, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(6,10,12,.82)';
+      ctx.fill();
+      ctx.strokeStyle = '#fff4cc';
+      ctx.stroke();
+      ctx.strokeStyle = color;
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, 9, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+
+    ctx.globalAlpha = .46;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    [a, b].forEach(point => {
+      ctx.beginPath();
+      ctx.moveTo(point.x, point.y);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+
+  function drawShip(x, y, rotation){
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(rotation);
@@ -1208,17 +1272,47 @@
     }
 
     ctx.restore();
+  }
+
+  function drawPortBadge(x, y, port){
+    const resource = RESOURCES[port];
+    const icon = resource ? images[`icon-${port}`] : null;
+    const { width, height } = portBadgeSize(port);
     ctx.save();
-    roundedRect(x - 19, y + 16, 38, 22, 7);
+    roundedRect(x - width / 2, y - height / 2, width, height, 8);
     ctx.fillStyle = '#fffaf0';
     ctx.fill();
     ctx.strokeStyle = '#b9a781';
+    ctx.lineWidth = 2;
     ctx.stroke();
+
+    if(resource){
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x - width / 2 + 17, y, 12, 0, Math.PI * 2);
+      ctx.fillStyle = resource.dark || '#1c2224';
+      ctx.fill();
+      ctx.strokeStyle = resource.color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.clip();
+      if(icon?.complete && icon.naturalWidth){
+        ctx.drawImage(icon, x - width / 2 + 5, y - 12, 24, 24);
+      }else{
+        ctx.fillStyle = resource.color;
+        ctx.font = '900 10px Trebuchet MS, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(resource.short, x - width / 2 + 17, y);
+      }
+      ctx.restore();
+    }
+
     ctx.fillStyle = '#5b4a35';
-    ctx.font = '900 12px Trebuchet MS, sans-serif';
+    ctx.font = '900 16px Trebuchet MS, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(label, x, y + 27);
+    ctx.fillText(resource ? '2:1' : '3:1', resource ? x + 13 : x, y + 1);
     ctx.restore();
   }
 

@@ -36,6 +36,7 @@ const UserSchema = new mongoose.Schema({
         opponent: { type: String, default: "Unknown" },
         xpChange: { type: Number, default: 0 },
         gameOfWeekBonus: { type: Number, default: 0 },
+        weeklyChallengeBonus: { type: Number, default: 0 },
         reason: { type: String, default: "game_end" },
         gameKey: { type: String, default: "chess" },
         gameName: { type: String, default: "Chess" },
@@ -49,6 +50,10 @@ const UserSchema = new mongoose.Schema({
   gameOfWeekBonus: {
     date: { type: String, default: "" },
     gameKey: { type: String, default: "" }
+  },
+  weeklyChallengeAward: {
+    weekId: { type: String, default: "" },
+    challengeId: { type: String, default: "" }
   },
 
   isAdmin: { type: Boolean, default: false } // 👑 AJOUT

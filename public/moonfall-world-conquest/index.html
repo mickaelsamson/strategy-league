@@ -31,7 +31,7 @@
       <form id="setupForm" class="game-mode-card">
         <span class="eyebrow">Risklike conquest</span>
         <h1>Moonfall World Conquest</h1>
-        <p class="game-mode-copy">World Conquest now enters through the same Local / Online gateway as Moonfall Settlers. The live online war room is shown in the same place, but stays locked until that mode exists server-side.</p>
+        <p class="game-mode-copy">Choisis tes chefs, distribue la carte Taisho, pose les renforts, lance les des, puis conquiers le monde territoire par territoire.</p>
 
         <div class="setup-mode-tabs" role="tablist" aria-label="Game mode">
           <button id="localModeBtn" type="button" class="setup-mode-tab is-active">Local</button>
@@ -67,9 +67,9 @@
 
           <div class="coming-soon-card">
             <span class="eyebrow">Core rules</span>
-            <p><strong>Reinforcements.</strong> Minimum 3 armies per turn, plus controlled territories divided by 3 and complete-region bonuses.</p>
-            <p><strong>Attack.</strong> From an adjacent territory with at least 2 armies. Attacker rolls up to 3 dice, defender up to 2, ties go to the defender.</p>
-            <p><strong>Conquest.</strong> When defense drops to 0, the territory changes sides and armies advance from the victorious front.</p>
+            <p><strong>Renforts.</strong> Minimum 3 armees par tour, territoires controles divises par 3, plus les bonus de continent complet.</p>
+            <p><strong>Attaque.</strong> Depuis un territoire voisin ou relie par bridge avec au moins 2 armees. Attaquant jusqu'a 3 des, defenseur jusqu'a 2; egalite au defenseur.</p>
+            <p><strong>Conquete.</strong> A 0 defense, le territoire change de camp, les armees avancent, et la premiere conquete du tour donne une carte.</p>
           </div>
 
           <div class="setup-actions">
@@ -139,7 +139,9 @@
         <div id="mapStage" class="map-stage">
           <img class="map-image" src="/moonfall-world-conquest/map.svg" alt="Moonfall World Conquest map">
           <svg id="territoryLayer" class="territory-layer" viewBox="0 0 1536 1024" aria-label="Territories"></svg>
+          <svg id="fxLayer" class="fx-layer" viewBox="0 0 1536 1024" aria-hidden="true"></svg>
         </div>
+        <div id="battleHud" class="battle-hud" aria-live="polite"></div>
         <div id="notice" class="notice" aria-live="polite"></div>
       </div>
 

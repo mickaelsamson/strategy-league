@@ -88,19 +88,13 @@ body{margin:0}
 
       <article class="side-card">
         <h3>Weekly Challenge</h3>
-        <div class="challenge-list">
-          <div class="challenge-row"><span>Win 3 matches</span><small>XP 250</small><div class="progress"><i style="width:66%"></i></div></div>
-          <div class="challenge-row"><span>Play 5 games</span><small>XP 150</small><div class="progress"><i style="width:60%"></i></div></div>
-          <div class="challenge-row"><span>Beat your best ELO</span><small>XP 500</small><div class="progress"><i style="width:18%"></i></div></div>
-        </div>
-        <button class="side-action" type="button" onclick="window.location.href='/coming-soon.html?feature=weekly-challenge'">View Challenge</button>
+        <div id="weeklyChallengeList" class="challenge-list"></div>
+        <button class="side-action" type="button" onclick="window.location.href='/leaderboard.html'">View Challenge</button>
       </article>
 
       <article class="side-card">
         <h3>Leaderboard</h3>
-        <div class="leader-row"><span>1</span><b>StrategistX</b><span>2,540</span></div>
-        <div class="leader-row"><span>2</span><b id="leaderUser">You</b><span>2,120</span></div>
-        <div class="leader-row"><span>3</span><span>QueenMaster</span><span>1,980</span></div>
+        <div id="sideLeaderboard"></div>
         <button class="side-action" type="button" onclick="window.location.href='/leaderboard.html'">View Full Leaderboard</button>
       </article>
     </aside>
@@ -132,9 +126,10 @@ function tileMarkup(game, config){
   const comingSoon = game.href.includes("coming-soon") || config?.comingSoon || config?.enabled === false || config?.adminOnly;
   const enabled = !comingSoon && Boolean(config?.allowed);
   const href = enabled ? game.href : `/coming-soon.html?feature=${encodeURIComponent(game.key)}`;
+  const kicker = config?.noXp && enabled ? "No XP" : comingSoon ? "Coming Soon" : game.tag;
   return `
     <a class="game-tile ${game.className} ${enabled ? "" : "locked"}" href="${href}" data-title="${escapeHtml(game.title.toLowerCase())}">
-      <span class="game-kicker">${escapeHtml(comingSoon ? "Coming Soon" : game.tag)}</span>
+      <span class="game-kicker">${escapeHtml(kicker)}</span>
       <h2>${escapeHtml(game.title)}</h2>
       <p>${escapeHtml(game.copy)}</p>
       <span class="play-button ${enabled ? "" : "locked"}">${enabled ? "PLAY" : "COMING SOON"}</span>
@@ -145,7 +140,6 @@ function tileMarkup(game, config){
 function renderSideProfile(profile){
   const username = profile.username || user.username || "Strategist";
   document.getElementById("sideUsername").textContent = username;
-  document.getElementById("leaderUser").textContent = username;
   if(profile.avatar || user.avatar){
     document.getElementById("sideAvatar").innerHTML = `<img src="${escapeHtml(profile.avatar || user.avatar)}" alt="">`;
   }else{
@@ -182,6 +176,55 @@ async function loadGames(){
   document.getElementById("gamesGrid").innerHTML = catalog.map(game => tileMarkup(game, access[game.key])).join("");
 }
 
+function renderWeeklyChallenge(challenge){
+  const list = document.getElementById("weeklyChallengeList");
+  if(!challenge?.enabled){
+    list.innerHTML = `<div class="challenge-row"><span>No weekly challenge active</span><small>XP 0</small><div class="progress"><i style="width:0%"></i></div></div>`;
+    return;
+  }
+  if(challenge.mode === "multi_game_bonus"){
+    const names = (challenge.games || []).map(game => game.name).join(", ");
+    list.innerHTML = `
+      <div class="challenge-row"><span>Play all selected games without surrender</span><small>XP ${challenge.extraXp || 0}</small><div class="progress"><i style="width:0%"></i></div></div>
+      <div class="challenge-row"><span>${escapeHtml(names || "Selected games")}</span><small>All games</small><div class="progress"><i style="width:0%"></i></div></div>
+    `;
+    return;
+  }
+  list.innerHTML = `
+    <div class="challenge-row"><span>Double XP on ${escapeHtml(challenge.name || "the featured game")}</span><small>2x XP</small><div class="progress"><i style="width:100%"></i></div></div>
+  `;
+}
+
+async function loadWeeklyChallenge(){
+  try{
+    const response = await fetch("/api/games/game-of-week");
+    const data = await response.json();
+    if(!response.ok) throw new Error("Challenge unavailable");
+    renderWeeklyChallenge(data);
+  }catch(err){
+    document.getElementById("weeklyChallengeList").innerHTML = `<div class="challenge-row"><span>Challenge unavailable</span><small>XP 0</small></div>`;
+  }
+}
+
+async function loadSideLeaderboard(){
+  const wrap = document.getElementById("sideLeaderboard");
+  try{
+    const response = await fetch(`/api/leaderboard/global/${encodeURIComponent(user.username)}`);
+    const data = await response.json();
+    if(!response.ok) throw new Error("Leaderboard unavailable");
+    const top = (data.top || []).slice(0, 3);
+    wrap.innerHTML = top.length ? top.map((entry, index) => `
+      <div class="leader-row">
+        <span>${index + 1}</span>
+        <b>${escapeHtml(entry.username)}</b>
+        <span>${entry.value}</span>
+      </div>
+    `).join("") : "<div class='leader-row'><span>-</span><span>No players yet</span><span>0</span></div>";
+  }catch(err){
+    wrap.innerHTML = "<div class='leader-row'><span>-</span><span>Leaderboard unavailable</span><span>0</span></div>";
+  }
+}
+
 document.getElementById("gamesSearch").addEventListener("input", event => {
   const query = event.currentTarget.value.trim().toLowerCase();
   document.querySelectorAll(".game-tile").forEach(tile => {
@@ -193,6 +236,8 @@ loadProfile();
 loadGames().catch(err => {
   document.getElementById("gamesNotice").textContent = err.message || "Unable to load games.";
 });
+loadWeeklyChallenge();
+loadSideLeaderboard();
 </script>
 </body>
 </html>

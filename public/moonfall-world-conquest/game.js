@@ -2,87 +2,655 @@
   const PLAYER_COLORS = ['#2f9ed9', '#d64e5e', '#44ad68', '#d59b38', '#8b64d8', '#e5eef4'];
   const DEFAULT_NAMES = ['Mickael', 'Akari', 'Kuro', 'Ren', 'Sora', 'Nami'];
   const FACTIONS = ['Dawn House', 'Red Moon', 'Iron Lotus', 'Mist Clan', 'Sand Crown', 'Shadow Pact'];
+  const LEADERS = [
+    { mark: 'DA', title: 'Daimyo', signature: 'Commandement net' },
+    { mark: 'RO', title: 'Ronin', signature: 'Attaques rapides' },
+    { mark: 'ON', title: 'Onmyoji', signature: 'Defense tenace' },
+    { mark: 'SH', title: 'Shogun', signature: 'Expansion froide' },
+    { mark: 'KA', title: 'Kage', signature: 'Fronts caches' },
+    { mark: 'AD', title: 'Amiral', signature: 'Ponts et iles' }
+  ];
   const CARD_SYMBOLS = ['moon', 'saber', 'banner'];
 
   const REGIONS = {
-    divin: { name: 'Divine Continent', bonus: 3 },
-    wilds: { name: 'Wild Routes', bonus: 2 },
-    south: { name: 'Southern Marches', bonus: 2 }
+    divin: { name: 'Continent Divin', bonus: 3 },
+    forets: { name: 'Continent des Forets', bonus: 4 },
+    fer: { name: 'Continent de Fer', bonus: 5 },
+    sables: { name: 'Continent des Sables', bonus: 2 },
+    soleil: { name: 'Continent du Soleil Levant', bonus: 4 },
+    demons: { name: 'Ile des Demons', bonus: 2 }
   };
 
-  const TERRITORIES = [
-    {
-      id: 'divin-ouest',
-      name: 'Divine West',
-      region: 'divin',
-      label: { x: 302, y: 282 },
-      path: 'm 225.40348,382.46305 20.18955,10.76648 82.51926,18.24405 7.85898,-0.56135 18.80541,-60.34572 47.15386,-46.87318 4.77152,-34.24269 57.25826,-64.55588 -50.80267,-36.20743 -111.42907,-13.19186 -121.81414,114.51653 53.32877,41.82098 z',
-      neighbors: ['divin-nord', 'divin-est', 'divin-sud', 'soleil-levant']
-    },
-    {
-      id: 'divin-nord',
-      name: 'Divine North',
-      region: 'divin',
-      label: { x: 512, y: 132 },
-      path: 'm 462.056,202.55059 -49.3341,-34.09267 5.21417,-45.3232 98.66821,-79.81697 105.88784,46.927563 -7.21963,104.684567 -150.40885,10.02725 z',
-      neighbors: ['divin-ouest', 'divin-est', 'forets']
-    },
-    {
-      id: 'divin-est',
-      name: 'Divine East',
-      region: 'divin',
-      label: { x: 524, y: 284 },
-      path: 'm 527.03263,366.19543 96.26167,-39.70794 29.68068,-94.25622 -39.30685,-38.10357 -150.40886,10.82943 -57.35591,65.77881 -4.41199,32.48831 z',
-      neighbors: ['divin-ouest', 'divin-nord', 'divin-sud', 'forets', 'ile-demons']
-    },
-    {
-      id: 'divin-sud',
-      name: 'Divine South',
-      region: 'divin',
-      label: { x: 421, y: 391 },
-      path: 'm 334.50929,409.51318 20.8567,-60.16355 46.12538,-44.92211 133.56307,66.1799 2.00545,31.28504 -71.79516,60.56463 -97.46494,-42.11448 z',
-      neighbors: ['divin-ouest', 'divin-est', 'soleil-levant', 'ile-demons']
-    },
-    {
-      id: 'forets',
-      name: 'Forest Kingdoms',
-      region: 'wilds',
-      label: { x: 913, y: 210 },
-      path: 'm 693.10287,83.625909 87.87808,-18.426048 94.96501,-35.434707 107.72151,48.191202 96.38243,-17.00866 82.2085,62.365084 -46.7738,89.29546 5.6695,72.28681 -73.7042,43.93903 -39.6868,4.25217 -31.18257,70.86941 -49.60859,22.67821 -167.25182,-62.36508 -4.25216,-28.34777 -48.1912,-60.94769 32.59993,-66.61725 -63.78248,-53.86076 z',
-      neighbors: ['divin-nord', 'divin-est', 'ile-demons', 'fer']
-    },
-    {
-      id: 'fer',
-      name: 'Iron Empire',
-      region: 'wilds',
-      label: { x: 1210, y: 525 },
-      path: 'm 1061.7522,371.54181 180.0549,-107.17552 250.0762,135.75566 -21.4351,42.87021 18.5771,32.86716 -24.2932,47.15723 -62.8763,34.29617 -41.4412,65.73432 -38.5832,21.4351 -110.0335,17.14808 -25.7221,40.0122 -45.7282,14.29007 -87.1695,-57.16028 -71.45032,-21.4351 -28.58014,-37.15419 57.16026,-70.02134 8.5741,-60.01829 40.0122,-51.44425 z',
-      neighbors: ['forets', 'ile-demons', 'sables']
-    },
-    {
-      id: 'soleil-levant',
-      name: 'Rising Sun',
-      region: 'south',
-      label: { x: 329, y: 654 },
-      path: 'm 203.45938,433.65913 24.41512,19.18331 99.98575,28.48431 106.38019,15.69544 56.38731,48.83025 9.301,31.39088 68.01357,33.71612 30.22825,69.7575 -74.98932,38.36663 -8.71968,34.87875 -83.709,49.41156 19.18331,37.204 -45.92369,30.22825 -22.67119,4.06919 -39.52925,-16.85806 2.32525,-12.78888 -18.602,-11.62625 -29.06562,15.11413 -24.41513,25.57775 -56.96862,5.81312 -32.5535,-22.67119 2.32525,-26.74037 -16.27675,-22.67119 -12.20757,-8.13837 -41.27318,-8.71969 -49.411567,-37.78531 9.882313,-30.22825 -16.858063,-22.67119 30.22825,-57.54994 6.394438,-20.92725 -35.460063,-47.08631 66.850942,-50.57419 -14.53282,-37.204 z',
-      neighbors: ['divin-ouest', 'divin-sud', 'ile-demons', 'sables']
-    },
-    {
-      id: 'sables',
-      name: 'Southern Sands',
-      region: 'south',
-      label: { x: 874, y: 843 },
-      path: 'm 595.15426,806.09502 12.16966,-22.6008 81.13106,-57.37125 57.95076,20.86227 108.94742,-24.33931 58.53026,-33.03193 127.49168,30.13439 56.2122,19.70326 75.336,59.68927 -24.3393,33.61144 34.7704,62.00731 -66.6433,66.64337 -64.3254,-2.89754 -44.0425,23.18031 -90.98273,-31.87292 -67.22288,32.45242 -38.0049,-10.23715 -79.09593,23.36372 -73.01163,-35.7757 -58.16593,-4.3807 -90.7778,-77.87907 37.47931,-39.42628 45.75395,-27.98779 z',
-      neighbors: ['soleil-levant', 'ile-demons', 'fer']
-    },
-    {
-      id: 'ile-demons',
-      name: 'Demon Isle',
-      region: 'wilds',
-      label: { x: 734, y: 535 },
-      path: 'm 590.33864,499.03052 23.23117,-57.26026 92.98607,-50.1226 43.20915,32.1476 42.17212,-0.34567 88.49232,55.99905 2.07404,35.95 -13.48125,25.23414 31.11058,42.86347 -1.03702,43.90049 -53.20951,27.00909 -133.88609,-1.16858 -36.55992,-3.17187 -48.74655,-54.08864 10.18335,-23.2047 3.17187,-24.37328 z',
-      neighbors: ['divin-est', 'divin-sud', 'forets', 'fer', 'soleil-levant', 'sables']
-    }
+  const BRIDGE_PAIRS =   [
+      {
+          "from": "divin-2",
+          "to": "forets-1"
+      },
+      {
+          "from": "divin-3",
+          "to": "forets-4"
+      },
+      {
+          "from": "divin-4",
+          "to": "demons-1"
+      },
+      {
+          "from": "divin-4",
+          "to": "soleil-2"
+      },
+      {
+          "from": "divin-1",
+          "to": "soleil-1"
+      },
+      {
+          "from": "forets-5",
+          "to": "demons-2"
+      },
+      {
+          "from": "forets-6",
+          "to": "fer-2"
+      },
+      {
+          "from": "demons-2",
+          "to": "fer-4"
+      },
+      {
+          "from": "fer-6",
+          "to": "sables-4"
+      },
+      {
+          "from": "demons-4",
+          "to": "sables-2"
+      },
+      {
+          "from": "soleil-7",
+          "to": "sables-1"
+      }
+  ];
+
+  const TERRITORIES =   [
+      {
+          "id": "divin-1",
+          "name": "Porte de l'Aube",
+          "region": "divin",
+          "label": {
+              "x": 317,
+              "y": 272
+          },
+          "path": "m 225.40348,382.46305 20.18955,10.76648 82.51926,18.24405 7.85898,-0.56135 18.80541,-60.34572 47.15386,-46.87318 4.77152,-34.24269 57.25826,-64.55588 -50.80267,-36.20743 -111.42907,-13.19186 -121.81414,114.51653 53.32877,41.82098 z",
+          "neighbors": [
+              "divin-2",
+              "divin-3",
+              "divin-4",
+              "soleil-1"
+          ],
+          "bridgeNeighbors": [
+              "soleil-1"
+          ]
+      },
+      {
+          "id": "divin-2",
+          "name": "Sanctuaire du Nord",
+          "region": "divin",
+          "label": {
+              "x": 524,
+              "y": 134
+          },
+          "path": "m 462.056,202.55059 -49.3341,-34.09267 5.21417,-45.3232 98.66821,-79.81697 105.88784,46.927563 -7.21963,104.684567 -150.40885,10.02725 z",
+          "neighbors": [
+              "divin-1",
+              "divin-3",
+              "forets-1"
+          ],
+          "bridgeNeighbors": [
+              "forets-1"
+          ]
+      },
+      {
+          "id": "divin-3",
+          "name": "Citadelle Stellaire",
+          "region": "divin",
+          "label": {
+              "x": 532,
+              "y": 273
+          },
+          "path": "m 527.03263,366.19543 96.26167,-39.70794 29.68068,-94.25622 -39.30685,-38.10357 -150.40886,10.82943 -57.35591,65.77881 -4.41199,32.48831 z",
+          "neighbors": [
+              "divin-1",
+              "divin-2",
+              "divin-4",
+              "forets-4"
+          ],
+          "bridgeNeighbors": [
+              "forets-4"
+          ]
+      },
+      {
+          "id": "divin-4",
+          "name": "Jardins Sacres",
+          "region": "divin",
+          "label": {
+              "x": 435,
+              "y": 385
+          },
+          "path": "m 334.50929,409.51318 20.8567,-60.16355 46.12538,-44.92211 133.56307,66.1799 2.00545,31.28504 -71.79516,60.56463 -97.46494,-42.11448 z",
+          "neighbors": [
+              "demons-1",
+              "divin-1",
+              "divin-3",
+              "soleil-2"
+          ],
+          "bridgeNeighbors": [
+              "demons-1",
+              "soleil-2"
+          ]
+      },
+      {
+          "id": "forets-1",
+          "name": "Bois d'Argent",
+          "region": "forets",
+          "label": {
+              "x": 762,
+              "y": 144
+          },
+          "path": "m 693.10287,83.625909 87.87808,-18.426048 72.21496,108.934049 -30.42824,40.97269 -82.89098,-6.75052 -63.78248,-53.86076 17.00866,-70.869411 c 0,0 -41.56659,-35.526364 0,0 z",
+          "neighbors": [
+              "divin-2",
+              "forets-2",
+              "forets-4",
+              "forets-5"
+          ],
+          "bridgeNeighbors": [
+              "divin-2"
+          ]
+      },
+      {
+          "id": "forets-2",
+          "name": "Canopes du Renard",
+          "region": "forets",
+          "label": {
+              "x": 888,
+              "y": 102
+          },
+          "path": "m 950.16276,165.12355 39.33,-85.214987 L 879.30634,28.092854 780.66921,66.174279 853.39848,174.1757 Z",
+          "neighbors": [
+              "forets-1",
+              "forets-3",
+              "forets-5"
+          ],
+          "bridgeNeighbors": []
+      },
+      {
+          "id": "forets-3",
+          "name": "Marche des Pins",
+          "region": "forets",
+          "label": {
+              "x": 1057,
+              "y": 141
+          },
+          "path": "m 988.55633,79.59642 93.64287,-17.167855 80.845,60.243565 -46.5093,92.70642 -126.73,-16.54357 -39.33,-34.02357 z",
+          "neighbors": [
+              "forets-2",
+              "forets-5",
+              "forets-6"
+          ],
+          "bridgeNeighbors": []
+      },
+      {
+          "id": "forets-4",
+          "name": "Val des Mousses",
+          "region": "forets",
+          "label": {
+              "x": 794,
+              "y": 296
+          },
+          "path": "m 739.24921,209.40271 82.60842,6.91606 53.02307,115.26755 -34.96449,61.0918 -78.38194,-26.12731 -3.84225,-28.81689 -49.18082,-63.39715 z",
+          "neighbors": [
+              "demons-1",
+              "divin-3",
+              "forets-1",
+              "forets-5"
+          ],
+          "bridgeNeighbors": [
+              "divin-3"
+          ]
+      },
+      {
+          "id": "forets-5",
+          "name": "Couronne Verte",
+          "region": "forets",
+          "label": {
+              "x": 918,
+              "y": 289
+          },
+          "path": "m 839.53198,391.14122 87.60334,34.58026 50.3335,-22.66928 29.58538,-68.39208 -22.28511,-33.42759 4.61071,-102.97235 -39.5752,-32.65913 -96.82474,9.2214 -31.12223,41.11209 51.87039,114.88333 z",
+          "neighbors": [
+              "demons-2",
+              "forets-1",
+              "forets-2",
+              "forets-3",
+              "forets-4",
+              "forets-6"
+          ],
+          "bridgeNeighbors": [
+              "demons-2"
+          ]
+      },
+      {
+          "id": "forets-6",
+          "name": "Passe des Lucioles",
+          "region": "forets",
+          "label": {
+              "x": 1047,
+              "y": 263
+          },
+          "path": "m 989.76402,198.64441 126.41008,16.90591 4.2265,66.47095 -72.6186,47.64392 -41.4963,4.22648 -22.28506,-33.42759 z",
+          "neighbors": [
+              "fer-1",
+              "fer-2",
+              "forets-3",
+              "forets-5"
+          ],
+          "bridgeNeighbors": [
+              "fer-2"
+          ]
+      },
+      {
+          "id": "fer-1",
+          "name": "Bastion Ouest",
+          "region": "fer",
+          "label": {
+              "x": 1136,
+              "y": 395
+          },
+          "path": "m 1170.5674,456.57221 46.9585,-40.73507 -65.6287,-95.61425 -88.8251,53.18189 -3.6551,46.52665 72.4019,28.17807 z",
+          "neighbors": [
+              "fer-2",
+              "fer-4",
+              "fer-5",
+              "forets-6"
+          ],
+          "bridgeNeighbors": []
+      },
+      {
+          "id": "fer-2",
+          "name": "Forgerie Haute",
+          "region": "fer",
+          "label": {
+              "x": 1253,
+              "y": 345
+          },
+          "path": "m 1241.5466,266.32937 106.7303,51.87589 -37.9761,93.32698 -93.0788,4.21957 -64.7828,-94.81624 z",
+          "neighbors": [
+              "fer-1",
+              "fer-3",
+              "fer-5",
+              "forets-6"
+          ],
+          "bridgeNeighbors": [
+              "forets-6"
+          ]
+      },
+      {
+          "id": "fer-3",
+          "name": "Remparts de Cendre",
+          "region": "fer",
+          "label": {
+              "x": 1399,
+              "y": 443
+          },
+          "path": "m 1348.0287,318.45347 104.2482,56.59189 40.7064,26.80668 -22.8353,44.4296 18.3676,30.03341 -23.58,47.90454 -63.2935,34.99761 -78.9308,-45.67064 16.8782,-63.29356 -29.5369,-39.71361 z",
+          "neighbors": [
+              "fer-2",
+              "fer-5",
+              "fer-7"
+          ],
+          "bridgeNeighbors": []
+      },
+      {
+          "id": "fer-4",
+          "name": "Porte d'Acier",
+          "region": "fer",
+          "label": {
+              "x": 1108,
+              "y": 503
+          },
+          "path": "m 1058.864,420.71601 -37.2315,47.40811 -9.1838,62.79714 69.9953,24.32458 94.8162,25.56564 29.7852,-43.43676 -35.7423,-80.17184 -40.4582,-9.43198 z",
+          "neighbors": [
+              "demons-2",
+              "fer-1",
+              "fer-5",
+              "fer-6",
+              "fer-7"
+          ],
+          "bridgeNeighbors": [
+              "demons-2"
+          ]
+      },
+      {
+          "id": "fer-5",
+          "name": "Bassin des Forges",
+          "region": "fer",
+          "label": {
+              "x": 1257,
+              "y": 471
+          },
+          "path": "m 1171.3031,457.6993 46.6635,-41.94749 92.5824,-5.21242 28.5441,39.96182 -16.3818,64.53461 -116.6587,22.58711 z",
+          "neighbors": [
+              "fer-1",
+              "fer-2",
+              "fer-3",
+              "fer-4",
+              "fer-6",
+              "fer-7"
+          ],
+          "bridgeNeighbors": []
+      },
+      {
+          "id": "fer-6",
+          "name": "Tour Ecarlate",
+          "region": "fer",
+          "label": {
+              "x": 1092,
+              "y": 621
+          },
+          "path": "m 1012.2005,531.16947 -57.58471,68.50597 30.77804,37.72793 69.49877,20.60143 51.8759,36.73508 34.5012,19.85681 47.9046,-12.1623 24.3246,-39.7136 -37.2316,-82.90215 -93.5751,-24.82101 z",
+          "neighbors": [
+              "fer-4",
+              "fer-5",
+              "fer-7",
+              "sables-3",
+              "sables-4"
+          ],
+          "bridgeNeighbors": [
+              "sables-4"
+          ]
+      },
+      {
+          "id": "fer-7",
+          "name": "Baie du Marteau",
+          "region": "fer",
+          "label": {
+              "x": 1283,
+              "y": 586
+          },
+          "path": "m 1323.2077,514.5394 -116.6587,22.83532 -29.2888,43.18855 36.4869,80.91647 107.7231,-16.87828 39.7136,-25.56564 39.7136,-58.57756 -3.2267,-4.46779 z",
+          "neighbors": [
+              "fer-3",
+              "fer-4",
+              "fer-5",
+              "fer-6"
+          ],
+          "bridgeNeighbors": []
+      },
+      {
+          "id": "sables-1",
+          "name": "Dunes de Jade",
+          "region": "sables",
+          "label": {
+              "x": 686,
+              "y": 791
+          },
+          "path": "m 597.11032,808.41266 11.70804,-24.25238 80.56251,-56.31012 58.26146,18.95588 10.31423,64.95178 -63.83672,43.48702 z",
+          "neighbors": [
+              "sables-2",
+              "soleil-7"
+          ],
+          "bridgeNeighbors": [
+              "soleil-7"
+          ]
+      },
+      {
+          "id": "sables-2",
+          "name": "Oasis des Nomades",
+          "region": "sables",
+          "label": {
+              "x": 817,
+              "y": 785
+          },
+          "path": "m 747.92109,746.52728 108.99633,-23.69485 24.80991,103.97859 -47.11095,21.18599 -77.21734,-36.51795 z",
+          "neighbors": [
+              "demons-4",
+              "sables-1",
+              "sables-3"
+          ],
+          "bridgeNeighbors": [
+              "demons-4"
+          ]
+      },
+      {
+          "id": "sables-3",
+          "name": "Mer de Verre",
+          "region": "sables",
+          "label": {
+              "x": 928,
+              "y": 763
+          },
+          "path": "m 856.3599,722.2749 58.54022,-32.33651 85.30148,20.90723 -22.02228,104.81488 -49.34105,27.8763 -47.66847,-16.44702 z",
+          "neighbors": [
+              "fer-6",
+              "sables-2",
+              "sables-4"
+          ],
+          "bridgeNeighbors": []
+      },
+      {
+          "id": "sables-4",
+          "name": "Temple Rouge",
+          "region": "sables",
+          "label": {
+              "x": 1064,
+              "y": 788
+          },
+          "path": "m 978.45808,814.82421 22.02232,-104.25736 42.6507,9.75671 54.08,18.95588 76.3811,60.49157 -26.2037,33.45156 -100.6335,19.79217 z",
+          "neighbors": [
+              "fer-6",
+              "sables-3"
+          ],
+          "bridgeNeighbors": [
+              "fer-6"
+          ]
+      },
+      {
+          "id": "soleil-1",
+          "name": "Port Sakura",
+          "region": "soleil",
+          "label": {
+              "x": 230,
+              "y": 510
+          },
+          "path": "m 114.36437,486.986 89.52294,-52.49512 24.84144,18.74826 101.24059,28.12239 -9.37413,81.55492 -81.55492,17.34214 -103.58413,-59.05701 -8.90542,1.87482 z",
+          "neighbors": [
+              "divin-1",
+              "soleil-2",
+              "soleil-3",
+              "soleil-4"
+          ],
+          "bridgeNeighbors": [
+              "divin-1"
+          ]
+      },
+      {
+          "id": "soleil-2",
+          "name": "Riziere de l'Est",
+          "region": "soleil",
+          "label": {
+              "x": 407,
+              "y": 558
+          },
+          "path": "m 329.50064,481.36153 -8.90543,81.08621 90.46035,78.74269 42.18358,-5.62448 45.93323,-57.65089 -8.90542,-30.93463 -54.83866,-49.68288 z",
+          "neighbors": [
+              "divin-4",
+              "soleil-1",
+              "soleil-4",
+              "soleil-7"
+          ],
+          "bridgeNeighbors": [
+              "divin-4"
+          ]
+      },
+      {
+          "id": "soleil-3",
+          "name": "Plateau du Dragon",
+          "region": "soleil",
+          "label": {
+              "x": 151,
+              "y": 598
+          },
+          "path": "m 60.463132,574.1654 67.493728,-50.15159 7.96801,-2.34353 102.64671,58.1196 -30.46591,80.61751 -73.58692,5.62448 -22.0292,-14.06119 -23.90403,-9.84284 7.499303,-20.62308 z",
+          "neighbors": [
+              "soleil-1",
+              "soleil-4",
+              "soleil-5"
+          ],
+          "bridgeNeighbors": []
+      },
+      {
+          "id": "soleil-4",
+          "name": "Baie des Lanternes",
+          "region": "soleil",
+          "label": {
+              "x": 305,
+              "y": 641
+          },
+          "path": "m 237.16547,580.25859 82.96104,-16.87343 89.05422,76.39915 -47.80805,70.77467 -93.7413,-7.4993 -59.99442,-43.12099 z",
+          "neighbors": [
+              "soleil-1",
+              "soleil-2",
+              "soleil-3",
+              "soleil-5",
+              "soleil-6",
+              "soleil-7"
+          ],
+          "bridgeNeighbors": []
+      },
+      {
+          "id": "soleil-5",
+          "name": "Cote des Vents",
+          "region": "soleil",
+          "label": {
+              "x": 169,
+              "y": 740
+          },
+          "path": "m 88.58552,642.59655 -28.122388,57.65089 16.404726,22.49791 -10.780248,30.93463 46.87065,37.49651 44.0584,8.43672 12.65508,5.62448 0.4687,5.62447 14.99861,19.68567 -1.87483,25.77886 28.5911,21.5605 48.74547,-126.08204 6.56189,-49.68288 -59.99443,-42.65229 -71.71209,5.62448 -22.4979,-12.65508 z",
+          "neighbors": [
+              "soleil-3",
+              "soleil-4",
+              "soleil-6"
+          ],
+          "bridgeNeighbors": []
+      },
+      {
+          "id": "soleil-6",
+          "name": "Mont Amateru",
+          "region": "soleil",
+          "label": {
+              "x": 328,
+              "y": 797
+          },
+          "path": "m 266.69397,703.05968 94.67871,7.0306 69.83726,93.74129 18.27955,34.68427 -46.40194,33.27816 -22.0292,4.21836 -39.37135,-17.81084 3.28095,-14.0612 -20.15438,-11.71766 -30.93462,15.93602 -22.96662,26.71627 -55.77607,6.09318 -4.68706,-3.74965 50.15159,-129.36298 z",
+          "neighbors": [
+              "soleil-4",
+              "soleil-5",
+              "soleil-7"
+          ],
+          "bridgeNeighbors": []
+      },
+      {
+          "id": "soleil-7",
+          "name": "Archipel Sud",
+          "region": "soleil",
+          "label": {
+              "x": 477,
+              "y": 688
+          },
+          "path": "m 430.74123,803.36286 83.89846,-48.74547 8.90542,-35.62169 74.52432,-37.96522 -30.46592,-71.24338 -69.36855,-32.34075 -45.93323,58.58831 -44.52712,4.21835 -45.93323,68.89985 z",
+          "neighbors": [
+              "sables-1",
+              "soleil-2",
+              "soleil-4",
+              "soleil-6"
+          ],
+          "bridgeNeighbors": [
+              "sables-1"
+          ]
+      },
+      {
+          "id": "demons-1",
+          "name": "Crique Oni",
+          "region": "demons",
+          "label": {
+              "x": 679,
+              "y": 475
+          },
+          "path": "m 591.50754,497.76625 21.5605,-56.24477 94.21,-49.21418 43.12099,32.80945 -6.56189,101.7093 -103.11542,21.09179 z",
+          "neighbors": [
+              "demons-2",
+              "demons-3",
+              "demons-4",
+              "divin-4",
+              "forets-4"
+          ],
+          "bridgeNeighbors": [
+              "divin-4"
+          ]
+      },
+      {
+          "id": "demons-2",
+          "name": "Caldeira Noire",
+          "region": "demons",
+          "label": {
+              "x": 806,
+              "y": 493
+          },
+          "path": "m 749.93032,423.71063 41.24617,-0.4687 89.05423,56.71348 2.34353,34.68428 -15.46731,26.71626 -97.49094,16.40473 -25.31015,-31.87204 z",
+          "neighbors": [
+              "demons-1",
+              "demons-3",
+              "demons-4",
+              "fer-4",
+              "forets-5"
+          ],
+          "bridgeNeighbors": [
+              "fer-4",
+              "forets-5"
+          ]
+      },
+      {
+          "id": "demons-3",
+          "name": "Autel des Masques",
+          "region": "demons",
+          "label": {
+              "x": 703,
+              "y": 590
+          },
+          "path": "m 639.78431,546.51172 104.52154,-20.15437 24.84144,32.80945 -20.15438,92.80388 -73.1182,-2.81224 -49.68289,-53.90124 12.65508,-23.90403 z",
+          "neighbors": [
+              "demons-1",
+              "demons-2",
+              "demons-4"
+          ],
+          "bridgeNeighbors": []
+      },
+      {
+          "id": "demons-4",
+          "name": "Fort de Brume",
+          "region": "demons",
+          "label": {
+              "x": 825,
+              "y": 602
+          },
+          "path": "m 768.67858,558.22939 98.89706,-16.40473 31.87204,42.65229 -1.40612,42.18358 -51.55771,26.24756 -98.89706,-0.93741 z",
+          "neighbors": [
+              "demons-1",
+              "demons-2",
+              "demons-3",
+              "sables-2"
+          ],
+          "bridgeNeighbors": [
+              "sables-2"
+          ]
+      }
   ];
 
   const dom = {
@@ -100,6 +668,8 @@
     reserveHud: document.getElementById('reserveHud'),
     cardsHud: document.getElementById('cardsHud'),
     territoryLayer: document.getElementById('territoryLayer'),
+    fxLayer: document.getElementById('fxLayer'),
+    battleHud: document.getElementById('battleHud'),
     territoryInfo: document.getElementById('territoryInfo'),
     playersPanel: document.getElementById('playersPanel'),
     regionsPanel: document.getElementById('regionsPanel'),
@@ -166,6 +736,44 @@
     noticeTimer = setTimeout(() => dom.notice.classList.remove('visible'), 2600);
   }
 
+  function showBattleRoll(originId, targetId, attackRolls, defenseRolls, summary){
+    const origin = byId(originId);
+    const target = byId(targetId);
+    const attackDice = attackRolls.map(value => `<span class="die attack">${value}</span>`).join('');
+    const defenseDice = defenseRolls.map(value => `<span class="die defend">${value}</span>`).join('');
+    dom.battleHud.innerHTML = `
+      <strong>${escapeHtml(shortName(origin.name))} -> ${escapeHtml(shortName(target.name))}</strong>
+      <div class="dice-line"><span>Attack</span>${attackDice}</div>
+      <div class="dice-line"><span>Defense</span>${defenseDice}</div>
+      <small>${summary.defenderLosses} defense loss${summary.defenderLosses === 1 ? '' : 'es'} · ${summary.attackerLosses} attack loss${summary.attackerLosses === 1 ? '' : 'es'}${summary.captured ? ' · conquest' : ''}</small>
+    `;
+    dom.battleHud.classList.add('visible');
+  }
+
+  function animateAttack(originId, targetId, captured = false){
+    const origin = byId(originId);
+    const target = byId(targetId);
+    if(!origin || !target || !dom.fxLayer) return;
+    const shot = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    shot.setAttribute('class', captured ? 'attack-vector captured' : 'attack-vector');
+    shot.setAttribute('x1', origin.label.x);
+    shot.setAttribute('y1', origin.label.y);
+    shot.setAttribute('x2', target.label.x);
+    shot.setAttribute('y2', target.label.y);
+
+    const spark = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    spark.setAttribute('class', captured ? 'attack-spark captured' : 'attack-spark');
+    spark.setAttribute('cx', target.label.x);
+    spark.setAttribute('cy', target.label.y);
+    spark.setAttribute('r', captured ? 34 : 22);
+
+    dom.fxLayer.append(shot, spark);
+    window.setTimeout(() => {
+      shot.remove();
+      spark.remove();
+    }, 760);
+  }
+
   function renderSlots(){
     const count = Number(dom.playerCount.value);
     dom.slots.innerHTML = '';
@@ -173,9 +781,13 @@
     for(let i = 0; i < count; i += 1){
       const row = document.createElement('div');
       row.className = 'slot';
+      const leaderOptions = LEADERS.map((leader, leaderIndex) => (
+        `<option value="${leaderIndex}"${leaderIndex === i ? ' selected' : ''}>${leader.mark} - ${leader.title}</option>`
+      )).join('');
       row.innerHTML = `
         <div class="slot-number">${i + 1}</div>
         <label>Nom<input data-field="name" value="${escapeHtml(i === 0 ? getSavedName() : DEFAULT_NAMES[i])}"></label>
+        <label>Chef<select data-field="leader">${leaderOptions}</select></label>
         <label>Maison<select data-field="faction">
           ${FACTIONS.map((faction, index) => `<option value="${escapeHtml(faction)}"${index === i ? ' selected' : ''}>${escapeHtml(faction)}</option>`).join('')}
         </select></label>
@@ -196,6 +808,7 @@
         id: index,
         name,
         faction: slot.querySelector('[data-field="faction"]').value,
+        leader: LEADERS[Number(slot.querySelector('[data-field="leader"]').value)] || LEADERS[index % LEADERS.length],
         type: slot.querySelector('[data-field="type"]').value,
         color: PLAYER_COLORS[index % PLAYER_COLORS.length],
         cards: [],
@@ -205,9 +818,9 @@
   }
 
   function startingTroops(playerCount){
-    const quick = { 2: 22, 3: 18, 4: 16, 5: 14, 6: 13 };
-    const classic = { 2: 30, 3: 26, 4: 23, 5: 21, 6: 19 };
-    return (dom.pace.value === 'classic' ? classic : quick)[playerCount] || 18;
+    const quick = { 2: 30, 3: 27, 4: 23, 5: 20, 6: 18 };
+    const classic = { 2: 40, 3: 35, 4: 30, 5: 25, 6: 20 };
+    return (dom.pace.value === 'classic' ? classic : quick)[playerCount] || 27;
   }
 
   function startGame(event){
@@ -243,6 +856,9 @@
       gameOver: false,
       aiStyle: dom.aiStyle.value
     };
+    dom.battleHud.innerHTML = '';
+    dom.battleHud.classList.remove('visible');
+    dom.fxLayer.innerHTML = '';
 
     seedTerritories();
     state.pendingReinforcements = calculateReinforcements(currentPlayer().id);
@@ -390,7 +1006,8 @@
         const aState = territoryState(territory.id);
         const bState = territoryState(neighborId);
         const relation = aState.owner === bState.owner ? 'owned' : 'front';
-        edges.push(`<line class="connection-line ${relation}" x1="${territory.label.x}" y1="${territory.label.y}" x2="${neighbor.label.x}" y2="${neighbor.label.y}"></line>`);
+        const bridge = territory.bridgeNeighbors.includes(neighborId) ? 'bridge' : 'local';
+        edges.push(`<line class="connection-line ${relation} ${bridge}" x1="${territory.label.x}" y1="${territory.label.y}" x2="${neighbor.label.x}" y2="${neighbor.label.y}"></line>`);
       }
     }
 
@@ -415,6 +1032,7 @@
       return `
         <g class="territory-token" transform="translate(${territory.label.x} ${territory.label.y})" style="--owner-color:${owner.color}">
           <circle r="25"></circle>
+          <text class="commander-mark" y="-27">${escapeHtml(owner.leader.mark)}</text>
           <text y="1">${info.troops}</text>
           <text class="territory-label" y="43">${escapeHtml(shortName(territory.name))}</text>
         </g>
@@ -433,11 +1051,30 @@
   }
 
   function shortName(name){
-    return name
-      .replace('Forest ', '')
-      .replace('Iron ', '')
-      .replace('Demon ', 'Demon ')
-      .replace('Southern ', '');
+    const compact = {
+      "Porte de l'Aube": 'Porte Aube',
+      'Sanctuaire du Nord': 'Sanct. Nord',
+      'Citadelle Stellaire': 'Citadelle',
+      'Jardins Sacres': 'Jardins',
+      "Bois d'Argent": 'Bois Argent',
+      'Canopes du Renard': 'Canopes',
+      'Marche des Pins': 'Pins',
+      'Val des Mousses': 'Mousses',
+      'Couronne Verte': 'Couronne',
+      'Passe des Lucioles': 'Lucioles',
+      "Porte d'Acier": 'Porte Acier',
+      'Bassin des Forges': 'Forges',
+      'Baie du Marteau': 'Marteau',
+      'Oasis des Nomades': 'Oasis',
+      'Mer de Verre': 'Verre',
+      "Riziere de l'Est": 'Riziere Est',
+      'Baie des Lanternes': 'Lanternes',
+      'Cote des Vents': 'Vents',
+      'Archipel Sud': 'Archipel',
+      'Autel des Masques': 'Masques',
+      'Fort de Brume': 'Brume'
+    };
+    return compact[name] || name;
   }
 
   function isSelectableTerritory(territory){
@@ -470,7 +1107,8 @@
     const neighbors = territory.neighbors.map(id => {
       const neighborState = territoryState(id);
       const neighborOwner = playerById(neighborState.owner);
-      return `${byId(id).name} (${neighborOwner.name}, ${neighborState.troops})`;
+      const bridge = territory.bridgeNeighbors.includes(id) ? ' bridge' : '';
+      return `${byId(id).name}${bridge} (${neighborOwner.name}, ${neighborState.troops})`;
     }).join(', ');
 
     dom.territoryInfo.innerHTML = `
@@ -489,8 +1127,8 @@
       const territories = ownedTerritories(player.id).length;
       const troops = territoryTroops(player.id);
       return `<div class="player-row ${player.alive ? '' : 'defeated'}" style="color:${player.color}">
-        <strong>${escapeHtml(player.name)}</strong>
-        <span>${escapeHtml(player.faction)} · ${player.type === 'ai' ? 'AI' : 'Human'} · ${territories} territories · ${troops} armies · ${player.cards.length} cards</span>
+        <strong><span style="background:${player.color}">${escapeHtml(player.leader.mark)}</span> ${escapeHtml(player.name)}</strong>
+        <span>${escapeHtml(player.leader.title)} · ${escapeHtml(player.faction)} · ${player.type === 'ai' ? 'AI' : 'Human'} · ${territories} territories · ${troops} armies · ${player.cards.length} cards</span>
       </div>`;
     }).join('');
   }
@@ -636,6 +1274,8 @@
     const defenseRolls = Array.from({ length: defenderDice }, () => roll(6)).sort((a, b) => b - a);
     const comparisons = Math.min(attackRolls.length, defenseRolls.length);
     const summary = { attackerLosses: 0, defenderLosses: 0, captured: false };
+    const originId = origin.id;
+    const targetId = target.id;
 
     for(let i = 0; i < comparisons; i += 1){
       if(attackRolls[i] > defenseRolls[i]){
@@ -667,6 +1307,11 @@
       addLog(`${originName} attacks ${targetName}: ${attackRolls.join('-')} against ${defenseRolls.join('-')} (${summary.defenderLosses}/${summary.attackerLosses}).`);
     }
 
+    if(!silent){
+      showBattleRoll(originId, targetId, attackRolls, defenseRolls, summary);
+      animateAttack(originId, targetId, summary.captured);
+    }
+
     return summary;
   }
 
@@ -693,6 +1338,13 @@
     }
 
     addLog(`${originName} blitzes ${targetName}: ${defenderLosses} defense losses, ${attackerLosses} attack losses${captured ? ', conquest successful' : ''}.`);
+    dom.battleHud.innerHTML = `
+      <strong>${escapeHtml(shortName(originName))} -> ${escapeHtml(shortName(targetName))}</strong>
+      <div class="dice-line"><span>Blitz</span><b>${rounds}</b><span>rounds</span></div>
+      <small>${defenderLosses} defense losses · ${attackerLosses} attack losses${captured ? ' · conquest' : ''}</small>
+    `;
+    dom.battleHud.classList.add('visible');
+    animateAttack(origin.id, target.id, captured);
     if(captured) notice(`${targetName} conquis par blitz.`);
     render();
   }
@@ -957,6 +1609,7 @@
   function shuffleSetup(){
     [...dom.slots.querySelectorAll('.slot')].forEach((slot, index) => {
       slot.querySelector('[data-field="faction"]').value = FACTIONS[Math.floor(Math.random() * FACTIONS.length)];
+      slot.querySelector('[data-field="leader"]').value = String((index + Math.floor(Math.random() * LEADERS.length)) % LEADERS.length);
       if(index !== 0) slot.querySelector('[data-field="type"]').value = Math.random() > .16 ? 'ai' : 'closed';
     });
   }

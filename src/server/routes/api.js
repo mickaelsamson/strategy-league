@@ -3,7 +3,14 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { GAME_ACCESS_DEFAULTS, GAME_CATALOG } = require('../config/constants');
-const { normalizeGameAccess, saveAdminSettings } = require('../state');
+const {
+  getTournamentSettings,
+  getWeeklyChallengeSettings,
+  normalizeGameAccess,
+  normalizeTournament,
+  normalizeWeeklyChallenge,
+  saveAdminSettings
+} = require('../state');
 const { authCookieHeader, clearAuthCookieHeader, createAuthToken } = require('../services/auth-service');
 const { sendPasswordResetEmail } = require('../services/email-service');
 const {
@@ -187,7 +194,9 @@ function createAccessResponse(state, isGameAllowed, actor){
 
   return {
     enabled: state.manualOverride !== false,
-    access
+    access,
+    weeklyChallenge: getWeeklyChallengeSettings(),
+    tournament: getTournamentSettings()
   };
 }
 
@@ -494,6 +503,55 @@ function createApiRouter({ User, state, isGameAllowed, io }){
     res.json(createAccessResponse(state, isGameAllowed, req.authUser));
   });
 
+  router.get('/admin/settings', async (req, res)=>{
+    if(!isAdminRequest(req)){
+      return res.status(403).json({ error: 'Admin required' });
+    }
+
+    res.json(createAccessResponse(state, isGameAllowed, req.authUser));
+  });
+
+  router.post('/admin/settings', async (req, res)=>{
+    try{
+      if(!isAdminRequest(req)){
+        return res.status(403).json({ error: 'Admin required' });
+      }
+
+      if(typeof req.body.enabled === 'boolean'){
+        state.manualOverride = req.body.enabled;
+      }
+      if(req.body.access && typeof req.body.access === 'object' && !Array.isArray(req.body.access)){
+        state.gameAccess = normalizeGameAccess(req.body.access);
+      }
+      if(req.body.weeklyChallenge && typeof req.body.weeklyChallenge === 'object'){
+        state.weeklyChallenge = normalizeWeeklyChallenge(req.body.weeklyChallenge);
+      }
+      if(req.body.tournament && typeof req.body.tournament === 'object'){
+        state.tournament = normalizeTournament(req.body.tournament);
+      }
+
+      if(state.manualOverride === false){
+        clearAllLobbies(state, io);
+      }else{
+        Object.entries(state.gameAccess).forEach(([key, config]) => {
+          if(config.enabled === false){
+            clearGameLobbies(state, io, key);
+          }
+        });
+      }
+
+      saveAdminSettings(state);
+      res.json({
+        success: true,
+        saved: true,
+        ...createAccessResponse(state, isGameAllowed, req.authUser)
+      });
+    }catch(err){
+      console.error('Admin settings update error:', err);
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+
   router.post('/admin/game-access', async (req, res)=>{
     try{
       if(!isAdminRequest(req)){
@@ -503,6 +561,12 @@ function createApiRouter({ User, state, isGameAllowed, io }){
       if(req.body.access && typeof req.body.access === 'object' && !Array.isArray(req.body.access)){
         state.manualOverride = typeof req.body.enabled === 'boolean' ? req.body.enabled : state.manualOverride;
         state.gameAccess = normalizeGameAccess(req.body.access);
+        if(req.body.weeklyChallenge && typeof req.body.weeklyChallenge === 'object'){
+          state.weeklyChallenge = normalizeWeeklyChallenge(req.body.weeklyChallenge);
+        }
+        if(req.body.tournament && typeof req.body.tournament === 'object'){
+          state.tournament = normalizeTournament(req.body.tournament);
+        }
 
         if(state.manualOverride === false){
           clearAllLobbies(state, io);
@@ -527,11 +591,13 @@ function createApiRouter({ User, state, isGameAllowed, io }){
         return res.status(400).json({ error: 'Unknown game.' });
       }
 
+      const previousConfig = state.gameAccess[gameKey] || GAME_ACCESS_DEFAULTS[gameKey];
       state.gameAccess[gameKey] = {
-        ...(state.gameAccess[gameKey] || GAME_ACCESS_DEFAULTS[gameKey]),
-        enabled: typeof req.body.enabled === 'boolean' ? req.body.enabled : GAME_ACCESS_DEFAULTS[gameKey].enabled,
-        adminOnly: typeof req.body.adminOnly === 'boolean' ? req.body.adminOnly : GAME_ACCESS_DEFAULTS[gameKey].adminOnly,
-        comingSoon: typeof req.body.comingSoon === 'boolean' ? req.body.comingSoon : GAME_ACCESS_DEFAULTS[gameKey].comingSoon
+        ...previousConfig,
+        enabled: typeof req.body.enabled === 'boolean' ? req.body.enabled : previousConfig.enabled,
+        adminOnly: typeof req.body.adminOnly === 'boolean' ? req.body.adminOnly : previousConfig.adminOnly,
+        comingSoon: typeof req.body.comingSoon === 'boolean' ? req.body.comingSoon : previousConfig.comingSoon,
+        noXp: typeof req.body.noXp === 'boolean' ? req.body.noXp : previousConfig.noXp
       };
 
       if(state.gameAccess[gameKey].enabled === false){
@@ -574,7 +640,7 @@ function createApiRouter({ User, state, isGameAllowed, io }){
         return res.status(404).json({ error: 'Player not found.' });
       }
 
-      const xpResult = applyXpDelta(target, 'chess', amount, { allowBonus: false });
+      const xpResult = applyXpDelta(target, 'chess', amount, { allowBonus: false, ignoreNoXp: true });
       target.matchHistory = target.matchHistory || [];
       target.matchHistory.unshift({
         result: amount >= 0 ? 'draw' : 'loss',

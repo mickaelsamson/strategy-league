@@ -100,7 +100,7 @@ select{
 
 .slot{
   display:grid;
-  grid-template-columns:34px 1fr 120px 112px;
+  grid-template-columns:34px minmax(120px, 1fr) 124px 120px 112px;
   gap:8px;
   align-items:end;
   padding:10px;
@@ -355,6 +355,16 @@ button:disabled{
   z-index:2;
 }
 
+.fx-layer{
+  position:relative;
+  z-index:3;
+  width:100%;
+  height:100%;
+  display:block;
+  grid-area:1 / 1;
+  pointer-events:none;
+}
+
 .connection-line{
   stroke:rgba(238,232,202,.34);
   stroke-width:3;
@@ -366,6 +376,16 @@ button:disabled{
 .connection-line.front{
   stroke:rgba(219,65,79,.72);
   stroke-width:5;
+}
+
+.connection-line.bridge{
+  stroke:#f0c76e;
+  stroke-width:4;
+  stroke-dasharray:16 10;
+}
+
+.connection-line.bridge.front{
+  stroke:#ff7f5a;
 }
 
 .connection-line.owned{
@@ -418,14 +438,111 @@ button:disabled{
   dominant-baseline:central;
 }
 
+.territory-token .commander-mark{
+  fill:#fff1b8;
+  stroke:#101419;
+  stroke-width:3;
+  font-size:14px;
+}
+
 .territory-label{
   fill:#fff4cc;
   stroke:#111;
   stroke-width:3;
   paint-order:stroke;
-  font:900 15px Trebuchet MS, sans-serif;
+  font:900 13px Trebuchet MS, sans-serif;
   text-anchor:middle;
   pointer-events:none;
+}
+
+.attack-vector{
+  stroke:#fff1b8;
+  stroke-width:9;
+  stroke-linecap:round;
+  stroke-dasharray:1 28;
+  filter:drop-shadow(0 0 10px rgba(255,241,184,.95));
+  animation:attackVector .72s ease-out forwards;
+}
+
+.attack-vector.captured{
+  stroke:#8ee1bb;
+}
+
+.attack-spark{
+  fill:none;
+  stroke:#ff5964;
+  stroke-width:8;
+  filter:drop-shadow(0 0 14px rgba(255,89,100,.9));
+  transform-box:fill-box;
+  transform-origin:center;
+  animation:attackSpark .72s ease-out forwards;
+}
+
+.attack-spark.captured{
+  stroke:#8ee1bb;
+}
+
+.battle-hud{
+  position:absolute;
+  right:14px;
+  top:14px;
+  min-width:220px;
+  padding:10px;
+  border:2px solid rgba(255,241,184,.28);
+  border-radius:8px;
+  background:rgba(15,19,24,.9);
+  color:#fff;
+  box-shadow:0 10px 28px rgba(0,0,0,.34);
+  opacity:0;
+  transform:translateY(-6px);
+  transition:opacity .18s ease, transform .18s ease;
+  z-index:6;
+}
+
+.battle-hud.visible{
+  opacity:1;
+  transform:translateY(0);
+}
+
+.battle-hud strong,
+.battle-hud small{
+  display:block;
+}
+
+.battle-hud small{
+  color:#d0cabc;
+  font-weight:800;
+}
+
+.dice-line{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin:6px 0;
+  color:#d0cabc;
+  font-size:12px;
+  font-weight:900;
+}
+
+.die,
+.dice-line b{
+  width:30px;
+  height:30px;
+  display:grid;
+  place-items:center;
+  border-radius:7px;
+  color:#101419;
+  background:#f7f0da;
+  box-shadow:inset 0 -4px 0 rgba(0,0,0,.16);
+  font:900 17px Trebuchet MS, sans-serif;
+}
+
+.die.attack{
+  background:#ffb0b7;
+}
+
+.die.defend{
+  background:#aee6ff;
 }
 
 .notice{
@@ -478,6 +595,17 @@ button:disabled{
   color:white;
 }
 
+.player-row strong span{
+  display:inline-grid;
+  width:26px;
+  height:26px;
+  place-items:center;
+  margin-right:6px;
+  border-radius:50%;
+  color:#101419;
+  font-size:11px;
+}
+
 .player-row span,
 .region-row span,
 .card-row span,
@@ -513,6 +641,31 @@ button:disabled{
 
 .log-entry{
   line-height:1.35;
+}
+
+@keyframes attackVector{
+  from{
+    stroke-dashoffset:140;
+    opacity:0;
+  }
+  18%{
+    opacity:1;
+  }
+  to{
+    stroke-dashoffset:0;
+    opacity:0;
+  }
+}
+
+@keyframes attackSpark{
+  from{
+    transform:scale(.3);
+    opacity:.95;
+  }
+  to{
+    transform:scale(1.45);
+    opacity:0;
+  }
 }
 
 @media (max-width:1180px){

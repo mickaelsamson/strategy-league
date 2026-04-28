@@ -223,9 +223,15 @@ async function loadRules(){
     const thresholds = Array.isArray(data.levelThresholds) ? data.levelThresholds : [];
     const lastLevel = thresholds.length;
     const lastXp = thresholds[thresholds.length - 1] || 0;
+    const weekly = data.weeklyChallenge || {};
+    const weeklyCopy = !weekly.enabled
+      ? "Weekly Challenge is currently disabled by admin."
+      : weekly.mode === "multi_game_bonus"
+        ? `Weekly Challenge: play ${Array.isArray(weekly.games) ? weekly.games.map(game => game.name).join(", ") : "the selected games"} without surrender to earn ${weekly.extraXp || 0} extra XP.`
+        : `Weekly Challenge: ${weekly.name || "the featured game"} grants double positive match XP.`;
     document.getElementById("levelRules").innerHTML = `
       <p>Leveling uses fixed total XP thresholds from Level 1 to Level ${lastLevel}. Level 1 starts at 0 XP, and Level ${lastLevel} starts at ${lastXp} XP.</p>
-      <p>Weekly Challenge bonus: positive results on the featured eligible game grant an extra reward equal to that game's normal XP gain.</p>
+      <p>${escapeHtml(weeklyCopy)}</p>
       <p>Abandon always applies a ${Math.abs(rules.chess?.abandonPenalty || 10)} XP penalty, regardless of the game.</p>
     `;
   }catch(err){

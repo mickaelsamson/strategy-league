@@ -1,4 +1,5 @@
 const { GAME_CATALOG, LEVEL_THRESHOLDS, XP_RULES } = require('../config/constants');
+const { getGameConfig, getWeeklyChallengeSettings } = require('../state');
 
 function computeEloDelta(winnerElo, loserElo, kFactor = 32){
   const expectedWinner = 1 / (1 + Math.pow(10, (loserElo - winnerElo) / 400));
@@ -36,9 +37,42 @@ function getDayId(date = new Date()){
 
 function getGameOfWeek(date = new Date()){
   const weekId = getWeekId(date);
+  const settings = getWeeklyChallengeSettings();
   const index = hashString(`strategy-league:${weekId}`) % GAME_OF_WEEK_GAMES.length;
+  const fallbackGame = GAME_OF_WEEK_GAMES[index];
+  const configuredGame = GAME_CATALOG[settings.doubleXpGameKey] || null;
+  const selectedGames = settings.selectedGameKeys
+    .map(key => GAME_CATALOG[key])
+    .filter(Boolean)
+    .map(game => ({
+      key: game.key,
+      name: game.name,
+      url: game.url
+    }));
+
+  if(settings.enabled && settings.mode === 'multi_game_bonus'){
+    return {
+      enabled: true,
+      mode: settings.mode,
+      key: selectedGames[0]?.key || fallbackGame.key,
+      name: 'Weekly Circuit',
+      url: '/games.html',
+      xpEnabled: true,
+      weekId,
+      selectedGameKeys: selectedGames.map(game => game.key),
+      games: selectedGames,
+      extraXp: settings.extraXp
+    };
+  }
+
+  const game = configuredGame
+    ? { key: configuredGame.key, name: configuredGame.name, url: configuredGame.url, xpEnabled: true }
+    : fallbackGame;
+
   return {
-    ...GAME_OF_WEEK_GAMES[index],
+    enabled: settings.enabled,
+    mode: 'double_xp',
+    ...game,
     weekId
   };
 }
@@ -59,14 +93,18 @@ function isAbandonReason(reason){
   return ['resign', 'disconnect', 'timeout', 'abandon', 'surrender'].includes(reason);
 }
 
-function resolveMatchXp(user, gameKey, outcome){
+function isSurrenderReason(reason){
+  return ['resign', 'abandon', 'surrender'].includes(reason);
+}
+
+function resolveMatchXp(user, gameKey, outcome, options = {}){
   const rule = getXpRule(gameKey);
   if(!rule){
-    return { total: 0, bonus: 0 };
+    return { total: 0, bonus: 0, weeklyChallengeBonus: 0 };
   }
 
   if(outcome === 'abandon'){
-    return applyXpDelta(user, gameKey, rule.abandonPenalty, { allowBonus: false });
+    return applyXpDelta(user, gameKey, rule.abandonPenalty, { allowBonus: false, reason: options.reason });
   }
 
   const amount = outcome === 'win'
@@ -75,26 +113,57 @@ function resolveMatchXp(user, gameKey, outcome){
       ? rule.loss
       : rule.draw;
 
-  return applyXpDelta(user, gameKey, amount, { allowBonus: true });
+  return applyXpDelta(user, gameKey, amount, { allowBonus: true, reason: options.reason });
 }
 
 function applyXpDelta(user, gameKey, amount, options = {}){
+  const gameConfig = getGameConfig(gameKey);
+  if(gameConfig.noXp && options.ignoreNoXp !== true){
+    return { total: 0, bonus: 0, weeklyChallengeBonus: 0 };
+  }
+
   const numericAmount = Math.round(Number(amount) || 0);
   const allowBonus = options.allowBonus !== false;
   const gameOfWeek = getGameOfWeek();
   const today = getDayId();
   let bonus = 0;
+  let weeklyChallengeBonus = 0;
 
-  if(numericAmount > 0 && allowBonus && gameOfWeek.key === gameKey && gameOfWeek.xpEnabled){
+  if(numericAmount > 0 && allowBonus && gameOfWeek.enabled && gameOfWeek.mode === 'double_xp' && gameOfWeek.key === gameKey && gameOfWeek.xpEnabled){
+    bonus = numericAmount;
+    user.gameOfWeekBonus = { date: today, gameKey };
+  }
+
+  if(numericAmount > 0 && allowBonus && gameOfWeek.enabled && gameOfWeek.mode === 'multi_game_bonus'){
+    const selectedGameKeys = Array.isArray(gameOfWeek.selectedGameKeys) ? gameOfWeek.selectedGameKeys : [];
+    const challengeId = `${gameOfWeek.weekId}:${selectedGameKeys.join(',')}:${gameOfWeek.extraXp}`;
     const previous = user.gameOfWeekBonus || {};
-    if(previous.date !== today || previous.gameKey !== gameKey){
-      bonus = numericAmount;
-      user.gameOfWeekBonus = { date: today, gameKey };
+    const previousAward = user.weeklyChallengeAward || {};
+    const playedGames = new Set(
+      (user.matchHistory || [])
+        .filter(entry => entry?.playedAt && new Date(entry.playedAt) >= new Date(`${gameOfWeek.weekId}T00:00:00.000Z`))
+        .filter(entry => selectedGameKeys.includes(entry.gameKey))
+        .filter(entry => !isSurrenderReason(entry.reason))
+        .map(entry => entry.gameKey)
+    );
+
+    if(selectedGameKeys.includes(gameKey) && !isSurrenderReason(options.reason)){
+      playedGames.add(gameKey);
+    }
+
+    if(
+      selectedGameKeys.length > 0 &&
+      selectedGameKeys.every(key => playedGames.has(key)) &&
+      (previousAward.weekId !== gameOfWeek.weekId || previousAward.challengeId !== challengeId)
+    ){
+      weeklyChallengeBonus = Math.max(0, Math.round(Number(gameOfWeek.extraXp) || 0));
+      user.weeklyChallengeAward = { weekId: gameOfWeek.weekId, challengeId };
+      user.gameOfWeekBonus = { date: previous.date || today, gameKey: previous.gameKey || gameKey };
     }
   }
 
-  user.xp = clampXp((user.xp || 0) + numericAmount + bonus);
-  return { total: numericAmount + bonus, bonus };
+  user.xp = clampXp((user.xp || 0) + numericAmount + bonus + weeklyChallengeBonus);
+  return { total: numericAmount + bonus + weeklyChallengeBonus, bonus, weeklyChallengeBonus };
 }
 
 function pushHistoryEntry(user, entry){
@@ -158,8 +227,8 @@ function getAzulScoreFinal(game){
   return game.players.map(player => `${player.username} ${player.score || 0}`).join(' - ');
 }
 
-function resultPayload(username, result, xpChange, eloChange, gameOfWeekBonus = 0){
-  return { username, result, xpChange, eloChange, gameOfWeekBonus };
+function resultPayload(username, result, xpChange, eloChange, gameOfWeekBonus = 0, weeklyChallengeBonus = 0){
+  return { username, result, xpChange, eloChange, gameOfWeekBonus, weeklyChallengeBonus };
 }
 
 function buildRatingsPayload(user){
@@ -238,22 +307,22 @@ async function applyRankedResult(User, game, winnerUsername, reason = 'game_end'
     ]);
     if(!userA || !userB) return;
 
-    const userAXp = resolveMatchXp(userA, 'chess', 'draw');
-    const userBXp = resolveMatchXp(userB, 'chess', 'draw');
+    const userAXp = resolveMatchXp(userA, 'chess', 'draw', { reason });
+    const userBXp = resolveMatchXp(userB, 'chess', 'draw', { reason });
     userA.draws = (userA.draws || 0) + 1;
     userB.draws = (userB.draws || 0) + 1;
 
     const scoreFinal = getChessScoreFinal(game, null);
-    pushHistoryEntry(userA, { result: 'draw', opponent: userB.username, xpChange: userAXp.total, reason, gameKey: 'chess', gameName: 'Chess', scoreFinal, eloChange: 0, gameOfWeekBonus: userAXp.bonus });
-    pushHistoryEntry(userB, { result: 'draw', opponent: userA.username, xpChange: userBXp.total, reason, gameKey: 'chess', gameName: 'Chess', scoreFinal, eloChange: 0, gameOfWeekBonus: userBXp.bonus });
+    pushHistoryEntry(userA, { result: 'draw', opponent: userB.username, xpChange: userAXp.total, reason, gameKey: 'chess', gameName: 'Chess', scoreFinal, eloChange: 0, gameOfWeekBonus: userAXp.bonus, weeklyChallengeBonus: userAXp.weeklyChallengeBonus });
+    pushHistoryEntry(userB, { result: 'draw', opponent: userA.username, xpChange: userBXp.total, reason, gameKey: 'chess', gameName: 'Chess', scoreFinal, eloChange: 0, gameOfWeekBonus: userBXp.bonus, weeklyChallengeBonus: userBXp.weeklyChallengeBonus });
 
     await Promise.all([userA.save(), userB.save()]);
     game.rated = true;
     game.result = { winner: null, loser: null, reason, eloDelta: 0 };
     return {
       players: {
-        [userA.username]: resultPayload(userA.username, 'draw', userAXp.total, 0, userAXp.bonus),
-        [userB.username]: resultPayload(userB.username, 'draw', userBXp.total, 0, userBXp.bonus)
+        [userA.username]: resultPayload(userA.username, 'draw', userAXp.total, 0, userAXp.bonus, userAXp.weeklyChallengeBonus),
+        [userB.username]: resultPayload(userB.username, 'draw', userBXp.total, 0, userBXp.bonus, userBXp.weeklyChallengeBonus)
       }
     };
   }
@@ -273,22 +342,22 @@ async function applyRankedResult(User, game, winnerUsername, reason = 'game_end'
   setUserElo(winnerUser, 'chess', winnerElo + eloDelta);
   setUserElo(loserUser, 'chess', loserElo - eloDelta);
 
-  const winnerXp = resolveMatchXp(winnerUser, 'chess', 'win');
-  const loserXp = resolveMatchXp(loserUser, 'chess', isAbandonReason(reason) ? 'abandon' : 'loss');
+  const winnerXp = resolveMatchXp(winnerUser, 'chess', 'win', { reason });
+  const loserXp = resolveMatchXp(loserUser, 'chess', isAbandonReason(reason) ? 'abandon' : 'loss', { reason });
   winnerUser.wins = (winnerUser.wins || 0) + 1;
   loserUser.losses = (loserUser.losses || 0) + 1;
 
   const scoreFinal = getChessScoreFinal(game, winnerUsername);
-  pushHistoryEntry(winnerUser, { result: 'win', opponent: loserUser.username, xpChange: winnerXp.total, reason, gameKey: 'chess', gameName: 'Chess', scoreFinal, eloChange: eloDelta, gameOfWeekBonus: winnerXp.bonus });
-  pushHistoryEntry(loserUser, { result: 'loss', opponent: winnerUser.username, xpChange: loserXp.total, reason, gameKey: 'chess', gameName: 'Chess', scoreFinal, eloChange: -eloDelta, gameOfWeekBonus: loserXp.bonus });
+  pushHistoryEntry(winnerUser, { result: 'win', opponent: loserUser.username, xpChange: winnerXp.total, reason, gameKey: 'chess', gameName: 'Chess', scoreFinal, eloChange: eloDelta, gameOfWeekBonus: winnerXp.bonus, weeklyChallengeBonus: winnerXp.weeklyChallengeBonus });
+  pushHistoryEntry(loserUser, { result: 'loss', opponent: winnerUser.username, xpChange: loserXp.total, reason, gameKey: 'chess', gameName: 'Chess', scoreFinal, eloChange: -eloDelta, gameOfWeekBonus: loserXp.bonus, weeklyChallengeBonus: loserXp.weeklyChallengeBonus });
 
   await Promise.all([winnerUser.save(), loserUser.save()]);
   game.rated = true;
   game.result = { winner: winnerUsername, loser: loser.username, reason, eloDelta };
   return {
     players: {
-      [winnerUser.username]: resultPayload(winnerUser.username, 'win', winnerXp.total, eloDelta, winnerXp.bonus),
-      [loserUser.username]: resultPayload(loserUser.username, 'loss', loserXp.total, -eloDelta, loserXp.bonus)
+      [winnerUser.username]: resultPayload(winnerUser.username, 'win', winnerXp.total, eloDelta, winnerXp.bonus, winnerXp.weeklyChallengeBonus),
+      [loserUser.username]: resultPayload(loserUser.username, 'loss', loserXp.total, -eloDelta, loserXp.bonus, loserXp.weeklyChallengeBonus)
     }
   };
 }
@@ -311,34 +380,34 @@ async function applyOthelloResult(User, game, winnerColor, reason = 'game_end'){
   const scoreFinal = getOthelloScoreFinal(game);
 
   if(!winnerColor){
-    const blackXp = resolveMatchXp(blackUser, 'othello', 'draw');
-    const whiteXp = resolveMatchXp(whiteUser, 'othello', 'draw');
+    const blackXp = resolveMatchXp(blackUser, 'othello', 'draw', { reason });
+    const whiteXp = resolveMatchXp(whiteUser, 'othello', 'draw', { reason });
     blackUser.draws = (blackUser.draws || 0) + 1;
     whiteUser.draws = (whiteUser.draws || 0) + 1;
-    pushHistoryEntry(blackUser, { result: 'draw', opponent: whiteUser.username, xpChange: blackXp.total, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: 0, gameOfWeekBonus: blackXp.bonus });
-    pushHistoryEntry(whiteUser, { result: 'draw', opponent: blackUser.username, xpChange: whiteXp.total, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: 0, gameOfWeekBonus: whiteXp.bonus });
+    pushHistoryEntry(blackUser, { result: 'draw', opponent: whiteUser.username, xpChange: blackXp.total, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: 0, gameOfWeekBonus: blackXp.bonus, weeklyChallengeBonus: blackXp.weeklyChallengeBonus });
+    pushHistoryEntry(whiteUser, { result: 'draw', opponent: blackUser.username, xpChange: whiteXp.total, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: 0, gameOfWeekBonus: whiteXp.bonus, weeklyChallengeBonus: whiteXp.weeklyChallengeBonus });
     game.result = { winner: null, loser: null, reason, eloDelta: 0 };
   } else if(winnerColor === 'black'){
     const eloDelta = computeEloDelta(blackElo, whiteElo);
     setUserElo(blackUser, 'othello', blackElo + eloDelta);
     setUserElo(whiteUser, 'othello', whiteElo - eloDelta);
-    const blackXp = resolveMatchXp(blackUser, 'othello', 'win');
-    const whiteXp = resolveMatchXp(whiteUser, 'othello', isAbandonReason(reason) ? 'abandon' : 'loss');
+    const blackXp = resolveMatchXp(blackUser, 'othello', 'win', { reason });
+    const whiteXp = resolveMatchXp(whiteUser, 'othello', isAbandonReason(reason) ? 'abandon' : 'loss', { reason });
     blackUser.wins = (blackUser.wins || 0) + 1;
     whiteUser.losses = (whiteUser.losses || 0) + 1;
-    pushHistoryEntry(blackUser, { result: 'win', opponent: whiteUser.username, xpChange: blackXp.total, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: eloDelta, gameOfWeekBonus: blackXp.bonus });
-    pushHistoryEntry(whiteUser, { result: 'loss', opponent: blackUser.username, xpChange: whiteXp.total, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: -eloDelta, gameOfWeekBonus: whiteXp.bonus });
+    pushHistoryEntry(blackUser, { result: 'win', opponent: whiteUser.username, xpChange: blackXp.total, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: eloDelta, gameOfWeekBonus: blackXp.bonus, weeklyChallengeBonus: blackXp.weeklyChallengeBonus });
+    pushHistoryEntry(whiteUser, { result: 'loss', opponent: blackUser.username, xpChange: whiteXp.total, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: -eloDelta, gameOfWeekBonus: whiteXp.bonus, weeklyChallengeBonus: whiteXp.weeklyChallengeBonus });
     game.result = { winner: blackUser.username, loser: whiteUser.username, reason, eloDelta };
   } else {
     const eloDelta = computeEloDelta(whiteElo, blackElo);
     setUserElo(whiteUser, 'othello', whiteElo + eloDelta);
     setUserElo(blackUser, 'othello', blackElo - eloDelta);
-    const whiteXp = resolveMatchXp(whiteUser, 'othello', 'win');
-    const blackXp = resolveMatchXp(blackUser, 'othello', isAbandonReason(reason) ? 'abandon' : 'loss');
+    const whiteXp = resolveMatchXp(whiteUser, 'othello', 'win', { reason });
+    const blackXp = resolveMatchXp(blackUser, 'othello', isAbandonReason(reason) ? 'abandon' : 'loss', { reason });
     whiteUser.wins = (whiteUser.wins || 0) + 1;
     blackUser.losses = (blackUser.losses || 0) + 1;
-    pushHistoryEntry(whiteUser, { result: 'win', opponent: blackUser.username, xpChange: whiteXp.total, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: eloDelta, gameOfWeekBonus: whiteXp.bonus });
-    pushHistoryEntry(blackUser, { result: 'loss', opponent: whiteUser.username, xpChange: blackXp.total, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: -eloDelta, gameOfWeekBonus: blackXp.bonus });
+    pushHistoryEntry(whiteUser, { result: 'win', opponent: blackUser.username, xpChange: whiteXp.total, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: eloDelta, gameOfWeekBonus: whiteXp.bonus, weeklyChallengeBonus: whiteXp.weeklyChallengeBonus });
+    pushHistoryEntry(blackUser, { result: 'loss', opponent: whiteUser.username, xpChange: blackXp.total, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: -eloDelta, gameOfWeekBonus: blackXp.bonus, weeklyChallengeBonus: blackXp.weeklyChallengeBonus });
     game.result = { winner: whiteUser.username, loser: blackUser.username, reason, eloDelta };
   }
 
@@ -353,14 +422,16 @@ async function applyOthelloResult(User, game, winnerColor, reason = 'game_end'){
         !winnerColor ? 'draw' : winnerColor === 'black' ? 'win' : 'loss',
         blackHistory.xpChange || 0,
         !winnerColor ? 0 : winnerColor === 'black' ? game.result.eloDelta : -game.result.eloDelta,
-        blackHistory.gameOfWeekBonus || 0
+        blackHistory.gameOfWeekBonus || 0,
+        blackHistory.weeklyChallengeBonus || 0
       ),
       [whiteUser.username]: resultPayload(
         whiteUser.username,
         !winnerColor ? 'draw' : winnerColor === 'white' ? 'win' : 'loss',
         whiteHistory.xpChange || 0,
         !winnerColor ? 0 : winnerColor === 'white' ? game.result.eloDelta : -game.result.eloDelta,
-        whiteHistory.gameOfWeekBonus || 0
+        whiteHistory.gameOfWeekBonus || 0,
+        whiteHistory.weeklyChallengeBonus || 0
       )
     }
   };
@@ -379,10 +450,10 @@ async function applyAzulResult(User, game, winnerUsername, reason = 'game_end'){
   if(!winnerUsername){
     users.forEach(user => {
       const opponents = users.filter(other => other.username !== user.username).map(other => other.username).join(', ');
-      const xp = resolveMatchXp(user, 'azul', 'draw');
+      const xp = resolveMatchXp(user, 'azul', 'draw', { reason });
       user.draws = (user.draws || 0) + 1;
-      pushHistoryEntry(user, { result: 'draw', opponent: opponents || 'Table', xpChange: xp.total, reason, gameKey: 'azul', gameName: 'Azul', scoreFinal, eloChange: 0, gameOfWeekBonus: xp.bonus });
-      payload[user.username] = resultPayload(user.username, 'draw', xp.total, 0, xp.bonus);
+      pushHistoryEntry(user, { result: 'draw', opponent: opponents || 'Table', xpChange: xp.total, reason, gameKey: 'azul', gameName: 'Azul', scoreFinal, eloChange: 0, gameOfWeekBonus: xp.bonus, weeklyChallengeBonus: xp.weeklyChallengeBonus });
+      payload[user.username] = resultPayload(user.username, 'draw', xp.total, 0, xp.bonus, xp.weeklyChallengeBonus);
     });
     game.result = { winner: null, loser: null, reason, eloDelta: 0 };
     await Promise.all(users.map(user => user.save()));
@@ -401,18 +472,18 @@ async function applyAzulResult(User, game, winnerUsername, reason = 'game_end'){
   ));
 
   setUserElo(winnerUser, 'azul', winnerElo + eloDelta);
-  const winnerXp = resolveMatchXp(winnerUser, 'azul', 'win');
+  const winnerXp = resolveMatchXp(winnerUser, 'azul', 'win', { reason });
   winnerUser.wins = (winnerUser.wins || 0) + 1;
-  pushHistoryEntry(winnerUser, { result: 'win', opponent: loserUsers.map(user => user.username).join(', ') || 'Table', xpChange: winnerXp.total, reason, gameKey: 'azul', gameName: 'Azul', scoreFinal, eloChange: eloDelta, gameOfWeekBonus: winnerXp.bonus });
-  payload[winnerUser.username] = resultPayload(winnerUser.username, 'win', winnerXp.total, eloDelta, winnerXp.bonus);
+  pushHistoryEntry(winnerUser, { result: 'win', opponent: loserUsers.map(user => user.username).join(', ') || 'Table', xpChange: winnerXp.total, reason, gameKey: 'azul', gameName: 'Azul', scoreFinal, eloChange: eloDelta, gameOfWeekBonus: winnerXp.bonus, weeklyChallengeBonus: winnerXp.weeklyChallengeBonus });
+  payload[winnerUser.username] = resultPayload(winnerUser.username, 'win', winnerXp.total, eloDelta, winnerXp.bonus, winnerXp.weeklyChallengeBonus);
 
   loserUsers.forEach(loserUser => {
     const loserElo = getUserElo(loserUser, 'azul');
     setUserElo(loserUser, 'azul', loserElo - eloDelta);
-    const loserXp = resolveMatchXp(loserUser, 'azul', isAbandonReason(reason) ? 'abandon' : 'loss');
+    const loserXp = resolveMatchXp(loserUser, 'azul', isAbandonReason(reason) ? 'abandon' : 'loss', { reason });
     loserUser.losses = (loserUser.losses || 0) + 1;
-    pushHistoryEntry(loserUser, { result: 'loss', opponent: winnerUser.username, xpChange: loserXp.total, reason, gameKey: 'azul', gameName: 'Azul', scoreFinal, eloChange: -eloDelta, gameOfWeekBonus: loserXp.bonus });
-    payload[loserUser.username] = resultPayload(loserUser.username, 'loss', loserXp.total, -eloDelta, loserXp.bonus);
+    pushHistoryEntry(loserUser, { result: 'loss', opponent: winnerUser.username, xpChange: loserXp.total, reason, gameKey: 'azul', gameName: 'Azul', scoreFinal, eloChange: -eloDelta, gameOfWeekBonus: loserXp.bonus, weeklyChallengeBonus: loserXp.weeklyChallengeBonus });
+    payload[loserUser.username] = resultPayload(loserUser.username, 'loss', loserXp.total, -eloDelta, loserXp.bonus, loserXp.weeklyChallengeBonus);
   });
 
   await Promise.all(users.map(user => user.save()));
@@ -442,7 +513,7 @@ async function applyStructuredGameResult(User, options = {}){
 
   if(!winnerUsername){
     users.forEach(user => {
-      const xp = resolveMatchXp(user, gameKey, 'draw');
+      const xp = resolveMatchXp(user, gameKey, 'draw', { reason });
       user.draws = (user.draws || 0) + 1;
       const opponents = users.filter(other => other.username !== user.username).map(other => other.username).join(', ') || 'Table';
       pushHistoryEntry(user, {
@@ -454,9 +525,10 @@ async function applyStructuredGameResult(User, options = {}){
         gameName: meta.shortName || meta.name,
         scoreFinal,
         eloChange: 0,
-        gameOfWeekBonus: xp.bonus
+        gameOfWeekBonus: xp.bonus,
+        weeklyChallengeBonus: xp.weeklyChallengeBonus
       });
-      payload[user.username] = resultPayload(user.username, 'draw', xp.total, 0, xp.bonus);
+      payload[user.username] = resultPayload(user.username, 'draw', xp.total, 0, xp.bonus, xp.weeklyChallengeBonus);
     });
 
     await Promise.all(users.map(user => user.save()));
@@ -474,7 +546,7 @@ async function applyStructuredGameResult(User, options = {}){
   ));
 
   setUserElo(winnerUser, gameKey, winnerElo + eloDelta);
-  const winnerXp = resolveMatchXp(winnerUser, gameKey, 'win');
+  const winnerXp = resolveMatchXp(winnerUser, gameKey, 'win', { reason });
   winnerUser.wins = (winnerUser.wins || 0) + 1;
   pushHistoryEntry(winnerUser, {
     result: 'win',
@@ -485,14 +557,15 @@ async function applyStructuredGameResult(User, options = {}){
     gameName: meta.shortName || meta.name,
     scoreFinal,
     eloChange: eloDelta,
-    gameOfWeekBonus: winnerXp.bonus
+    gameOfWeekBonus: winnerXp.bonus,
+    weeklyChallengeBonus: winnerXp.weeklyChallengeBonus
   });
-  payload[winnerUser.username] = resultPayload(winnerUser.username, 'win', winnerXp.total, eloDelta, winnerXp.bonus);
+  payload[winnerUser.username] = resultPayload(winnerUser.username, 'win', winnerXp.total, eloDelta, winnerXp.bonus, winnerXp.weeklyChallengeBonus);
 
   loserUsers.forEach(loserUser => {
     const loserElo = getUserElo(loserUser, gameKey);
     setUserElo(loserUser, gameKey, loserElo - eloDelta);
-    const loserXp = resolveMatchXp(loserUser, gameKey, isAbandonReason(reason) ? 'abandon' : 'loss');
+    const loserXp = resolveMatchXp(loserUser, gameKey, isAbandonReason(reason) ? 'abandon' : 'loss', { reason });
     loserUser.losses = (loserUser.losses || 0) + 1;
     pushHistoryEntry(loserUser, {
       result: 'loss',
@@ -503,9 +576,10 @@ async function applyStructuredGameResult(User, options = {}){
       gameName: meta.shortName || meta.name,
       scoreFinal,
       eloChange: -eloDelta,
-      gameOfWeekBonus: loserXp.bonus
+      gameOfWeekBonus: loserXp.bonus,
+      weeklyChallengeBonus: loserXp.weeklyChallengeBonus
     });
-    payload[loserUser.username] = resultPayload(loserUser.username, 'loss', loserXp.total, -eloDelta, loserXp.bonus);
+    payload[loserUser.username] = resultPayload(loserUser.username, 'loss', loserXp.total, -eloDelta, loserXp.bonus, loserXp.weeklyChallengeBonus);
   });
 
   await Promise.all(users.map(user => user.save()));
@@ -549,6 +623,7 @@ function getProgressionData(){
   return {
     xpRules: XP_RULES,
     levelThresholds: LEVEL_THRESHOLDS,
+    weeklyChallenge: getGameOfWeek(),
     games: Object.values(GAME_CATALOG).map(game => ({
       key: game.key,
       name: game.name,

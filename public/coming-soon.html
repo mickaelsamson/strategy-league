@@ -73,6 +73,34 @@ const page = content[feature] || content[feature.replaceAll("_","-")] || {
 document.title = `${page.title} · Strategy League`;
 document.getElementById("soonTitle").textContent = page.title;
 document.getElementById("soonCopy").textContent = page.copy;
+
+async function hydrateLiveFeature(){
+  if(feature === "weekly-challenge"){
+    try{
+      const response = await fetch("/api/games/game-of-week");
+      const challenge = await response.json();
+      if(!response.ok) return;
+      const copy = !challenge.enabled
+        ? "Weekly Challenge is currently disabled by admin."
+        : challenge.mode === "multi_game_bonus"
+          ? `Play ${Array.isArray(challenge.games) ? challenge.games.map(game => game.name).join(", ") : "the selected games"} without surrender to earn ${challenge.extraXp || 0} extra XP.`
+          : `${challenge.name || "The featured game"} is this week's double XP game.`;
+      document.getElementById("soonCopy").textContent = copy;
+    }catch(err){}
+  }
+  if(feature === "tournaments"){
+    try{
+      const response = await fetch("/api/games/catalog");
+      const data = await response.json();
+      const tournament = data.tournament || {};
+      if(!response.ok || !tournament.enabled) return;
+      document.getElementById("soonTitle").textContent = tournament.name || "Tournament";
+      document.getElementById("soonCopy").textContent = `${tournament.status || "draft"} | ${tournament.format || "swiss"} | Round ${tournament.round || 1} | ${(tournament.participants || []).length} participants.`;
+    }catch(err){}
+  }
+}
+
+hydrateLiveFeature();
 </script>
 </body>
 </html>

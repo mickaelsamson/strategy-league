@@ -108,14 +108,14 @@ const GAME_CATALOG = {
 };
 
 const GAME_ACCESS_DEFAULTS = {
-  chess: { enabled: true, adminOnly: false, comingSoon: false },
-  othello: { enabled: true, adminOnly: false, comingSoon: false },
-  azul: { enabled: true, adminOnly: false, comingSoon: false },
-  moonfall_p4: { enabled: true, adminOnly: false, comingSoon: false },
-  hexblitz: { enabled: true, adminOnly: false, comingSoon: false },
-  moonfall_settlers: { enabled: true, adminOnly: false, comingSoon: false },
-  moonfall_world_conquest: { enabled: false, adminOnly: true, comingSoon: true },
-  moonfall_rts: { enabled: false, adminOnly: true, comingSoon: true }
+  chess: { enabled: true, adminOnly: false, comingSoon: false, noXp: false },
+  othello: { enabled: true, adminOnly: false, comingSoon: false, noXp: false },
+  azul: { enabled: true, adminOnly: false, comingSoon: false, noXp: false },
+  moonfall_p4: { enabled: true, adminOnly: false, comingSoon: false, noXp: false },
+  hexblitz: { enabled: true, adminOnly: false, comingSoon: false, noXp: false },
+  moonfall_settlers: { enabled: true, adminOnly: false, comingSoon: false, noXp: false },
+  moonfall_world_conquest: { enabled: false, adminOnly: true, comingSoon: true, noXp: false },
+  moonfall_rts: { enabled: false, adminOnly: true, comingSoon: true, noXp: false }
 };
 
 const PROTECTED_PAGE_RULES = {
