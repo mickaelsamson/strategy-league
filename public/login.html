@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="/assets/styles/theme.css">
 <script defer src="/assets/scripts/site-shell.js"></script>
-<title>Strategy League - Connexion</title>
+<title>Strategy League - Login</title>
 
 <style>
 body{
@@ -364,7 +364,7 @@ input{
     <div class="visual-copy">
       <span>CCA Game Strategy</span>
       <h1>Play smart. Climb clean.</h1>
-      <p>Connecte-toi, lance une table et retrouve ton classement sur tous les jeux de strategie.</p>
+      <p>Sign in, launch a table, and keep your ranking across every strategy game.</p>
     </div>
   </section>
 
@@ -377,99 +377,99 @@ input{
     </div>
 
     <div id="authTabs" class="auth-tabs" role="tablist">
-      <button id="loginTab" class="auth-tab active" type="button" role="tab" aria-selected="true" data-mode="login">Connexion</button>
-      <button id="registerTab" class="auth-tab" type="button" role="tab" aria-selected="false" data-mode="register">Inscription</button>
+      <button id="loginTab" class="auth-tab active" type="button" role="tab" aria-selected="true" data-mode="login">Login</button>
+      <button id="registerTab" class="auth-tab" type="button" role="tab" aria-selected="false" data-mode="register">Sign Up</button>
     </div>
 
     <section id="loginView" class="auth-view">
-      <h2>Bon retour</h2>
-      <p>Entre dans ton compte pour rejoindre une partie.</p>
+      <h2>Welcome back</h2>
+      <p>Sign in to your account and join a game.</p>
       <form id="loginForm" class="auth-form">
         <div class="field">
           <label for="loginEmail">Email</label>
           <input id="loginEmail" type="email" autocomplete="email" placeholder="toi@email.com" required>
         </div>
         <div class="field password-field">
-          <label for="loginPassword">Mot de passe</label>
+          <label for="loginPassword">Password</label>
           <div class="input-wrap">
-            <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Ton mot de passe" required>
-            <button class="password-toggle" type="button" data-target="loginPassword" aria-label="Afficher le mot de passe">
+            <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Your password" required>
+            <button class="password-toggle" type="button" data-target="loginPassword" aria-label="Show password">
               <svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </div>
         </div>
         <div class="form-actions">
-          <button id="forgotLink" class="text-btn" type="button">Mot de passe oublie ?</button>
+          <button id="forgotLink" class="text-btn" type="button">Forgot password?</button>
         </div>
         <div id="loginMessage" class="message error" aria-live="polite"></div>
-        <button id="loginBtn" class="primary-btn" type="submit">Connexion</button>
+        <button id="loginBtn" class="primary-btn" type="submit">Login</button>
       </form>
     </section>
 
     <section id="registerView" class="auth-view" hidden>
-      <h2>Creer un compte</h2>
-      <p>Un pseudo, ton prenom, et tu peux commencer a grimper.</p>
+      <h2>Create an account</h2>
+      <p>Pick a username, add your first name, and start climbing.</p>
       <form id="registerForm" class="auth-form">
         <div class="field">
           <label for="regEmail">Email</label>
           <input id="regEmail" type="email" autocomplete="email" placeholder="toi@email.com" required>
         </div>
         <div class="field">
-          <label for="regUsername">Pseudo</label>
+          <label for="regUsername">Username</label>
           <input id="regUsername" type="text" autocomplete="username" placeholder="MoonfallMaster" required>
         </div>
         <div class="field">
-          <label for="regFirstName">Prenom</label>
+          <label for="regFirstName">First name</label>
           <input id="regFirstName" type="text" autocomplete="given-name" placeholder="Mickael" required>
         </div>
         <div class="field password-field">
-          <label for="regPassword">Mot de passe</label>
+          <label for="regPassword">Password</label>
           <div class="input-wrap">
-            <input id="regPassword" type="password" autocomplete="new-password" minlength="8" placeholder="8 caracteres min." required>
-            <button class="password-toggle" type="button" data-target="regPassword" aria-label="Afficher le mot de passe">
+            <input id="regPassword" type="password" autocomplete="new-password" minlength="8" placeholder="8 characters min." required>
+            <button class="password-toggle" type="button" data-target="regPassword" aria-label="Show password">
               <svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </div>
         </div>
         <div id="registerMessage" class="message" aria-live="polite"></div>
-        <button id="registerBtn" class="primary-btn" type="submit">Creer le compte</button>
+        <button id="registerBtn" class="primary-btn" type="submit">Create Account</button>
       </form>
     </section>
 
     <section id="forgotView" class="auth-view" hidden>
       <h2>Reset password</h2>
-      <p>Indique ton email et on t envoie un lien pour choisir un nouveau mot de passe.</p>
+      <p>Enter your email and we will send a link to choose a new password.</p>
       <form id="forgotForm" class="auth-form">
         <div class="field">
           <label for="forgotEmail">Email</label>
           <input id="forgotEmail" type="email" autocomplete="email" placeholder="toi@email.com" required>
         </div>
         <div id="forgotMessage" class="message" aria-live="polite"></div>
-        <button id="forgotBtn" class="primary-btn" type="submit">Envoyer le lien</button>
-        <button class="text-btn" type="button" data-mode="login">Retour connexion</button>
+        <button id="forgotBtn" class="primary-btn" type="submit">Send Reset Link</button>
+        <button class="text-btn" type="button" data-mode="login">Back to Login</button>
       </form>
     </section>
 
     <section id="resetView" class="auth-view" hidden>
-      <h2>Nouveau mot de passe</h2>
-      <p>Choisis un mot de passe de 8 caracteres minimum.</p>
+      <h2>New password</h2>
+      <p>Choose a password with at least 8 characters.</p>
       <form id="resetForm" class="auth-form">
         <div class="field">
           <label for="resetEmail">Email</label>
           <input id="resetEmail" type="email" autocomplete="email" placeholder="toi@email.com">
         </div>
         <div class="field password-field">
-          <label for="resetPassword">Nouveau mot de passe</label>
+          <label for="resetPassword">New password</label>
           <div class="input-wrap">
-            <input id="resetPassword" type="password" autocomplete="new-password" minlength="8" placeholder="8 caracteres min." required>
-            <button class="password-toggle" type="button" data-target="resetPassword" aria-label="Afficher le mot de passe">
+            <input id="resetPassword" type="password" autocomplete="new-password" minlength="8" placeholder="8 characters min." required>
+            <button class="password-toggle" type="button" data-target="resetPassword" aria-label="Show password">
               <svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </div>
         </div>
         <div id="resetMessage" class="message" aria-live="polite"></div>
-        <button id="resetBtn" class="primary-btn" type="submit">Mettre a jour</button>
-        <button class="text-btn" type="button" data-mode="login">Retour connexion</button>
+        <button id="resetBtn" class="primary-btn" type="submit">Update Password</button>
+        <button class="text-btn" type="button" data-mode="login">Back to Login</button>
       </form>
     </section>
   </section>
@@ -505,7 +505,7 @@ function escapeHtml(text){
 
 function setLoading(button, loading, label){
   button.disabled = loading;
-  button.textContent = loading ? "Patiente..." : label;
+  button.textContent = loading ? "Please wait..." : label;
 }
 
 function setMode(mode){
@@ -571,7 +571,7 @@ document.querySelectorAll(".password-toggle").forEach(button => {
     const input = document.getElementById(button.dataset.target);
     const showPassword = input.type === "password";
     input.type = showPassword ? "text" : "password";
-    button.setAttribute("aria-label", showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe");
+    button.setAttribute("aria-label", showPassword ? "Hide password" : "Show password");
   });
 });
 
@@ -584,7 +584,7 @@ document.getElementById("loginForm").addEventListener("submit", async event => {
   event.preventDefault();
   const button = document.getElementById("loginBtn");
   setMessage("loginMessage", "", "error");
-  setLoading(button, true, "Connexion");
+  setLoading(button, true, "Login");
 
   try{
     const data = await postJson("/api/login", {
@@ -596,7 +596,7 @@ document.getElementById("loginForm").addEventListener("submit", async event => {
   }catch(err){
     setMessage("loginMessage", err.message, "error");
   }finally{
-    setLoading(button, false, "Connexion");
+    setLoading(button, false, "Login");
   }
 });
 
@@ -607,11 +607,11 @@ document.getElementById("registerForm").addEventListener("submit", async event =
   setMessage("registerMessage", "", "error");
 
   if(password.length < 8){
-    setMessage("registerMessage", "Le mot de passe doit contenir au moins 8 caracteres.", "error");
+    setMessage("registerMessage", "Password must be at least 8 characters.", "error");
     return;
   }
 
-  setLoading(button, true, "Creer le compte");
+  setLoading(button, true, "Create Account");
   try{
     const email = document.getElementById("regEmail").value.trim();
     await postJson("/api/register", {
@@ -620,14 +620,14 @@ document.getElementById("registerForm").addEventListener("submit", async event =
       firstName: document.getElementById("regFirstName").value.trim(),
       password
     });
-    setMessage("registerMessage", "Compte cree. Tu peux te connecter.", "success");
+    setMessage("registerMessage", "Account created. You can now log in.", "success");
     document.getElementById("loginEmail").value = email;
     document.getElementById("loginPassword").value = "";
     setTimeout(() => setMode("login"), 650);
   }catch(err){
     setMessage("registerMessage", err.message, "error");
   }finally{
-    setLoading(button, false, "Creer le compte");
+    setLoading(button, false, "Create Account");
   }
 });
 
@@ -635,22 +635,22 @@ document.getElementById("forgotForm").addEventListener("submit", async event => 
   event.preventDefault();
   const button = document.getElementById("forgotBtn");
   setMessage("forgotMessage", "", "success");
-  setLoading(button, true, "Envoyer le lien");
+  setLoading(button, true, "Send Reset Link");
 
   try{
     const data = await postJson("/api/password/forgot", {
       email: document.getElementById("forgotEmail").value.trim()
     });
-    let message = data.message || "Si un compte existe avec cet email, un lien vient d etre envoye.";
+    let message = data.message || "If an account exists with this email, a reset link has been sent.";
     if(data.devResetLink){
       const devResetLink = escapeHtml(data.devResetLink);
-      message += `<a class="dev-link" href="${devResetLink}">Ouvrir le lien local de reset</a>`;
+      message += `<a class="dev-link" href="${devResetLink}">Open local reset link</a>`;
     }
     setMessage("forgotMessage", message, "success");
   }catch(err){
     setMessage("forgotMessage", err.message, "error");
   }finally{
-    setLoading(button, false, "Envoyer le lien");
+    setLoading(button, false, "Send Reset Link");
   }
 });
 
@@ -661,23 +661,23 @@ document.getElementById("resetForm").addEventListener("submit", async event => {
   setMessage("resetMessage", "", "success");
 
   if(password.length < 8){
-    setMessage("resetMessage", "Le mot de passe doit contenir au moins 8 caracteres.", "error");
+    setMessage("resetMessage", "Password must be at least 8 characters.", "error");
     return;
   }
 
-  setLoading(button, true, "Mettre a jour");
+  setLoading(button, true, "Update Password");
   try{
     await postJson("/api/password/reset", {
       token: resetToken,
       email: document.getElementById("resetEmail").value.trim(),
       password
     });
-    setMessage("resetMessage", "Mot de passe mis a jour. Tu peux te connecter.", "success");
+    setMessage("resetMessage", "Password updated. You can now log in.", "success");
     setTimeout(() => setMode("login"), 900);
   }catch(err){
     setMessage("resetMessage", err.message, "error");
   }finally{
-    setLoading(button, false, "Mettre a jour");
+    setLoading(button, false, "Update Password");
   }
 });
 

@@ -2268,7 +2268,7 @@
     state.phase = 'roll';
     state.turn = (state.turn + 1) % state.players.length;
     if(state.turn === 0) state.turnNumber += 1;
-    log(`${currentPlayer().name} prend la main.`);
+    log(`${currentPlayer().name} takes the lead.`);
     notice(`${currentPlayer().name}: rolling dice.`);
     updateAll();
     syncOnlineState();

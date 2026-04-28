@@ -40,7 +40,7 @@
 
         <section id="localSetupPanel" class="mode-panel">
           <div class="setup-grid">
-            <label>Joueurs
+            <label>Players
               <select id="playerCount">
                 <option value="2">2</option>
                 <option value="3" selected>3</option>
@@ -49,16 +49,16 @@
                 <option value="6">6</option>
               </select>
             </label>
-            <label>Rythme
+            <label>Pace
               <select id="pace">
-                <option value="quick" selected>Rapide</option>
-                <option value="classic">Classique</option>
+                <option value="quick" selected>Quick</option>
+                <option value="classic">Classic</option>
               </select>
             </label>
-            <label>IA
+            <label>AI
               <select id="aiStyle">
-                <option value="balanced" selected>Equilibree</option>
-                <option value="bold">Agressive</option>
+                <option value="balanced" selected>Balanced</option>
+                <option value="bold">Aggressive</option>
               </select>
             </label>
           </div>
@@ -67,14 +67,14 @@
 
           <div class="coming-soon-card">
             <span class="eyebrow">Core rules</span>
-            <p><strong>Renforts.</strong> Minimum 3 armees par tour, plus territoires controles divises par 3 et bonus de regions completes.</p>
-            <p><strong>Attaque.</strong> Depuis un territoire adjacent avec au moins 2 armees. Attaquant jusqu'a 3 des, defenseur jusqu'a 2, egalite pour le defenseur.</p>
-            <p><strong>Conquete.</strong> Quand la defense tombe a 0, le territoire change de camp et des armees avancent depuis le front victorieux.</p>
+            <p><strong>Reinforcements.</strong> Minimum 3 armies per turn, plus controlled territories divided by 3 and complete-region bonuses.</p>
+            <p><strong>Attack.</strong> From an adjacent territory with at least 2 armies. Attacker rolls up to 3 dice, defender up to 2, ties go to the defender.</p>
+            <p><strong>Conquest.</strong> When defense drops to 0, the territory changes sides and armies advance from the victorious front.</p>
           </div>
 
           <div class="setup-actions">
-            <button id="shuffleBtn" type="button" class="secondary-btn">Melanger</button>
-            <button type="submit" class="primary-btn">Lancer la conquete</button>
+            <button id="shuffleBtn" type="button" class="secondary-btn">Shuffle</button>
+            <button type="submit" class="primary-btn">Start Conquest</button>
           </div>
         </section>
 
@@ -96,60 +96,60 @@
   <section id="gameView" class="game-view is-hidden" hidden>
     <header class="topbar">
       <div>
-        <span class="eyebrow">Tour <b id="turnHud">1</b></span>
-        <strong id="activePlayer">Joueur</strong>
+        <span class="eyebrow">Turn <b id="turnHud">1</b></span>
+        <strong id="activePlayer">Player</strong>
       </div>
       <div class="status-strip">
-        <span><b id="phaseHud">Renforts</b> phase</span>
+        <span><b id="phaseHud">Reinforce</b> phase</span>
         <span><b id="reserveHud">0</b> reserve</span>
-        <span><b id="cardsHud">0</b> cartes</span>
+        <span><b id="cardsHud">0</b> cards</span>
       </div>
       <div class="top-actions">
-        <button id="cardsBtn" type="button">Echanger</button>
-        <button id="restartBtn" type="button" title="Nouvelle partie">↺</button>
+        <button id="cardsBtn" type="button">Trade</button>
+        <button id="restartBtn" type="button" title="New game">↺</button>
       </div>
     </header>
 
     <div class="conquest-layout">
       <aside class="side-panel">
         <section>
-          <h2>Territoire</h2>
+          <h2>Territory</h2>
           <div id="territoryInfo" class="territory-info"></div>
         </section>
 
         <section>
-          <h2>Ordres</h2>
+          <h2>Orders</h2>
           <div id="actionPanel" class="command-grid">
-            <button id="reinforceBtn" type="button">Renforcer +1</button>
-            <button id="attackBtn" type="button">Attaquer</button>
+            <button id="reinforceBtn" type="button">Reinforce +1</button>
+            <button id="attackBtn" type="button">Attack</button>
             <button id="blitzBtn" type="button">Blitz</button>
-            <button id="fortifyBtn" type="button">Fortifier +1</button>
-            <button id="maxFortifyBtn" type="button">Fortifier max</button>
-            <button id="nextBtn" type="button">Phase suivante</button>
+            <button id="fortifyBtn" type="button">Fortify +1</button>
+            <button id="maxFortifyBtn" type="button">Max Fortify</button>
+            <button id="nextBtn" type="button">Next Phase</button>
           </div>
         </section>
 
         <section>
-          <h2>Joueurs</h2>
+          <h2>Players</h2>
           <div id="playersPanel" class="players-panel"></div>
         </section>
       </aside>
 
       <div class="map-frame">
         <div id="mapStage" class="map-stage">
-          <img class="map-image" src="/moonfall-world-conquest/map.svg" alt="Carte Moonfall World Conquest">
-          <svg id="territoryLayer" class="territory-layer" viewBox="0 0 1536 1024" aria-label="Territoires"></svg>
+          <img class="map-image" src="/moonfall-world-conquest/map.svg" alt="Moonfall World Conquest map">
+          <svg id="territoryLayer" class="territory-layer" viewBox="0 0 1536 1024" aria-label="Territories"></svg>
         </div>
         <div id="notice" class="notice" aria-live="polite"></div>
       </div>
 
       <aside class="intel-panel">
         <section>
-          <h2>Journal</h2>
+          <h2>Log</h2>
           <div id="logList" class="log-list"></div>
         </section>
         <section>
-          <h2>Cartes</h2>
+          <h2>Cards</h2>
           <div id="cardsPanel" class="cards-panel"></div>
         </section>
         <section>

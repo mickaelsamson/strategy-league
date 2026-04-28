@@ -1,19 +1,19 @@
 (() => {
   const PLAYER_COLORS = ['#2f9ed9', '#d64e5e', '#44ad68', '#d59b38', '#8b64d8', '#e5eef4'];
   const DEFAULT_NAMES = ['Mickael', 'Akari', 'Kuro', 'Ren', 'Sora', 'Nami'];
-  const FACTIONS = ['Maison Aube', 'Lune Rouge', 'Lotus de Fer', 'Clan Brume', 'Couronne Sable', 'Pacte Obscur'];
-  const CARD_SYMBOLS = ['lune', 'sabre', 'banniere'];
+  const FACTIONS = ['Dawn House', 'Red Moon', 'Iron Lotus', 'Mist Clan', 'Sand Crown', 'Shadow Pact'];
+  const CARD_SYMBOLS = ['moon', 'saber', 'banner'];
 
   const REGIONS = {
-    divin: { name: 'Continent Divin', bonus: 3 },
-    wilds: { name: 'Routes Sauvages', bonus: 2 },
-    south: { name: 'Marches du Sud', bonus: 2 }
+    divin: { name: 'Divine Continent', bonus: 3 },
+    wilds: { name: 'Wild Routes', bonus: 2 },
+    south: { name: 'Southern Marches', bonus: 2 }
   };
 
   const TERRITORIES = [
     {
       id: 'divin-ouest',
-      name: 'Divin Ouest',
+      name: 'Divine West',
       region: 'divin',
       label: { x: 302, y: 282 },
       path: 'm 225.40348,382.46305 20.18955,10.76648 82.51926,18.24405 7.85898,-0.56135 18.80541,-60.34572 47.15386,-46.87318 4.77152,-34.24269 57.25826,-64.55588 -50.80267,-36.20743 -111.42907,-13.19186 -121.81414,114.51653 53.32877,41.82098 z',
@@ -21,7 +21,7 @@
     },
     {
       id: 'divin-nord',
-      name: 'Divin Nord',
+      name: 'Divine North',
       region: 'divin',
       label: { x: 512, y: 132 },
       path: 'm 462.056,202.55059 -49.3341,-34.09267 5.21417,-45.3232 98.66821,-79.81697 105.88784,46.927563 -7.21963,104.684567 -150.40885,10.02725 z',
@@ -29,7 +29,7 @@
     },
     {
       id: 'divin-est',
-      name: 'Divin Est',
+      name: 'Divine East',
       region: 'divin',
       label: { x: 524, y: 284 },
       path: 'm 527.03263,366.19543 96.26167,-39.70794 29.68068,-94.25622 -39.30685,-38.10357 -150.40886,10.82943 -57.35591,65.77881 -4.41199,32.48831 z',
@@ -37,7 +37,7 @@
     },
     {
       id: 'divin-sud',
-      name: 'Divin Sud',
+      name: 'Divine South',
       region: 'divin',
       label: { x: 421, y: 391 },
       path: 'm 334.50929,409.51318 20.8567,-60.16355 46.12538,-44.92211 133.56307,66.1799 2.00545,31.28504 -71.79516,60.56463 -97.46494,-42.11448 z',
@@ -45,7 +45,7 @@
     },
     {
       id: 'forets',
-      name: 'Royaumes des Forets',
+      name: 'Forest Kingdoms',
       region: 'wilds',
       label: { x: 913, y: 210 },
       path: 'm 693.10287,83.625909 87.87808,-18.426048 94.96501,-35.434707 107.72151,48.191202 96.38243,-17.00866 82.2085,62.365084 -46.7738,89.29546 5.6695,72.28681 -73.7042,43.93903 -39.6868,4.25217 -31.18257,70.86941 -49.60859,22.67821 -167.25182,-62.36508 -4.25216,-28.34777 -48.1912,-60.94769 32.59993,-66.61725 -63.78248,-53.86076 z',
@@ -53,7 +53,7 @@
     },
     {
       id: 'fer',
-      name: 'Empire de Fer',
+      name: 'Iron Empire',
       region: 'wilds',
       label: { x: 1210, y: 525 },
       path: 'm 1061.7522,371.54181 180.0549,-107.17552 250.0762,135.75566 -21.4351,42.87021 18.5771,32.86716 -24.2932,47.15723 -62.8763,34.29617 -41.4412,65.73432 -38.5832,21.4351 -110.0335,17.14808 -25.7221,40.0122 -45.7282,14.29007 -87.1695,-57.16028 -71.45032,-21.4351 -28.58014,-37.15419 57.16026,-70.02134 8.5741,-60.01829 40.0122,-51.44425 z',
@@ -61,7 +61,7 @@
     },
     {
       id: 'soleil-levant',
-      name: 'Soleil Levant',
+      name: 'Rising Sun',
       region: 'south',
       label: { x: 329, y: 654 },
       path: 'm 203.45938,433.65913 24.41512,19.18331 99.98575,28.48431 106.38019,15.69544 56.38731,48.83025 9.301,31.39088 68.01357,33.71612 30.22825,69.7575 -74.98932,38.36663 -8.71968,34.87875 -83.709,49.41156 19.18331,37.204 -45.92369,30.22825 -22.67119,4.06919 -39.52925,-16.85806 2.32525,-12.78888 -18.602,-11.62625 -29.06562,15.11413 -24.41513,25.57775 -56.96862,5.81312 -32.5535,-22.67119 2.32525,-26.74037 -16.27675,-22.67119 -12.20757,-8.13837 -41.27318,-8.71969 -49.411567,-37.78531 9.882313,-30.22825 -16.858063,-22.67119 30.22825,-57.54994 6.394438,-20.92725 -35.460063,-47.08631 66.850942,-50.57419 -14.53282,-37.204 z',
@@ -69,7 +69,7 @@
     },
     {
       id: 'sables',
-      name: 'Sables du Sud',
+      name: 'Southern Sands',
       region: 'south',
       label: { x: 874, y: 843 },
       path: 'm 595.15426,806.09502 12.16966,-22.6008 81.13106,-57.37125 57.95076,20.86227 108.94742,-24.33931 58.53026,-33.03193 127.49168,30.13439 56.2122,19.70326 75.336,59.68927 -24.3393,33.61144 34.7704,62.00731 -66.6433,66.64337 -64.3254,-2.89754 -44.0425,23.18031 -90.98273,-31.87292 -67.22288,32.45242 -38.0049,-10.23715 -79.09593,23.36372 -73.01163,-35.7757 -58.16593,-4.3807 -90.7778,-77.87907 37.47931,-39.42628 45.75395,-27.98779 z',
@@ -77,7 +77,7 @@
     },
     {
       id: 'ile-demons',
-      name: 'Ile des Demons',
+      name: 'Demon Isle',
       region: 'wilds',
       label: { x: 734, y: 535 },
       path: 'm 590.33864,499.03052 23.23117,-57.26026 92.98607,-50.1226 43.20915,32.1476 42.17212,-0.34567 88.49232,55.99905 2.07404,35.95 -13.48125,25.23414 31.11058,42.86347 -1.03702,43.90049 -53.20951,27.00909 -133.88609,-1.16858 -36.55992,-3.17187 -48.74655,-54.08864 10.18335,-23.2047 3.17187,-24.37328 z',
@@ -126,9 +126,9 @@
 
   function getSavedName(){
     try{
-      return JSON.parse(localStorage.getItem('user') || 'null')?.username || 'Joueur';
+      return JSON.parse(localStorage.getItem('user') || 'null')?.username || 'Player';
     }catch(error){
-      return 'Joueur';
+      return 'Player';
     }
   }
 
@@ -180,8 +180,8 @@
           ${FACTIONS.map((faction, index) => `<option value="${escapeHtml(faction)}"${index === i ? ' selected' : ''}>${escapeHtml(faction)}</option>`).join('')}
         </select></label>
         <label>Type<select data-field="type">
-          <option value="human"${i === 0 ? ' selected' : ''}>Humain</option>
-          <option value="ai"${i !== 0 ? ' selected' : ''}>IA</option>
+          <option value="human"${i === 0 ? ' selected' : ''}>Human</option>
+          <option value="ai"${i !== 0 ? ' selected' : ''}>AI</option>
           <option value="closed">Ferme</option>
         </select></label>
       `;
@@ -191,7 +191,7 @@
 
   function readSetup(){
     return [...dom.slots.querySelectorAll('.slot')].map((slot, index) => {
-      const name = slot.querySelector('[data-field="name"]').value.trim() || `Joueur ${index + 1}`;
+      const name = slot.querySelector('[data-field="name"]').value.trim() || `Player ${index + 1}`;
       return {
         id: index,
         name,
@@ -246,7 +246,7 @@
 
     seedTerritories();
     state.pendingReinforcements = calculateReinforcements(currentPlayer().id);
-    addLog(`${currentPlayer().name} ouvre la conquete avec ${state.pendingReinforcements} renforts.`);
+    addLog(`${currentPlayer().name} opens the conquest with ${state.pendingReinforcements} reinforcements.`);
 
     dom.setupView.hidden = true;
     dom.setupView.classList.add('is-hidden');
@@ -349,10 +349,10 @@
   }
 
   function phaseLabel(phase = state.phase){
-    if(phase === 'reinforce') return 'Renforts';
-    if(phase === 'attack') return 'Attaque';
+    if(phase === 'reinforce') return 'Reinforce';
+    if(phase === 'attack') return 'Attack';
     if(phase === 'fortify') return 'Fortification';
-    return 'Victoire';
+    return 'Victory';
   }
 
   function render(){
@@ -434,10 +434,10 @@
 
   function shortName(name){
     return name
-      .replace('Royaumes des ', '')
-      .replace('Empire de ', '')
-      .replace('Ile des ', 'Ile ')
-      .replace('Sables du ', 'Sables ');
+      .replace('Forest ', '')
+      .replace('Iron ', '')
+      .replace('Demon ', 'Demon ')
+      .replace('Southern ', '');
   }
 
   function isSelectableTerritory(territory){
@@ -461,7 +461,7 @@
     const selected = selectedTerritory();
     const target = targetTerritory();
     if(!selected){
-      dom.territoryInfo.innerHTML = '<div class="info-card"><strong>Aucun territoire</strong><span>Selectionne un territoire pour voir le front, les voisins et les ordres disponibles.</span></div>';
+      dom.territoryInfo.innerHTML = '<div class="info-card"><strong>No territory</strong><span>Select a territory to view the front, neighbors, and available orders.</span></div>';
       return;
     }
 
@@ -476,11 +476,11 @@
     dom.territoryInfo.innerHTML = `
       <div class="info-card">
         <strong>${escapeHtml(territory.name)}</strong>
-        <span>Controle: ${escapeHtml(owner.name)} · Armees: ${selected.troops}</span>
+        <span>Control: ${escapeHtml(owner.name)} · Armies: ${selected.troops}</span>
         <span>Region: ${escapeHtml(REGIONS[territory.region].name)}</span>
-        <span>Voisins: ${escapeHtml(neighbors)}</span>
+        <span>Neighbors: ${escapeHtml(neighbors)}</span>
       </div>
-      ${target ? `<div class="info-card"><strong>Cible</strong><span>${escapeHtml(byId(target.id).name)} · ${escapeHtml(playerById(target.owner).name)} · ${target.troops} armees</span></div>` : ''}
+      ${target ? `<div class="info-card"><strong>Target</strong><span>${escapeHtml(byId(target.id).name)} · ${escapeHtml(playerById(target.owner).name)} · ${target.troops} armies</span></div>` : ''}
     `;
   }
 
@@ -490,7 +490,7 @@
       const troops = territoryTroops(player.id);
       return `<div class="player-row ${player.alive ? '' : 'defeated'}" style="color:${player.color}">
         <strong>${escapeHtml(player.name)}</strong>
-        <span>${escapeHtml(player.faction)} · ${player.type === 'ai' ? 'IA' : 'Humain'} · ${territories} territoires · ${troops} armees · ${player.cards.length} cartes</span>
+        <span>${escapeHtml(player.faction)} · ${player.type === 'ai' ? 'AI' : 'Human'} · ${territories} territories · ${troops} armies · ${player.cards.length} cards</span>
       </div>`;
     }).join('');
   }
@@ -498,7 +498,7 @@
   function renderCards(){
     const player = currentPlayer();
     if(!player.cards.length){
-      dom.cardsPanel.innerHTML = '<div class="card-row"><b>0</b><span>Aucune carte en main.</span></div>';
+      dom.cardsPanel.innerHTML = '<div class="card-row"><b>0</b><span>No cards in hand.</span></div>';
       return;
     }
 
@@ -511,10 +511,10 @@
   }
 
   function cardIcon(symbol){
-    if(symbol === 'lune') return 'L';
-    if(symbol === 'sabre') return 'S';
-    if(symbol === 'banniere') return 'B';
-    return 'J';
+    if(symbol === 'moon') return 'M';
+    if(symbol === 'saber') return 'S';
+    if(symbol === 'banner') return 'B';
+    return 'W';
   }
 
   function renderRegions(){
@@ -551,7 +551,7 @@
     dom.maxFortifyBtn.disabled = !human || !canFortify(selected, target);
     dom.nextBtn.disabled = !human || (state.phase === 'reinforce' && (state.pendingReinforcements > 0 || mandatoryTrade));
 
-    dom.nextBtn.textContent = state.phase === 'fortify' ? 'Fin du tour' : 'Phase suivante';
+    dom.nextBtn.textContent = state.phase === 'fortify' ? 'End Turn' : 'Next Phase';
   }
 
   function selectTerritory(id){
@@ -618,7 +618,7 @@
     selected.troops += 1;
     state.pendingReinforcements -= 1;
     if(state.pendingReinforcements === 0){
-      addLog(`${player.name} termine ses renforts.`);
+      addLog(`${player.name} finishes reinforcements.`);
     }
     render();
   }
@@ -664,7 +664,7 @@
       updatePlayerLife(defender.id);
       checkWinner();
     }else if(!silent){
-      addLog(`${originName} attaque ${targetName}: ${attackRolls.join('-')} contre ${defenseRolls.join('-')} (${summary.defenderLosses}/${summary.attackerLosses}).`);
+      addLog(`${originName} attacks ${targetName}: ${attackRolls.join('-')} against ${defenseRolls.join('-')} (${summary.defenderLosses}/${summary.attackerLosses}).`);
     }
 
     return summary;
@@ -692,7 +692,7 @@
       if(captured || state.gameOver) break;
     }
 
-    addLog(`${originName} blitz ${targetName}: ${defenderLosses} pertes defense, ${attackerLosses} pertes attaque${captured ? ', conquete reussie' : ''}.`);
+    addLog(`${originName} blitzes ${targetName}: ${defenderLosses} defense losses, ${attackerLosses} attack losses${captured ? ', conquest successful' : ''}.`);
     if(captured) notice(`${targetName} conquis par blitz.`);
     render();
   }
@@ -704,7 +704,7 @@
     const amount = max ? origin.troops - 1 : 1;
     origin.troops -= amount;
     target.troops += amount;
-    addLog(`${currentPlayer().name} deplace ${amount} armee${amount > 1 ? 's' : ''} vers ${byId(target.id).name}.`);
+    addLog(`${currentPlayer().name} moves ${amount} arm${amount > 1 ? 'ies' : 'y'} to ${byId(target.id).name}.`);
     render();
   }
 
@@ -713,22 +713,22 @@
     const player = currentPlayer();
     if(state.phase === 'reinforce'){
       if(player.cards.length >= 5){
-        notice('Echange des cartes avant de quitter les renforts.');
+        notice('Trade cards before leaving reinforcements.');
         return;
       }
       if(state.pendingReinforcements > 0){
-        notice('Place tous tes renforts avant de passer.');
+        notice('Place all reinforcements before moving on.');
         return;
       }
       state.phase = 'attack';
       state.selectedId = null;
       state.targetId = null;
-      addLog(`${player.name} ouvre les attaques.`);
+      addLog(`${player.name} opens attacks.`);
     }else if(state.phase === 'attack'){
       state.phase = 'fortify';
       state.selectedId = null;
       state.targetId = null;
-      addLog(`${player.name} passe en fortification.`);
+      addLog(`${player.name} moves to fortification.`);
     }else{
       finishTurn();
       return;
@@ -740,7 +740,7 @@
     const player = currentPlayer();
     if(state.capturedThisTurn){
       const card = drawCard(player);
-      addLog(`${player.name} gagne une carte ${card.symbol} (${card.territoryName}).`);
+      addLog(`${player.name} gains a ${card.symbol} card (${card.territoryName}).`);
     }
 
     state.capturedThisTurn = false;
@@ -756,7 +756,7 @@
     state.activeIndex = next;
     state.phase = 'reinforce';
     state.pendingReinforcements = calculateReinforcements(currentPlayer().id);
-    addLog(`${currentPlayer().name} recoit ${state.pendingReinforcements} renforts.`);
+    addLog(`${currentPlayer().name} receives ${state.pendingReinforcements} reinforcements.`);
     render();
   }
 
@@ -768,7 +768,7 @@
       const victor = currentPlayer();
       victor.cards.push(...player.cards);
       player.cards = [];
-      addLog(`${player.name} est elimine. ${victor.name} recupere ses cartes.`);
+      addLog(`${player.name} is eliminated. ${victor.name} takes their cards.`);
     }
   }
 
@@ -779,13 +779,13 @@
     state.phase = 'victory';
     state.pendingReinforcements = 0;
     addLog(`${alive[0].name} remporte Moonfall World Conquest.`);
-    notice(`${alive[0].name} gagne la conquete.`);
+    notice(`${alive[0].name} wins the conquest.`);
   }
 
   function drawCard(player){
     const territory = TERRITORIES[Math.floor(Math.random() * TERRITORIES.length)];
     const wild = Math.random() > .92;
-    const symbol = wild ? 'joker' : CARD_SYMBOLS[TERRITORIES.indexOf(territory) % CARD_SYMBOLS.length];
+    const symbol = wild ? 'wild' : CARD_SYMBOLS[TERRITORIES.indexOf(territory) % CARD_SYMBOLS.length];
     const card = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       territoryId: territory.id,
@@ -815,7 +815,7 @@
     }
     if(oneEach.length === 3) return oneEach;
 
-    const jokerIndex = cards.findIndex(card => card.symbol === 'joker');
+    const jokerIndex = cards.findIndex(card => card.symbol === 'wild');
     if(jokerIndex >= 0){
       for(const symbol of regular){
         const matches = cards.map((card, index) => ({ card, index })).filter(item => item.card.symbol === symbol);
@@ -833,7 +833,7 @@
     const player = currentPlayer();
     const indexes = findTradeSet(player.cards);
     if(!indexes){
-      if(!silent) notice('Pas encore de combinaison de trois cartes.');
+      if(!silent) notice('No three-card set yet.');
       return false;
     }
 
@@ -847,11 +847,11 @@
     const ownedMatch = traded.find(card => territoryState(card.territoryId)?.owner === player.id);
     if(ownedMatch){
       territoryState(ownedMatch.territoryId).troops += 2;
-      addLog(`${player.name} ajoute +2 sur ${ownedMatch.territoryName} grace aux cartes.`);
+      addLog(`${player.name} adds +2 to ${ownedMatch.territoryName} thanks to the cards.`);
     }
 
-    addLog(`${player.name} echange 3 cartes pour ${value} renforts.`);
-    if(!silent) notice(`${value} renforts ajoutes.`);
+    addLog(`${player.name} trades 3 cards for ${value} reinforcements.`);
+    if(!silent) notice(`${value} reinforcements added.`);
     render();
     return true;
   }
@@ -880,7 +880,7 @@
       target.troops += 1;
       state.pendingReinforcements -= 1;
     }
-    addLog(`${player.name} pose ses renforts.`);
+    addLog(`${player.name} places reinforcements.`);
 
     state.phase = 'attack';
     const maxAttacks = state.aiStyle === 'bold' ? 16 : 9;

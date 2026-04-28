@@ -198,28 +198,28 @@ function createApiRouter({ User, state, isGameAllowed, io }){
     try{
       const email = normalizeEmail(req.body.email);
       const username = normalizeName(req.body.username);
-      const firstName = normalizeName(req.body.firstName || req.body.prenom);
+      const firstName = normalizeName(req.body.firstName);
       const password = String(req.body.password || '');
 
       if(!email || !username || !firstName || !password){
-        return res.status(400).json({ error: 'Email, pseudo, prenom et mot de passe sont requis.' });
+        return res.status(400).json({ error: 'Email, username, first name, and password are required.' });
       }
 
       if(!isValidEmail(email)){
-        return res.status(400).json({ error: 'Email invalide.' });
+        return res.status(400).json({ error: 'Invalid email.' });
       }
 
       if(password.length < PASSWORD_MIN_LENGTH){
-        return res.status(400).json({ error: `Le mot de passe doit contenir au moins ${PASSWORD_MIN_LENGTH} caracteres.` });
+        return res.status(400).json({ error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters.` });
       }
 
       const exists = await User.findOne({ $or: [{ email }, { username }] });
       if(exists?.email === email){
-        return res.status(400).json({ error: 'Cet email est deja utilise.' });
+        return res.status(400).json({ error: 'This email is already in use.' });
       }
 
       if(exists?.username === username){
-        return res.status(400).json({ error: 'Ce pseudo est deja utilise.' });
+        return res.status(400).json({ error: 'This username is already in use.' });
       }
 
       const user = new User({
@@ -250,7 +250,7 @@ function createApiRouter({ User, state, isGameAllowed, io }){
   }
 
   async function forgotPassword(req, res){
-    const genericMessage = 'Si un compte existe avec cet email, un lien de reset vient d etre envoye.';
+    const genericMessage = 'If an account exists with this email, a reset link has been sent.';
 
     try{
       const email = normalizeEmail(req.body.email);
@@ -303,11 +303,11 @@ function createApiRouter({ User, state, isGameAllowed, io }){
       const password = String(req.body.password || '');
 
       if(!token || !password){
-        return res.status(400).json({ error: 'Lien invalide.' });
+        return res.status(400).json({ error: 'Invalid link.' });
       }
 
       if(password.length < PASSWORD_MIN_LENGTH){
-        return res.status(400).json({ error: `Le mot de passe doit contenir au moins ${PASSWORD_MIN_LENGTH} caracteres.` });
+        return res.status(400).json({ error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters.` });
       }
 
       const query = {
@@ -321,7 +321,7 @@ function createApiRouter({ User, state, isGameAllowed, io }){
 
       const user = await User.findOne(query);
       if(!user){
-        return res.status(400).json({ error: 'Lien invalide ou expire.' });
+        return res.status(400).json({ error: 'Invalid or expired link.' });
       }
 
       user.password = await hashPassword(password);
@@ -329,7 +329,7 @@ function createApiRouter({ User, state, isGameAllowed, io }){
       user.passwordResetExpiresAt = null;
       await user.save();
 
-      res.json({ success: true, message: 'Mot de passe mis a jour.' });
+      res.json({ success: true, message: 'Password updated.' });
     }catch(err){
       console.error(err);
       res.status(500).json({ error: 'Server error' });
