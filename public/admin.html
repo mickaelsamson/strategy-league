@@ -16,6 +16,8 @@ body{margin:0;color:var(--shell-text)}
 .admin-card h2{margin:0 0 10px}
 .admin-card p{color:var(--shell-soft);line-height:1.5}
 .switch-wrap,.status-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.admin-toolbar{justify-content:space-between}
+.admin-toolbar-title{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .switch{position:relative;width:64px;height:36px;display:inline-block}
 .switch input{opacity:0;width:0;height:0}
 .slider{position:absolute;inset:0;cursor:pointer;background:#64748b;transition:.2s;border-radius:999px}
@@ -25,7 +27,9 @@ input:checked + .slider:before{transform:translateX(28px)}
 #status,#adjustStatus,#accessStatus{min-height:20px;color:var(--shell-soft);margin:14px 0 0}
 button{min-height:42px;padding:0 15px;border:1px solid var(--shell-line);border-radius:8px;cursor:pointer;background:linear-gradient(135deg,var(--shell-amber),var(--shell-red-dark));color:var(--shell-text)}
 button:hover{filter:brightness(1.08)}
+button:disabled{cursor:not-allowed;filter:grayscale(.55);opacity:.62}
 .ghost-btn{background:rgba(229,170,83,.1)}
+.save-btn{min-width:148px}
 .form-grid,.game-access-grid{display:grid;gap:12px}
 label{display:grid;gap:6px;color:var(--shell-soft);font-weight:800;font-size:13px}
 input,textarea{width:100%;box-sizing:border-box;border:1px solid var(--shell-line);border-radius:8px;background:rgba(3,10,14,.68);color:var(--shell-text);padding:11px 12px;font-size:14px}
@@ -88,11 +92,14 @@ textarea{min-height:92px;resize:vertical}
   </section>
 
   <section class="admin-card" style="margin-top:18px">
-    <div class="status-row">
-      <h2 style="margin:0">Game Access Matrix</h2>
-      <span class="pill live">Server enforced</span>
+    <div class="status-row admin-toolbar">
+      <div class="admin-toolbar-title">
+        <h2 style="margin:0">Game Access Matrix</h2>
+        <span class="pill live">Server enforced</span>
+      </div>
+      <button id="saveSettingsBtn" class="save-btn" type="button" disabled>Save Settings</button>
     </div>
-    <p>Each toggle updates the server source of truth. `Enabled` controls public access, `Admin only` restricts to admins, and `Coming soon` marks the game in the hub and leaderboard copy.</p>
+    <p>Adjust toggles, then save once. `Enabled` controls public access, `Admin only` restricts to admins, and `Coming soon` marks the game in the hub and leaderboard copy.</p>
     <div id="gameAccessGrid" class="game-access-grid"></div>
     <p id="accessStatus"></p>
   </section>
@@ -119,11 +126,32 @@ const adjustForm = document.getElementById("adjustForm");
 const adjustStatus = document.getElementById("adjustStatus");
 const accessGrid = document.getElementById("gameAccessGrid");
 const accessStatus = document.getElementById("accessStatus");
-let latestAccess = {};
+const saveSettingsBtn = document.getElementById("saveSettingsBtn");
+let draftAccess = {};
+let draftEnabled = true;
+let hasUnsavedChanges = false;
 
-function renderGlobal(enabled){
+function cloneAccess(access){
+  return JSON.parse(JSON.stringify(access || {}));
+}
+
+function setSaveState(dirty, message = ""){
+  hasUnsavedChanges = dirty;
+  saveSettingsBtn.disabled = !dirty;
+  if(message){
+    accessStatus.textContent = message;
+  }else{
+    accessStatus.textContent = dirty ? "Unsaved changes. Click Save Settings to apply them." : "Settings are saved.";
+  }
+}
+
+function renderGlobal(enabled, pending = false){
   gamesSwitch.checked = enabled;
   switchLabel.textContent = enabled ? "ON" : "OFF";
+  if(pending){
+    statusEl.textContent = enabled ? "Public access will be enabled after saving." : "Public access will be disabled after saving. Admin bypass stays active.";
+    return;
+  }
   statusEl.textContent = enabled ? "Public access is enabled." : "Public access is disabled. Admin bypass stays active.";
 }
 
@@ -166,18 +194,23 @@ function rowMarkup(gameKey, config){
 }
 
 function renderAccess(access){
-  latestAccess = access || {};
-  accessGrid.innerHTML = Object.entries(latestAccess).map(([gameKey, config]) => rowMarkup(gameKey, config)).join("");
+  draftAccess = cloneAccess(access);
+  renderDraftAccess();
+}
+
+function renderDraftAccess(){
+  accessGrid.innerHTML = Object.entries(draftAccess).map(([gameKey, config]) => rowMarkup(gameKey, config)).join("");
   accessGrid.querySelectorAll("input[data-field]").forEach(input => {
-    input.addEventListener("change", async event => {
+    input.addEventListener("change", event => {
       const row = event.target.closest("[data-game]");
       const gameKey = row?.dataset.game;
       if(!gameKey) return;
-      const nextConfig = {
-        ...latestAccess[gameKey],
+      draftAccess[gameKey] = {
+        ...draftAccess[gameKey],
         [event.target.dataset.field]: event.target.checked
       };
-      await saveAccess(gameKey, nextConfig);
+      renderDraftAccess();
+      setSaveState(true, `${labels[gameKey]?.title || gameKey} changed. Save Settings to apply it.`);
     });
   });
 }
@@ -186,48 +219,44 @@ async function fetchAccess(){
   const response = await fetch("/api/admin/game-access");
   const data = await response.json();
   if(!response.ok) throw new Error(data?.error || "Access unavailable");
-  renderGlobal(Boolean(data.enabled));
+  draftEnabled = Boolean(data.enabled);
+  renderGlobal(draftEnabled);
   renderAccess(data.access || {});
+  setSaveState(false, "Settings loaded.");
 }
 
-async function saveAccess(gameKey, config){
-  accessStatus.textContent = `Saving ${labels[gameKey]?.title || gameKey}...`;
+async function saveAllSettings(){
+  if(!hasUnsavedChanges) return;
+  saveSettingsBtn.disabled = true;
+  accessStatus.textContent = "Saving admin settings...";
   try{
     const response = await fetch("/api/admin/game-access", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ gameKey, ...config })
+      body: JSON.stringify({ enabled: draftEnabled, access: draftAccess })
     });
     const data = await response.json();
     if(!response.ok){
-      throw new Error(data?.error || "Update rejected");
+      throw new Error(data?.error || "Save rejected");
     }
-    renderAccess(data.access || latestAccess);
-    accessStatus.textContent = `${labels[gameKey]?.title || gameKey} updated.`;
+    draftEnabled = Boolean(data.enabled);
+    renderGlobal(draftEnabled);
+    renderAccess(data.access || draftAccess);
+    setSaveState(false, "Settings saved. They will stay active until the next saved change.");
   }catch(err){
     accessStatus.textContent = err.message || "Server error.";
-    fetchAccess().catch(()=>null);
+    saveSettingsBtn.disabled = false;
+    hasUnsavedChanges = true;
   }
 }
 
-gamesSwitch.addEventListener("change", async event => {
-  statusEl.textContent = "Updating global access...";
-  try{
-    const response = await fetch("/api/admin/override", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ enabled: event.target.checked })
-    });
-    const data = await response.json();
-    if(!response.ok){
-      throw new Error(data?.error || "Update rejected");
-    }
-    renderGlobal(Boolean(data.enabled));
-  }catch(err){
-    gamesSwitch.checked = !event.target.checked;
-    statusEl.textContent = err.message || "Server error.";
-  }
+gamesSwitch.addEventListener("change", event => {
+  draftEnabled = event.target.checked;
+  renderGlobal(draftEnabled, true);
+  setSaveState(true, "Global access changed. Save Settings to apply it.");
 });
+
+saveSettingsBtn.addEventListener("click", saveAllSettings);
 
 adjustForm.addEventListener("submit", async event => {
   event.preventDefault();

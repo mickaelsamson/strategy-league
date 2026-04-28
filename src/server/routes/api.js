@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { GAME_ACCESS_DEFAULTS, GAME_CATALOG } = require('../config/constants');
+const { normalizeGameAccess, saveAdminSettings } = require('../state');
 const { authCookieHeader, clearAuthCookieHeader, createAuthToken } = require('../services/auth-service');
 const { sendPasswordResetEmail } = require('../services/email-service');
 const {
@@ -476,6 +477,7 @@ function createApiRouter({ User, state, isGameAllowed, io }){
       if(!state.manualOverride){
         clearAllLobbies(state, io);
       }
+      saveAdminSettings(state);
 
       res.json({ success: true, enabled: state.manualOverride });
     }catch(err){
@@ -498,6 +500,28 @@ function createApiRouter({ User, state, isGameAllowed, io }){
         return res.status(403).json({ error: 'Admin required' });
       }
 
+      if(req.body.access && typeof req.body.access === 'object' && !Array.isArray(req.body.access)){
+        state.manualOverride = typeof req.body.enabled === 'boolean' ? req.body.enabled : state.manualOverride;
+        state.gameAccess = normalizeGameAccess(req.body.access);
+
+        if(state.manualOverride === false){
+          clearAllLobbies(state, io);
+        }else{
+          Object.entries(state.gameAccess).forEach(([key, config]) => {
+            if(config.enabled === false){
+              clearGameLobbies(state, io, key);
+            }
+          });
+        }
+
+        saveAdminSettings(state);
+        return res.json({
+          success: true,
+          saved: true,
+          ...createAccessResponse(state, isGameAllowed, req.authUser)
+        });
+      }
+
       const gameKey = String(req.body.gameKey || '').trim();
       if(!GAME_ACCESS_DEFAULTS[gameKey]){
         return res.status(400).json({ error: 'Unknown game.' });
@@ -513,6 +537,7 @@ function createApiRouter({ User, state, isGameAllowed, io }){
       if(state.gameAccess[gameKey].enabled === false){
         clearGameLobbies(state, io, gameKey);
       }
+      saveAdminSettings(state);
 
       res.json({
         success: true,
