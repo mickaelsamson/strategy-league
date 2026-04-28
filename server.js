@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const http = require('http');
 const { Server } = require('socket.io');
 const User = require('./models/User');
-const { state, isGameAllowed } = require('./src/server/state');
+const { state, isGameAllowed, loadAdminSettingsFromStore } = require('./src/server/state');
 const { createApiRouter } = require('./src/server/routes/api');
 const { registerSockets } = require('./src/server/sockets');
 const { applyRankedResult, applyOthelloResult, applyAzulResult, applyStructuredGameResult } = require('./src/server/services/user-service');
@@ -53,6 +53,7 @@ registerSockets({ io, User, state, isGameAllowed, applyRankedResult, applyOthell
 
 async function startServer(){
   await mongoose.connect(process.env.MONGO_URI);
+  await loadAdminSettingsFromStore();
   server.listen(process.env.PORT || 3000, ()=>{
     console.log('Server running');
   });

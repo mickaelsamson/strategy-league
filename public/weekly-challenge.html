@@ -154,7 +154,7 @@ function renderChallenge(challenge){
 
 async function loadChallenge(){
   try{
-    const response = await fetch("/api/games/game-of-week");
+    const response = await fetch("/api/games/game-of-week", { cache: "no-store" });
     const challenge = await response.json();
     if(!response.ok) throw new Error(challenge?.error || "Challenge unavailable");
     renderChallenge(challenge);

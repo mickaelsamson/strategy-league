@@ -21,6 +21,21 @@ const DEFAULT_TOURNAMENT = {
   notes: ''
 };
 
+let mongoose = null;
+let AdminSettings = null;
+
+function getAdminSettingsStore(){
+  try{
+    if(!mongoose) mongoose = require('mongoose');
+    if(!AdminSettings) AdminSettings = require('../../models/AdminSettings');
+  }catch(_err){
+    return null;
+  }
+
+  if(mongoose.connection.readyState !== 1) return null;
+  return AdminSettings;
+}
+
 function cloneAccessDefaults(){
   return JSON.parse(JSON.stringify(GAME_ACCESS_DEFAULTS));
 }
@@ -44,6 +59,7 @@ function normalizeWeeklyChallenge(weekly = {}){
     ? weekly.selectedGameKeys.filter(key => GAME_ACCESS_DEFAULTS[key])
     : DEFAULT_WEEKLY_CHALLENGE.selectedGameKeys;
   const doubleXpGameKey = GAME_ACCESS_DEFAULTS[weekly.doubleXpGameKey] ? weekly.doubleXpGameKey : '';
+  const extraXp = Number(weekly.extraXp);
 
   return {
     ...DEFAULT_WEEKLY_CHALLENGE,
@@ -51,7 +67,7 @@ function normalizeWeeklyChallenge(weekly = {}){
     mode: WEEKLY_MODES.has(weekly.mode) ? weekly.mode : DEFAULT_WEEKLY_CHALLENGE.mode,
     doubleXpGameKey,
     selectedGameKeys: selectedGameKeys.length ? [...new Set(selectedGameKeys)] : DEFAULT_WEEKLY_CHALLENGE.selectedGameKeys,
-    extraXp: Math.max(0, Math.round(Number(weekly.extraXp) || DEFAULT_WEEKLY_CHALLENGE.extraXp))
+    extraXp: Math.max(0, Math.round(Number.isFinite(extraXp) ? extraXp : DEFAULT_WEEKLY_CHALLENGE.extraXp))
   };
 }
 
@@ -82,8 +98,8 @@ function readSavedAdminSettings(){
   }
 }
 
-function applySavedAdminSettings(targetState){
-  const saved = readSavedAdminSettings();
+function applySavedAdminSettings(targetState, source = null){
+  const saved = source || readSavedAdminSettings();
   if(typeof saved.manualOverride === 'boolean'){
     targetState.manualOverride = saved.manualOverride;
   }
@@ -98,17 +114,48 @@ function applySavedAdminSettings(targetState){
   }
 }
 
-function saveAdminSettings(targetState = state){
-  const dir = path.dirname(SETTINGS_FILE);
-  const tmpFile = `${SETTINGS_FILE}.tmp`;
-  fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(tmpFile, JSON.stringify({
+function serializeAdminSettings(targetState = state){
+  return {
     manualOverride: typeof targetState.manualOverride === 'boolean' ? targetState.manualOverride : null,
     gameAccess: normalizeGameAccess(targetState.gameAccess),
     weeklyChallenge: normalizeWeeklyChallenge(targetState.weeklyChallenge),
     tournament: normalizeTournament(targetState.tournament)
-  }, null, 2));
+  };
+}
+
+function writeAdminSettingsFile(payload){
+  const dir = path.dirname(SETTINGS_FILE);
+  const tmpFile = `${SETTINGS_FILE}.tmp`;
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(tmpFile, JSON.stringify(payload, null, 2));
   fs.renameSync(tmpFile, SETTINGS_FILE);
+}
+
+async function saveAdminSettings(targetState = state){
+  const payload = serializeAdminSettings(targetState);
+  writeAdminSettingsFile(payload);
+
+  const Store = getAdminSettingsStore();
+  if(Store){
+    await Store.findOneAndUpdate(
+      { key: 'global' },
+      { ...payload, key: 'global', updatedAt: new Date() },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+  }
+
+  return payload;
+}
+
+async function loadAdminSettingsFromStore(){
+  const Store = getAdminSettingsStore();
+  if(!Store) return false;
+  const saved = await Store.findOne({ key: 'global' }).lean();
+  if(!saved) return false;
+
+  applySavedAdminSettings(state, saved);
+  writeAdminSettingsFile(serializeAdminSettings(state));
+  return true;
 }
 
 const state = {
@@ -198,5 +245,6 @@ module.exports = {
   normalizeGameAccess,
   normalizeTournament,
   normalizeWeeklyChallenge,
+  loadAdminSettingsFromStore,
   saveAdminSettings
 };

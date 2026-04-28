@@ -203,6 +203,18 @@ function createAccessResponse(state, isGameAllowed, actor){
 function createApiRouter({ User, state, isGameAllowed, io }){
   const router = express.Router();
 
+  router.use((req, res, next)=>{
+    if(
+      req.path.startsWith('/admin') ||
+      req.path.startsWith('/games') ||
+      req.path.startsWith('/leaderboard') ||
+      req.path.startsWith('/progression')
+    ){
+      res.setHeader('Cache-Control', 'no-store');
+    }
+    next();
+  });
+
   async function createUser(req, res){
     try{
       const email = normalizeEmail(req.body.email);
@@ -486,7 +498,7 @@ function createApiRouter({ User, state, isGameAllowed, io }){
       if(!state.manualOverride){
         clearAllLobbies(state, io);
       }
-      saveAdminSettings(state);
+      await saveAdminSettings(state);
 
       res.json({ success: true, enabled: state.manualOverride });
     }catch(err){
@@ -540,7 +552,7 @@ function createApiRouter({ User, state, isGameAllowed, io }){
         });
       }
 
-      saveAdminSettings(state);
+      await saveAdminSettings(state);
       res.json({
         success: true,
         saved: true,
@@ -578,7 +590,7 @@ function createApiRouter({ User, state, isGameAllowed, io }){
           });
         }
 
-        saveAdminSettings(state);
+        await saveAdminSettings(state);
         return res.json({
           success: true,
           saved: true,
@@ -603,7 +615,7 @@ function createApiRouter({ User, state, isGameAllowed, io }){
       if(state.gameAccess[gameKey].enabled === false){
         clearGameLobbies(state, io, gameKey);
       }
-      saveAdminSettings(state);
+      await saveAdminSettings(state);
 
       res.json({
         success: true,

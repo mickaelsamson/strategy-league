@@ -279,6 +279,11 @@ function markDirty(message){
   setSaveState(true, message);
 }
 
+function bindDraftChange(input, handler){
+  input.addEventListener("input", handler);
+  input.addEventListener("change", handler);
+}
+
 function bindTabs(){
   document.querySelectorAll(".admin-tab").forEach(button => {
     button.addEventListener("click", () => {
@@ -392,7 +397,7 @@ function syncTournamentDraft(){
 }
 
 async function fetchSettings(){
-  const response = await fetch("/api/admin/settings");
+  const response = await fetch("/api/admin/settings", { cache: "no-store" });
   const data = await response.json();
   if(!response.ok) throw new Error(data?.error || "Settings unavailable");
   draftEnabled = Boolean(data.enabled);
@@ -416,6 +421,7 @@ async function saveAllSettings(){
     const response = await fetch("/api/admin/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      cache: "no-store",
       body: JSON.stringify({
         enabled: draftEnabled,
         access: draftAccess,
@@ -448,14 +454,14 @@ gamesSwitch.addEventListener("change", event => {
 });
 
 [weeklyEnabled, weeklyMode, doubleXpGame, weeklyExtraXp].forEach(input => {
-  input.addEventListener("input", () => {
+  bindDraftChange(input, () => {
     syncWeeklyDraft();
     markDirty("Weekly challenge changed. Save Settings to publish it.");
   });
 });
 
 [tournamentEnabled, tournamentName, tournamentFormat, tournamentStatus, tournamentRound, tournamentNotes].forEach(input => {
-  input.addEventListener("input", () => {
+  bindDraftChange(input, () => {
     syncTournamentDraft();
     markDirty("Tournament settings changed. Save Settings to apply it.");
   });

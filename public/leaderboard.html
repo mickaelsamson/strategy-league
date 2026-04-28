@@ -166,7 +166,7 @@ async function load(type){
   meDiv.innerHTML = "";
 
   try{
-    const response = await fetch(`/api/leaderboard/${type}/${encodeURIComponent(user.username)}`);
+    const response = await fetch(`/api/leaderboard/${type}/${encodeURIComponent(user.username)}`, { cache: "no-store" });
     const data = await response.json();
     if(!response.ok) throw new Error(data?.error || "Leaderboard unavailable");
 
@@ -197,7 +197,7 @@ async function load(type){
 
 async function loadRules(){
   try{
-    const response = await fetch("/api/progression");
+    const response = await fetch("/api/progression", { cache: "no-store" });
     const data = await response.json();
     if(!response.ok) throw new Error("Rules unavailable");
 

@@ -160,7 +160,7 @@ function renderSideProfile(profile){
 
 async function loadProfile(){
   try{
-    const response = await fetch(`/api/profile/${encodeURIComponent(user.username)}`);
+    const response = await fetch(`/api/profile/${encodeURIComponent(user.username)}`, { cache: "no-store" });
     if(!response.ok) throw new Error("Profile unavailable");
     renderSideProfile(await response.json());
   }catch(err){
@@ -169,7 +169,7 @@ async function loadProfile(){
 }
 
 async function loadGames(){
-  const response = await fetch("/api/games/catalog");
+  const response = await fetch("/api/games/catalog", { cache: "no-store" });
   const data = await response.json();
   if(!response.ok) throw new Error(data?.error || "Games unavailable");
   const access = data.access || {};
@@ -197,7 +197,7 @@ function renderWeeklyChallenge(challenge){
 
 async function loadWeeklyChallenge(){
   try{
-    const response = await fetch("/api/games/game-of-week");
+    const response = await fetch("/api/games/game-of-week", { cache: "no-store" });
     const data = await response.json();
     if(!response.ok) throw new Error("Challenge unavailable");
     renderWeeklyChallenge(data);
@@ -209,7 +209,7 @@ async function loadWeeklyChallenge(){
 async function loadSideLeaderboard(){
   const wrap = document.getElementById("sideLeaderboard");
   try{
-    const response = await fetch(`/api/leaderboard/global/${encodeURIComponent(user.username)}`);
+    const response = await fetch(`/api/leaderboard/global/${encodeURIComponent(user.username)}`, { cache: "no-store" });
     const data = await response.json();
     if(!response.ok) throw new Error("Leaderboard unavailable");
     const top = (data.top || []).slice(0, 3);
