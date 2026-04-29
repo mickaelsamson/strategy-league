@@ -94,6 +94,7 @@
 
   function isGameShellPage(){
     const path = window.location.pathname;
+    if(path.endsWith('/games.html')) return true;
     return [
       '/chess',
       '/othello',
