@@ -36,12 +36,16 @@ body.moonveil-chess-page.app-shell-active{
   display:block !important;
 }
 
+.app-sidebar-left,
+.app-sidebar-right,
+.online-tab,
+.online-panel,
 body.moonveil-chess-page .active-game-banner{
   display:none !important;
 }
 
 body.moonveil-chess-page.app-shell-active.game-shell-active{
-  padding:18px 84px !important;
+  padding:0 !important;
 }
 
 body.moonveil-chess-page::before{
@@ -421,6 +425,17 @@ body.moonveil-chess-page::after{
   pointer-events:none;
 }
 
+.piece-b::before{
+  content:"";
+  position:absolute;
+  inset:10%;
+  z-index:1;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(242,201,111,0.52), rgba(242,201,111,0.18) 38%, transparent 68%);
+  filter:blur(6px);
+  opacity:.86;
+}
+
 .piece img{
   width:86%;
   height:86%;
@@ -435,16 +450,6 @@ body.moonveil-chess-page::after{
 
 .piece-b img{
   filter:brightness(.72) contrast(1.7) drop-shadow(0 0 1px rgba(255,236,178,0.95)) drop-shadow(0 0 7px rgba(242,201,111,0.78)) drop-shadow(0 18px 16px rgba(0,0,0,0.92));
-}
-
-.piece-glow{
-  position:absolute;
-  z-index:1 !important;
-  width:98% !important;
-  height:98% !important;
-  opacity:.38;
-  transform:scale(1.12);
-  filter:invert(81%) sepia(36%) saturate(738%) hue-rotate(355deg) brightness(100%) contrast(91%) blur(1px) drop-shadow(0 0 8px rgba(242,201,111,0.9)) !important;
 }
 
 .piece.king-in-check{
@@ -562,6 +567,7 @@ button:hover{
 
 .power-card{
   width:100%;
+  min-height:56px;
   min-width:0;
   display:grid;
   grid-template-columns:52px 1fr;
@@ -575,6 +581,7 @@ button:hover{
   border-right:0;
   border-bottom:0;
   color:inherit;
+  text-transform:none;
 }
 
 .power-card:first-child{
@@ -1518,12 +1525,6 @@ function draw(){
         const img=document.createElement("img");
         img.src="/chess/pieces/"+piece.color+piece.type.toUpperCase()+".svg";
 
-        if(piece.color === "b"){
-          const glow = img.cloneNode();
-          glow.className = "piece-glow";
-          glow.alt = "";
-          wrapper.appendChild(glow);
-        }
         wrapper.appendChild(img);
         p.appendChild(wrapper);
       }

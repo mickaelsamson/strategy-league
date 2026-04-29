@@ -55,6 +55,21 @@ textarea{min-height:92px;resize:vertical}
 .participant-list{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .participant-chip{display:inline-flex;align-items:center;gap:7px;min-height:30px;padding:0 9px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05)}
 .participant-chip button{min-height:24px;padding:0 7px;border-radius:999px;background:rgba(255,255,255,.08)}
+.field-help{color:var(--shell-soft);font-size:12px;line-height:1.45;font-weight:700}
+.participant-picker{position:relative}
+.player-suggestions{position:absolute;z-index:20;top:calc(100% + 6px);left:0;right:0;display:grid;gap:4px;max-height:238px;overflow:auto;padding:8px;border:1px solid var(--shell-line);border-radius:8px;background:#070d11;box-shadow:0 18px 50px rgba(0,0,0,.38)}
+.participant-suggestion{display:grid;grid-template-columns:30px 1fr auto;align-items:center;gap:9px;width:100%;min-height:42px;padding:6px 8px;background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.1);text-align:left}
+.participant-suggestion:hover,.participant-suggestion:focus-visible{background:rgba(229,170,83,.14)}
+.participant-suggestion img,.participant-suggestion-initial{width:30px;height:30px;border-radius:50%;object-fit:cover}
+.participant-suggestion-initial{display:inline-flex;align-items:center;justify-content:center;background:rgba(229,170,83,.18);color:#f6c56d;font-weight:900}
+.participant-suggestion-copy{display:grid;gap:2px;min-width:0}
+.participant-suggestion-copy strong,.participant-suggestion-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.participant-suggestion-copy small,.participant-suggestion-meta,.participant-suggestion-empty{color:var(--shell-soft);font-size:12px;font-weight:800}
+.participant-suggestion-empty{padding:8px 10px}
+.tournament-note{margin-top:16px;padding:14px;border:1px solid rgba(229,170,83,.24);border-radius:8px;background:rgba(229,170,83,.07);color:#f4eadc}
+.tournament-note h3{margin:0 0 8px;font-size:16px}
+.tournament-note p{margin:8px 0 0;color:#f4eadc}
+.tournament-note ul{margin:8px 0 0;padding-left:18px;color:var(--shell-soft);line-height:1.5}
 .preview-box{margin-top:16px;padding:14px;border:1px solid rgba(229,170,83,.28);border-radius:8px;background:rgba(229,170,83,.08);color:#f3eadf}
 .preview-box strong{color:#f6c56d}
 .is-hidden{display:none !important}
@@ -190,6 +205,7 @@ textarea{min-height:92px;resize:vertical}
             <option value="knockout">Knockout</option>
             <option value="ladder">Ladder</option>
           </select>
+          <small id="tournamentFormatHelp" class="field-help"></small>
         </label>
         <label>
           <span>Status</span>
@@ -206,15 +222,29 @@ textarea{min-height:92px;resize:vertical}
         </label>
         <label>
           <span>Add participant</span>
-          <input id="participantInput" placeholder="Student username">
+          <div class="participant-picker">
+            <input id="participantInput" autocomplete="off" placeholder="Tape une lettre pour chercher">
+            <div id="participantSuggestions" class="player-suggestions is-hidden"></div>
+          </div>
         </label>
       </div>
-      <button id="addParticipantBtn" class="ghost-btn" type="button">Add Participant</button>
+      <button id="addParticipantBtn" class="ghost-btn" type="button">Ajouter le joueur</button>
       <div id="participantList" class="participant-list"></div>
       <label style="margin-top:14px">
         <span>Notes</span>
         <textarea id="tournamentNotes" placeholder="Pairing notes, room groups, special rules..."></textarea>
       </label>
+      <div class="tournament-note">
+        <h3>Note perso tournoi</h3>
+        <p><strong>Formats:</strong></p>
+        <ul>
+          <li><strong>Swiss</strong> : plusieurs rounds, on affronte des joueurs proches de son score. Bon choix quand il y a beaucoup de joueurs et pas le temps pour que tout le monde joue contre tout le monde.</li>
+          <li><strong>Round robin</strong> : chaque joueur affronte tous les autres. Très clair, mais devient long si la liste grandit.</li>
+          <li><strong>Knockout</strong> : élimination directe. Rapide et dramatique, mais un joueur peut sortir après une seule défaite.</li>
+          <li><strong>Ladder</strong> : classement vivant. Les joueurs se défient pour monter/descendre, pratique pour un tournoi étalé dans le temps.</li>
+        </ul>
+        <p><strong>Statuts:</strong> Draft = préparation interne, Registration = inscriptions ouvertes, Live = tournoi en cours, Complete = terminé/archivé. “Tournament active” sert à afficher ou masquer le tournoi côté plateforme; “Round” indique le round actuel.</p>
+      </div>
     </article>
   </section>
 
@@ -255,18 +285,40 @@ const tournamentFormat = document.getElementById("tournamentFormat");
 const tournamentStatus = document.getElementById("tournamentStatus");
 const tournamentRound = document.getElementById("tournamentRound");
 const tournamentNotes = document.getElementById("tournamentNotes");
+const tournamentFormatHelp = document.getElementById("tournamentFormatHelp");
 const participantInput = document.getElementById("participantInput");
+const participantSuggestions = document.getElementById("participantSuggestions");
 const participantList = document.getElementById("participantList");
 const addParticipantBtn = document.getElementById("addParticipantBtn");
+
+const tournamentFormatDetails = {
+  swiss: "Swiss: rounds successifs contre des adversaires proches au classement. C'est le format le plus pratique pour une classe avec beaucoup de joueurs.",
+  round_robin: "Round robin: tout le monde joue contre tout le monde. Très lisible, mais plus long quand il y a beaucoup d'inscrits.",
+  knockout: "Knockout: élimination directe. Rapide pour désigner un gagnant, mais une défaite peut suffire à sortir.",
+  ladder: "Ladder: classement permanent avec défis entre joueurs. Idéal si le tournoi dure plusieurs jours ou semaines."
+};
 
 let draftAccess = {};
 let draftEnabled = true;
 let draftWeekly = {};
 let draftTournament = {};
 let hasUnsavedChanges = false;
+let participantSearchTimer = null;
+let participantSearchRequestId = 0;
+let currentParticipantSuggestions = [];
 
 function clone(value){
   return JSON.parse(JSON.stringify(value || {}));
+}
+
+function escapeHtml(value){
+  return String(value || "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[char]));
 }
 
 function setSaveState(dirty, message = ""){
@@ -382,6 +434,105 @@ function renderWeeklyPreview(){
   weeklyPreview.innerHTML = `<strong>Live preview:</strong> Double XP on ${labels[key]?.title || key}.`;
 }
 
+function renderFormatHelp(){
+  tournamentFormatHelp.textContent = tournamentFormatDetails[tournamentFormat.value] || "";
+}
+
+function hideParticipantSuggestions(){
+  participantSuggestions.classList.add("is-hidden");
+  participantSuggestions.innerHTML = "";
+  currentParticipantSuggestions = [];
+}
+
+function renderParticipantSuggestions(users, query){
+  const selected = new Set((draftTournament.participants || []).map(name => name.toLowerCase()));
+  currentParticipantSuggestions = users.filter(user => !selected.has(String(user.username || "").toLowerCase()));
+
+  if(!query.trim()){
+    hideParticipantSuggestions();
+    return;
+  }
+
+  participantSuggestions.classList.remove("is-hidden");
+  if(!currentParticipantSuggestions.length){
+    participantSuggestions.innerHTML = '<div class="participant-suggestion-empty">Aucun joueur trouvé ou déjà ajouté.</div>';
+    return;
+  }
+
+  participantSuggestions.innerHTML = currentParticipantSuggestions.map((user, index) => {
+    const username = escapeHtml(user.username);
+    const initial = username.slice(0, 1).toUpperCase() || "?";
+    const avatar = user.avatar
+      ? `<img src="${escapeHtml(user.avatar)}" alt="">`
+      : `<span class="participant-suggestion-initial">${initial}</span>`;
+
+    return `
+      <button type="button" class="participant-suggestion" data-index="${index}">
+        ${avatar}
+        <span class="participant-suggestion-copy">
+          <strong>${username}</strong>
+          <small>${Number(user.xp) || 0} XP</small>
+        </span>
+        <span class="participant-suggestion-meta">Ajouter</span>
+      </button>
+    `;
+  }).join("");
+
+  participantSuggestions.querySelectorAll("[data-index]").forEach(button => {
+    button.addEventListener("click", () => {
+      const user = currentParticipantSuggestions[Number(button.dataset.index)];
+      if(user?.username) addParticipant(user.username);
+    });
+  });
+}
+
+async function searchParticipantSuggestions(){
+  const query = participantInput.value.trim();
+  if(query.length < 1){
+    hideParticipantSuggestions();
+    return;
+  }
+
+  const requestId = ++participantSearchRequestId;
+  participantSuggestions.classList.remove("is-hidden");
+  participantSuggestions.innerHTML = '<div class="participant-suggestion-empty">Recherche...</div>';
+
+  try{
+    const response = await fetch(`/api/admin/users/search?q=${encodeURIComponent(query)}`, { cache: "no-store" });
+    const data = await response.json();
+    if(requestId !== participantSearchRequestId) return;
+    if(!response.ok) throw new Error(data?.error || "Search unavailable");
+    renderParticipantSuggestions(data.users || [], query);
+  }catch(_err){
+    if(requestId !== participantSearchRequestId) return;
+    participantSuggestions.innerHTML = '<div class="participant-suggestion-empty">Recherche indisponible.</div>';
+  }
+}
+
+function queueParticipantSearch(){
+  clearTimeout(participantSearchTimer);
+  participantSearchTimer = setTimeout(searchParticipantSuggestions, 160);
+}
+
+function addParticipant(name){
+  const cleaned = String(name || "").trim();
+  if(!cleaned) return;
+
+  const participants = draftTournament.participants || [];
+  const exists = participants.some(entry => entry.toLowerCase() === cleaned.toLowerCase());
+  if(exists){
+    participantInput.value = "";
+    hideParticipantSuggestions();
+    return;
+  }
+
+  draftTournament.participants = [...participants, cleaned];
+  participantInput.value = "";
+  hideParticipantSuggestions();
+  renderTournament();
+  markDirty("Tournament participants changed. Save Settings to apply it.");
+}
+
 function renderTournament(){
   tournamentEnabled.checked = Boolean(draftTournament.enabled);
   tournamentName.value = draftTournament.name || "CCA Tournament";
@@ -389,12 +540,13 @@ function renderTournament(){
   tournamentStatus.value = draftTournament.status || "draft";
   tournamentRound.value = draftTournament.round || 1;
   tournamentNotes.value = draftTournament.notes || "";
-  participantList.innerHTML = (draftTournament.participants || []).map(name => `
-    <span class="participant-chip">${name}<button type="button" data-remove="${name}">x</button></span>
+  renderFormatHelp();
+  participantList.innerHTML = (draftTournament.participants || []).map((name, index) => `
+    <span class="participant-chip">${escapeHtml(name)}<button type="button" data-remove-index="${index}" aria-label="Remove ${escapeHtml(name)}">x</button></span>
   `).join("");
-  participantList.querySelectorAll("[data-remove]").forEach(button => {
+  participantList.querySelectorAll("[data-remove-index]").forEach(button => {
     button.addEventListener("click", () => {
-      draftTournament.participants = (draftTournament.participants || []).filter(name => name !== button.dataset.remove);
+      draftTournament.participants = (draftTournament.participants || []).filter((_name, index) => index !== Number(button.dataset.removeIndex));
       renderTournament();
       markDirty("Tournament participants changed. Save Settings to apply it.");
     });
@@ -493,18 +645,20 @@ gamesSwitch.addEventListener("change", event => {
 [tournamentEnabled, tournamentName, tournamentFormat, tournamentStatus, tournamentRound, tournamentNotes].forEach(input => {
   bindDraftChange(input, () => {
     syncTournamentDraft();
+    renderFormatHelp();
     markDirty("Tournament settings changed. Save Settings to apply it.");
   });
 });
 
-addParticipantBtn.addEventListener("click", () => {
-  const name = participantInput.value.trim();
-  if(!name) return;
-  draftTournament.participants = [...new Set([...(draftTournament.participants || []), name])];
-  participantInput.value = "";
-  renderTournament();
-  markDirty("Tournament participants changed. Save Settings to apply it.");
+participantInput.addEventListener("input", queueParticipantSearch);
+participantInput.addEventListener("focus", queueParticipantSearch);
+participantInput.addEventListener("blur", () => setTimeout(hideParticipantSuggestions, 140));
+participantInput.addEventListener("keydown", event => {
+  if(event.key !== "Enter") return;
+  event.preventDefault();
+  addParticipant(participantInput.value);
 });
+addParticipantBtn.addEventListener("click", () => addParticipant(participantInput.value));
 
 saveSettingsBtn.addEventListener("click", saveAllSettings);
 

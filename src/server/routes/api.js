@@ -776,6 +776,37 @@ function createApiRouter({ User, state, isGameAllowed, io }){
     res.json(createAccessResponse(state, isGameAllowed, req.authUser));
   });
 
+  router.get('/admin/users/search', async (req, res)=>{
+    try{
+      if(!isAdminRequest(req)){
+        return res.status(403).json({ error: 'Admin required' });
+      }
+
+      const q = String(req.query.q || '').trim();
+      if(q.length < 1){
+        return res.json({ users: [] });
+      }
+
+      const users = await User.find(
+        {
+          username: { $regex: escapeRegExp(q), $options: 'i' }
+        },
+        { username: 1, avatar: 1, xp: 1, _id: 0 }
+      ).sort({ username: 1 }).limit(20).lean();
+
+      res.json({
+        users: users.map(user => ({
+          username: user.username,
+          avatar: user.avatar || '',
+          xp: user.xp || 0
+        }))
+      });
+    }catch(err){
+      console.error('Admin user search error:', err);
+      res.status(500).json({ error: 'Search unavailable' });
+    }
+  });
+
   router.post('/admin/settings', async (req, res)=>{
     try{
       if(!isAdminRequest(req)){

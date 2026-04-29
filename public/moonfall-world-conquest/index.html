@@ -31,7 +31,7 @@
       <form id="setupForm" class="game-mode-card">
         <span class="eyebrow">Risklike conquest</span>
         <h1>Moonfall World Conquest</h1>
-        <p class="game-mode-copy">Choose your commanders, draft the Taisho map, place reinforcements, roll dice, and conquer the world territory by territory.</p>
+        <p class="game-mode-copy">Choose your map and commanders, place reinforcements, roll dice, and conquer territory by territory.</p>
 
         <div class="setup-mode-tabs" role="tablist" aria-label="Game mode">
           <button id="localModeBtn" type="button" class="setup-mode-tab is-active">Local</button>
@@ -40,6 +40,14 @@
 
         <section id="localSetupPanel" class="mode-panel">
           <div class="setup-grid">
+            <label>Map
+              <select id="mapSelect">
+                <option value="taisho" selected>Taisho World</option>
+                <option value="europe">Europe</option>
+                <option value="india">India</option>
+                <option value="us">United States</option>
+              </select>
+            </label>
             <label>Players
               <select id="playerCount">
                 <option value="2">2</option>
@@ -143,6 +151,7 @@
 
       <div class="map-frame">
         <div id="mapStage" class="map-stage">
+          <svg id="sourceMapLayer" class="source-map-layer is-hidden" viewBox="0 0 1536 1024" aria-hidden="true"></svg>
           <img class="map-image" src="/moonfall-world-conquest/map.svg" alt="Moonfall World Conquest map">
           <svg id="territoryLayer" class="territory-layer" viewBox="0 0 1536 1024" aria-label="Territories"></svg>
           <svg id="fxLayer" class="fx-layer" viewBox="0 0 1536 1024" aria-hidden="true"></svg>

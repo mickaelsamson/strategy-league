@@ -12,7 +12,7 @@
   ];
   const CARD_SYMBOLS = ['moon', 'saber', 'banner'];
 
-  const REGIONS = {
+  const TAISHO_REGIONS = {
     divin: { name: 'Divine Continent', bonus: 3 },
     forets: { name: 'Forest Continent', bonus: 4 },
     fer: { name: 'Iron Continent', bonus: 5 },
@@ -68,7 +68,7 @@
       }
   ];
 
-  const TERRITORIES =   [
+  const TAISHO_TERRITORIES =   [
       {
           "id": "divin-1",
           "name": "Dawn Gate",
@@ -727,11 +727,46 @@
       }
   ];
 
+  const MAPS = {
+    taisho: {
+      name: 'Taisho World',
+      source: '/moonfall-world-conquest/map.svg',
+      prepared: true,
+      width: 1536,
+      height: 1024,
+      regions: TAISHO_REGIONS,
+      territories: TAISHO_TERRITORIES
+    },
+    europe: {
+      name: 'Europe',
+      source: '/moonfall-world-conquest/maps/europe.svg',
+      regions: ['Nordic Reach', 'Western Europe', 'Central Europe', 'Eastern Europe', 'Mediterranean']
+    },
+    india: {
+      name: 'India',
+      source: '/moonfall-world-conquest/maps/india.svg',
+      regions: ['North India', 'West India', 'Central India', 'East India', 'South India']
+    },
+    us: {
+      name: 'United States',
+      source: '/moonfall-world-conquest/maps/us.svg',
+      regions: ['Pacific', 'Mountain', 'Midwest', 'South', 'Atlantic']
+    }
+  };
+
+  const mapCache = new Map();
+  let activeMap = MAPS.taisho;
+  let REGIONS = TAISHO_REGIONS;
+  let TERRITORIES = TAISHO_TERRITORIES;
+  let MAP_VIEW_WIDTH = MAPS.taisho.width;
+  let MAP_VIEW_HEIGHT = MAPS.taisho.height;
+
   const dom = {
     setupView: document.getElementById('setupView'),
     gameView: document.getElementById('gameView'),
     form: document.getElementById('setupForm'),
     playerCount: document.getElementById('playerCount'),
+    mapSelect: document.getElementById('mapSelect'),
     pace: document.getElementById('pace'),
     aiStyle: document.getElementById('aiStyle'),
     deploymentStyle: document.getElementById('deploymentStyle'),
@@ -744,6 +779,8 @@
     cardsHud: document.getElementById('cardsHud'),
     territoryLayer: document.getElementById('territoryLayer'),
     fxLayer: document.getElementById('fxLayer'),
+    sourceMapLayer: document.getElementById('sourceMapLayer'),
+    mapImage: document.querySelector('.map-image'),
     mapFrame: document.querySelector('.map-frame'),
     mapStage: document.getElementById('mapStage'),
     zoomOutBtn: document.getElementById('zoomOutBtn'),
@@ -776,8 +813,7 @@
 
   let state = null;
   let noticeTimer = null;
-  const MAP_VIEW_WIDTH = 1536;
-  const MAP_VIEW_HEIGHT = 1024;
+  let startingGame = false;
 
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const roll = sides => Math.floor(Math.random() * sides) + 1;
@@ -824,6 +860,334 @@
     dom.notice.classList.add('visible');
     clearTimeout(noticeTimer);
     noticeTimer = setTimeout(() => dom.notice.classList.remove('visible'), 2600);
+  }
+
+  function slugify(text){
+    return String(text || 'territory')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'territory';
+  }
+
+  function readSvgViewBox(svg){
+    const rawViewBox = svg.getAttribute('viewBox') || svg.getAttribute('viewbox');
+    if(rawViewBox){
+      const values = rawViewBox.trim().split(/[\s,]+/).map(Number);
+      if(values.length === 4 && values.every(Number.isFinite)){
+        return { x: values[0], y: values[1], width: values[2], height: values[3] };
+      }
+    }
+
+    const width = parseFloat(svg.getAttribute('width')) || MAPS.taisho.width;
+    const height = parseFloat(svg.getAttribute('height')) || MAPS.taisho.height;
+    return { x: 0, y: 0, width, height };
+  }
+
+  function labelFromPath(path, index){
+    return path.getAttribute('name') ||
+      path.getAttribute('data-name') ||
+      path.getAttribute('aria-label') ||
+      path.id ||
+      `Territory ${index + 1}`;
+  }
+
+  function cleanSvgNode(svg){
+    svg.querySelectorAll('script, foreignObject').forEach(node => node.remove());
+    svg.querySelectorAll('*').forEach(node => {
+      [...node.attributes].forEach(attribute => {
+        if(attribute.name.toLowerCase().startsWith('on')) node.removeAttribute(attribute.name);
+      });
+    });
+  }
+
+  function svgRootAttributes(svg){
+    const skip = new Set(['id', 'width', 'height', 'viewbox', 'viewBox', 'xmlns', 'version']);
+    return [...svg.attributes]
+      .filter(attribute => !skip.has(attribute.name))
+      .map(attribute => [attribute.name, attribute.value]);
+  }
+
+  function applySvgRootAttributes(target, attributes){
+    [...target.attributes].forEach(attribute => {
+      if(!['id', 'class', 'viewBox', 'aria-hidden'].includes(attribute.name)){
+        target.removeAttribute(attribute.name);
+      }
+    });
+    for(const [name, value] of attributes){
+      target.setAttribute(name, value);
+    }
+  }
+
+  function pathTransform(path, root){
+    const transforms = [];
+    let node = path;
+    while(node && node !== root){
+      if(node.getAttribute?.('transform')) transforms.unshift(node.getAttribute('transform'));
+      node = node.parentNode;
+    }
+    return transforms.join(' ');
+  }
+
+  function buildRegionSet(map, territories){
+    const names = map.regions || ['North', 'West', 'Central', 'East', 'South'];
+    const regions = Object.fromEntries(names.map((name, index) => [
+      `region-${index}`,
+      { name, bonus: 2 }
+    ]));
+
+    for(const territory of territories){
+      const count = territories.filter(item => item.region === territory.region).length;
+      regions[territory.region].bonus = clamp(Math.floor(count / 3), 2, 8);
+    }
+
+    return regions;
+  }
+
+  function assignGeneratedRegion(map, center, viewBox){
+    const names = map.regions || [];
+    const xRatio = (center.x - viewBox.x) / viewBox.width;
+    const yRatio = (center.y - viewBox.y) / viewBox.height;
+    let index = 2;
+
+    if(yRatio < .28) index = 0;
+    else if(xRatio < .34) index = 1;
+    else if(xRatio > .67) index = 3;
+    else if(yRatio > .62) index = 4;
+
+    return `region-${Math.min(index, Math.max(0, names.length - 1))}`;
+  }
+
+  function connectTerritories(a, b){
+    if(!a.neighbors.includes(b.id)) a.neighbors.push(b.id);
+    if(!b.neighbors.includes(a.id)) b.neighbors.push(a.id);
+  }
+
+  function bboxGap(a, b){
+    const dx = Math.max(0, Math.max(a.x - (b.x + b.width), b.x - (a.x + a.width)));
+    const dy = Math.max(0, Math.max(a.y - (b.y + b.height), b.y - (a.y + a.height)));
+    return Math.hypot(dx, dy);
+  }
+
+  function centerDistance(a, b){
+    return Math.hypot(a.label.x - b.label.x, a.label.y - b.label.y);
+  }
+
+  function inferGeneratedNeighbors(territories, viewBox){
+    const diagonal = Math.hypot(viewBox.width, viewBox.height);
+    const touchGap = Math.max(5, diagonal * .01);
+    const centerLimit = diagonal * .18;
+    const minimum = territories.length > 90 ? 2 : 3;
+    const maximum = territories.length > 90 ? 5 : 7;
+
+    for(let i = 0; i < territories.length; i += 1){
+      for(let j = i + 1; j < territories.length; j += 1){
+        const a = territories[i];
+        const b = territories[j];
+        if(bboxGap(a.box, b.box) <= touchGap && centerDistance(a, b) <= centerLimit){
+          connectTerritories(a, b);
+        }
+      }
+    }
+
+    for(const territory of territories){
+      const nearest = territories
+        .filter(item => item.id !== territory.id)
+        .map(item => ({ item, distance: centerDistance(territory, item) }))
+        .sort((a, b) => a.distance - b.distance);
+
+      for(const candidate of nearest){
+        if(territory.neighbors.length >= minimum) break;
+        if(candidate.distance <= centerLimit || territory.neighbors.length === 0){
+          connectTerritories(territory, candidate.item);
+        }
+      }
+    }
+
+    for(const territory of territories){
+      territory.neighbors = territory.neighbors
+        .map(id => territories.find(item => item.id === id))
+        .filter(Boolean)
+        .sort((a, b) => centerDistance(territory, a) - centerDistance(territory, b))
+        .slice(0, maximum)
+        .map(item => item.id);
+    }
+
+    for(const territory of territories){
+      for(const neighborId of territory.neighbors){
+        const neighbor = territories.find(item => item.id === neighborId);
+        if(neighbor && !neighbor.neighbors.includes(territory.id)){
+          neighbor.neighbors.push(territory.id);
+        }
+      }
+      territory.neighbors.sort();
+    }
+  }
+
+  async function loadGeneratedMap(mapId){
+    if(mapCache.has(mapId)) return mapCache.get(mapId);
+    const map = MAPS[mapId] || MAPS.taisho;
+    const response = await fetch(map.source);
+    if(!response.ok) throw new Error(`Unable to load ${map.name}`);
+    const svgText = await response.text();
+    const documentSvg = new DOMParser().parseFromString(svgText, 'image/svg+xml');
+    const svg = documentSvg.querySelector('svg');
+    if(!svg) throw new Error(`Invalid SVG for ${map.name}`);
+    cleanSvgNode(svg);
+
+    const viewBox = readSvgViewBox(svg);
+    const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    tempSvg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`);
+    applySvgRootAttributes(tempSvg, svgRootAttributes(svg));
+    tempSvg.innerHTML = svg.innerHTML;
+    tempSvg.style.position = 'absolute';
+    tempSvg.style.width = '0';
+    tempSvg.style.height = '0';
+    tempSvg.style.overflow = 'hidden';
+    tempSvg.style.pointerEvents = 'none';
+    document.body.appendChild(tempSvg);
+
+    const groupedPaths = new Map();
+    const sourcePaths = [...svg.querySelectorAll('path[d]')];
+    const tempPaths = [...tempSvg.querySelectorAll('path[d]')];
+    sourcePaths.forEach((sourcePath, index) => {
+      const key = sourcePath.id ||
+        sourcePath.getAttribute('name') ||
+        sourcePath.getAttribute('data-name') ||
+        sourcePath.getAttribute('class') ||
+        `territory-${index + 1}`;
+      const name = sourcePath.getAttribute('name') ||
+        sourcePath.getAttribute('data-name') ||
+        sourcePath.getAttribute('class') ||
+        labelFromPath(sourcePath, index);
+      if(!groupedPaths.has(key)){
+        groupedPaths.set(key, {
+          key,
+          name,
+          parts: []
+        });
+      }
+      groupedPaths.get(key).parts.push({
+        d: sourcePath.getAttribute('d'),
+        transform: pathTransform(sourcePath, svg),
+        tempPath: tempPaths[index] || null
+      });
+    });
+
+    const seenIds = new Set();
+    const territories = [...groupedPaths.values()]
+      .map((entry, index) => {
+        const baseId = slugify(entry.key || entry.name);
+        let id = baseId;
+        let serial = 2;
+        while(seenIds.has(id)){
+          id = `${baseId}-${serial}`;
+          serial += 1;
+        }
+        seenIds.add(id);
+        const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        for(const part of entry.parts){
+          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          path.setAttribute('d', part.d);
+          if(part.transform) path.setAttribute('transform', part.transform);
+          group.appendChild(path);
+        }
+        tempSvg.appendChild(group);
+        let box;
+        try{
+          box = group.getBBox();
+        }catch(error){
+          group.remove();
+          return null;
+        }
+        group.remove();
+
+        if(box.width <= 0 || box.height <= 0) return null;
+        const label = {
+          x: box.x + box.width / 2,
+          y: box.y + box.height / 2
+        };
+        return {
+          id,
+          name: entry.name,
+          region: assignGeneratedRegion(map, label, viewBox),
+          label,
+          box: { x: box.x, y: box.y, width: box.width, height: box.height },
+          parts: entry.parts.map(part => ({
+            d: part.d,
+            transform: part.transform
+          })),
+          path: entry.parts.map(part => part.d).join(' '),
+          neighbors: [],
+          bridgeNeighbors: []
+        };
+      })
+      .filter(Boolean);
+
+    tempSvg.remove();
+    if(territories.length < 2) throw new Error(`${map.name} does not expose enough territories`);
+    inferGeneratedNeighbors(territories, viewBox);
+
+    const config = {
+      ...map,
+      id: mapId,
+      width: viewBox.width,
+      height: viewBox.height,
+      rawSvg: svg.innerHTML,
+      rootAttributes: svgRootAttributes(svg),
+      regions: buildRegionSet(map, territories),
+      territories: territories.map(({ box, ...territory }) => territory)
+    };
+    mapCache.set(mapId, config);
+    return config;
+  }
+
+  async function loadMapConfig(mapId){
+    const map = MAPS[mapId] || MAPS.taisho;
+    if(map.prepared){
+      return {
+        ...map,
+        id: mapId,
+        regions: map.regions,
+        territories: map.territories
+      };
+    }
+    return loadGeneratedMap(mapId);
+  }
+
+  function applyMapConfig(config){
+    activeMap = config;
+    REGIONS = config.regions;
+    TERRITORIES = config.territories;
+    MAP_VIEW_WIDTH = config.width;
+    MAP_VIEW_HEIGHT = config.height;
+    if(config.rawSvg){
+      applySvgRootAttributes(dom.sourceMapLayer, config.rootAttributes || []);
+      dom.sourceMapLayer.setAttribute('viewBox', `0 0 ${MAP_VIEW_WIDTH} ${MAP_VIEW_HEIGHT}`);
+      dom.sourceMapLayer.innerHTML = config.rawSvg;
+      dom.sourceMapLayer.hidden = false;
+      dom.sourceMapLayer.classList.remove('is-hidden');
+      dom.mapImage.hidden = true;
+      dom.mapImage.classList.add('is-hidden');
+    }else{
+      dom.sourceMapLayer.innerHTML = '';
+      dom.sourceMapLayer.hidden = true;
+      dom.sourceMapLayer.classList.add('is-hidden');
+      dom.mapImage.src = config.source;
+      dom.mapImage.alt = `${config.name} conquest map`;
+      dom.mapImage.hidden = false;
+      dom.mapImage.classList.remove('is-hidden');
+    }
+    dom.territoryLayer.setAttribute('viewBox', `0 0 ${MAP_VIEW_WIDTH} ${MAP_VIEW_HEIGHT}`);
+    dom.fxLayer.setAttribute('viewBox', `0 0 ${MAP_VIEW_WIDTH} ${MAP_VIEW_HEIGHT}`);
+  }
+
+  async function loadSelectedMap(){
+    const mapId = dom.mapSelect?.value || 'taisho';
+    const config = await loadMapConfig(mapId);
+    applyMapConfig(config);
+    return config;
   }
 
   function showBattleRoll(originId, targetId, attackRolls, defenseRolls, summary){
@@ -964,23 +1328,44 @@
   function startingTroops(playerCount){
     const quick = { 2: 30, 3: 27, 4: 23, 5: 20, 6: 18 };
     const classic = { 2: 40, 3: 35, 4: 30, 5: 25, 6: 20 };
-    return (dom.pace.value === 'classic' ? classic : quick)[playerCount] || 27;
+    const base = (dom.pace.value === 'classic' ? classic : quick)[playerCount] || 27;
+    const ownedShare = Math.ceil(TERRITORIES.length / Math.max(1, playerCount));
+    const mapReserve = Math.ceil(ownedShare * (dom.pace.value === 'classic' ? .45 : .25));
+    return Math.max(base, ownedShare + mapReserve);
   }
 
-  function startGame(event){
+  async function startGame(event){
     event.preventDefault();
+    if(startingGame) return;
     const players = readSetup();
     if(players.length < 2){
       notice('Open at least two players.');
       return;
     }
 
+    startingGame = true;
+    const submitButton = event.submitter;
+    if(submitButton) submitButton.disabled = true;
+
     if(!players.some(player => player.type === 'human')){
       players[0].type = 'human';
     }
 
+    let mapConfig;
+    try{
+      mapConfig = await loadSelectedMap();
+    }catch(error){
+      console.error(error);
+      notice('This map could not be loaded.');
+      startingGame = false;
+      if(submitButton) submitButton.disabled = false;
+      return;
+    }
+
     state = {
       players,
+      mapId: mapConfig.id,
+      mapName: mapConfig.name,
       territories: TERRITORIES.map(territory => ({
         id: territory.id,
         owner: null,
@@ -1019,11 +1404,13 @@
       addLog(`${currentPlayer().name} opens the conquest with ${state.pendingReinforcements} reinforcements.`);
     }
 
-    dom.setupView.hidden = true;
-    dom.setupView.classList.add('is-hidden');
-    dom.gameView.hidden = false;
-    dom.gameView.classList.remove('is-hidden');
-    render();
+      dom.setupView.hidden = true;
+      dom.setupView.classList.add('is-hidden');
+      dom.gameView.hidden = false;
+      dom.gameView.classList.remove('is-hidden');
+      startingGame = false;
+      if(submitButton) submitButton.disabled = false;
+      render();
   }
 
   function seedTerritories(){
@@ -1096,7 +1483,8 @@
     const owned = ownedTerritories(owner);
     let amount = Math.max(3, Math.floor(owned.length / 3));
     for(const [regionId, region] of Object.entries(REGIONS)){
-      const allOwned = regionTerritories(regionId).every(territory => territoryState(territory.id).owner === owner);
+      const territories = regionTerritories(regionId);
+      const allOwned = territories.length > 0 && territories.every(territory => territoryState(territory.id).owner === owner);
       if(allOwned) amount += region.bonus;
     }
     return amount;
@@ -1108,7 +1496,9 @@
   }
 
   function regionOwner(regionId){
-    const owners = new Set(regionTerritories(regionId).map(territory => territoryState(territory.id).owner));
+    const territories = regionTerritories(regionId);
+    if(!territories.length) return null;
+    const owners = new Set(territories.map(territory => territoryState(territory.id).owner));
     return owners.size === 1 ? [...owners][0] : null;
   }
 
@@ -1175,19 +1565,34 @@
   function renderMap(){
     const edges = [];
     const seen = new Set();
-    for(const territory of TERRITORIES){
-      for(const neighborId of territory.neighbors){
-        const key = [territory.id, neighborId].sort().join(':');
-        if(seen.has(key)) continue;
-        seen.add(key);
-        const neighbor = byId(neighborId);
-        const aState = territoryState(territory.id);
-        const bState = territoryState(neighborId);
-        const relation = aState.owner !== null && aState.owner === bState.owner ? 'owned' : 'front';
-        const bridge = territory.bridgeNeighbors.includes(neighborId) ? 'bridge' : 'local';
-        edges.push(`<line class="connection-line ${relation} ${bridge}" x1="${territory.label.x}" y1="${territory.label.y}" x2="${neighbor.label.x}" y2="${neighbor.label.y}"></line>`);
+    const showEdges = activeMap.prepared || TERRITORIES.length <= 80;
+    if(showEdges){
+      for(const territory of TERRITORIES){
+        for(const neighborId of territory.neighbors){
+          const key = [territory.id, neighborId].sort().join(':');
+          if(seen.has(key)) continue;
+          seen.add(key);
+          const neighbor = byId(neighborId);
+          const aState = territoryState(territory.id);
+          const bState = territoryState(neighborId);
+          const relation = aState.owner !== null && aState.owner === bState.owner ? 'owned' : 'front';
+          const bridge = territory.bridgeNeighbors.includes(neighborId) ? 'bridge' : 'local';
+          edges.push(`<line class="connection-line ${relation} ${bridge}" x1="${territory.label.x}" y1="${territory.label.y}" x2="${neighbor.label.x}" y2="${neighbor.label.y}"></line>`);
+        }
       }
     }
+
+    const generatedMap = !activeMap.prepared;
+    const territoryShape = (territory, className, style) => {
+      const title = `<title>${escapeHtml(territory.name)}</title>`;
+      if(territory.parts?.length){
+        const parts = territory.parts.map(part => (
+          `<path class="${className}" data-territory-id="${territory.id}" d="${part.d}"${part.transform ? ` transform="${escapeHtml(part.transform)}"` : ''} style="${style}"></path>`
+        )).join('');
+        return `<g>${title}${parts}</g>`;
+      }
+      return `<path class="${className}" data-territory-id="${territory.id}" d="${territory.path}" style="${style}">${title}</path>`;
+    };
 
     const paths = TERRITORIES.map(territory => {
       const info = territoryState(territory.id);
@@ -1197,34 +1602,44 @@
       const selectable = isSelectableTerritory(info);
       const className = [
         'territory-shape',
+        generatedMap ? 'generated' : '',
         selected ? 'focused' : '',
         targeted ? 'targeted' : '',
         selectable ? 'selectable' : ''
       ].filter(Boolean).join(' ');
-      const fill = owner ? hexToRgba(owner.color, .36) : 'rgba(255,255,255,.08)';
-      const hover = owner ? hexToRgba(owner.color, .58) : 'rgba(255,241,184,.22)';
-      const stroke = owner ? owner.color : 'rgba(255,248,214,.72)';
-      return `<path class="${className}" data-territory-id="${territory.id}" d="${territory.path}" style="--territory-fill:${fill};--territory-hover:${hover};--territory-stroke:${stroke}"><title>${escapeHtml(territory.name)}</title></path>`;
+      const fill = owner
+        ? hexToRgba(owner.color, generatedMap ? .18 : .36)
+        : (generatedMap ? 'rgba(255,255,255,.015)' : 'rgba(255,255,255,.08)');
+      const hover = owner
+        ? hexToRgba(owner.color, generatedMap ? .32 : .58)
+        : (generatedMap ? 'rgba(255,241,184,.14)' : 'rgba(255,241,184,.22)');
+      const stroke = owner ? owner.color : (generatedMap ? 'rgba(255,248,214,.28)' : 'rgba(255,248,214,.72)');
+      return territoryShape(territory, className, `--territory-fill:${fill};--territory-hover:${hover};--territory-stroke:${stroke}`);
     }).join('');
 
+    const compactTokens = generatedMap || TERRITORIES.length > 80;
+    const neutralRadius = compactTokens ? 13 : 21;
+    const ownerRadius = compactTokens ? 16 : 25;
+    const labelY = compactTokens ? 29 : 43;
+    const markY = compactTokens ? -19 : -27;
     const tokens = TERRITORIES.map(territory => {
       const info = territoryState(territory.id);
       const owner = playerById(info.owner);
       if(!owner){
         return `
-          <g class="territory-token unclaimed" transform="translate(${territory.label.x} ${territory.label.y})" style="--owner-color:#f0c76e">
-            <circle r="21"></circle>
+          <g class="territory-token unclaimed ${compactTokens ? 'compact' : ''}" transform="translate(${territory.label.x} ${territory.label.y})" style="--owner-color:#f0c76e">
+            <circle r="${neutralRadius}"></circle>
             <text y="1">?</text>
-            <text class="territory-label" y="39">${escapeHtml(shortName(territory.name))}</text>
+            <text class="territory-label" y="${labelY}">${escapeHtml(shortName(territory.name))}</text>
           </g>
         `;
       }
       return `
-        <g class="territory-token" transform="translate(${territory.label.x} ${territory.label.y})" style="--owner-color:${owner.color}">
-          <circle r="25"></circle>
-          <text class="commander-mark" y="-27">${escapeHtml(owner.leader.mark)}</text>
+        <g class="territory-token ${compactTokens ? 'compact' : ''}" transform="translate(${territory.label.x} ${territory.label.y})" style="--owner-color:${owner.color}">
+          <circle r="${ownerRadius}"></circle>
+          <text class="commander-mark" y="${markY}">${escapeHtml(owner.leader.mark)}</text>
           <text y="1">${info.troops}</text>
-          <text class="territory-label" y="43">${escapeHtml(shortName(territory.name))}</text>
+          <text class="territory-label" y="${labelY}">${escapeHtml(shortName(territory.name))}</text>
         </g>
       `;
     }).join('');
@@ -1286,7 +1701,9 @@
       'Mask Altar': 'Mask Altar',
       'Mist Fort': 'Mist Fort'
     };
-    return compact[name] || name;
+    if(compact[name]) return compact[name];
+    if(String(name).length > 15) return String(name).slice(0, 13);
+    return name;
   }
 
   function isSelectableTerritory(territory){
@@ -2073,6 +2490,10 @@
 
   function bind(){
     dom.playerCount.addEventListener('change', renderSlots);
+    dom.mapSelect.addEventListener('change', () => {
+      const map = MAPS[dom.mapSelect.value] || MAPS.taisho;
+      notice(`${map.name} selected.`);
+    });
     dom.shuffleBtn.addEventListener('click', shuffleSetup);
     dom.form.addEventListener('submit', startGame);
     dom.cardsBtn.addEventListener('click', () => tradeCards(false));
@@ -2105,6 +2526,7 @@
     dom.nextBtn.addEventListener('click', nextPhase);
   }
 
+  applyMapConfig({ ...MAPS.taisho, id: 'taisho' });
   renderSlots();
   bind();
 })();

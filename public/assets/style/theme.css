@@ -261,10 +261,10 @@ body.game-shell-active .app-sidebar-left{
 body.game-shell-active .app-sidebar-left:hover,
 body.game-shell-active .app-sidebar-left.expanded,
 body.game-shell-active .app-sidebar-left:focus-within{
-  width:320px;
-  padding:28px 16px;
+  width:176px;
+  padding:22px 12px;
   align-items:stretch;
-  gap:24px;
+  gap:18px;
 }
 
 body.game-shell-active .app-sidebar-left .shell-brand{
@@ -278,8 +278,8 @@ body.game-shell-active .app-sidebar-left:hover .shell-brand,
 body.game-shell-active .app-sidebar-left.expanded .shell-brand,
 body.game-shell-active .app-sidebar-left:focus-within .shell-brand{
   width:100% !important;
-  min-height:250px !important;
-  gap:18px !important;
+  min-height:132px !important;
+  gap:8px !important;
 }
 
 body.game-shell-active .app-sidebar-left .shell-brand img{
@@ -294,19 +294,19 @@ body.game-shell-active .app-sidebar-left .shell-brand b{
 body.game-shell-active .app-sidebar-left:hover .shell-brand img,
 body.game-shell-active .app-sidebar-left.expanded .shell-brand img,
 body.game-shell-active .app-sidebar-left:focus-within .shell-brand img{
-  width:156px !important;
-  height:156px !important;
+  width:78px !important;
+  height:78px !important;
 }
 
 body.game-shell-active .app-sidebar-left:hover .shell-brand b,
 body.game-shell-active .app-sidebar-left.expanded .shell-brand b,
 body.game-shell-active .app-sidebar-left:focus-within .shell-brand b{
   display:block !important;
-  max-width:220px;
+  max-width:122px;
   color:var(--shell-amber) !important;
-  font-size:25px !important;
-  line-height:1.22 !important;
-  letter-spacing:8px !important;
+  font-size:13px !important;
+  line-height:1.25 !important;
+  letter-spacing:3px !important;
 }
 
 body.game-shell-active .app-sidebar-left .shell-nav-item{
@@ -329,11 +329,11 @@ body.game-shell-active .app-sidebar-left:hover .shell-nav-item,
 body.game-shell-active .app-sidebar-left.expanded .shell-nav-item,
 body.game-shell-active .app-sidebar-left:focus-within .shell-nav-item{
   width:100% !important;
-  min-height:96px !important;
-  padding:0 24px !important;
+  min-height:48px !important;
+  padding:0 10px !important;
   justify-content:flex-start !important;
-  gap:22px !important;
-  border-radius:10px !important;
+  gap:11px !important;
+  border-radius:6px !important;
 }
 
 body.game-shell-active .app-sidebar-left .shell-nav-item span{
@@ -344,22 +344,22 @@ body.game-shell-active .app-sidebar-left:hover .shell-nav-item span,
 body.game-shell-active .app-sidebar-left.expanded .shell-nav-item span,
 body.game-shell-active .app-sidebar-left:focus-within .shell-nav-item span{
   display:block !important;
-  font-size:24px !important;
-  font-weight:900 !important;
+  font-size:13px !important;
+  font-weight:800 !important;
   letter-spacing:0 !important;
 }
 
 body.game-shell-active .app-sidebar-left:hover .shell-nav-item svg,
 body.game-shell-active .app-sidebar-left.expanded .shell-nav-item svg,
 body.game-shell-active .app-sidebar-left:focus-within .shell-nav-item svg{
-  width:38px !important;
-  height:38px !important;
+  width:23px !important;
+  height:23px !important;
 }
 
 body.game-shell-active .app-sidebar-left:hover .shell-logout,
 body.game-shell-active .app-sidebar-left.expanded .shell-logout,
 body.game-shell-active .app-sidebar-left:focus-within .shell-logout{
-  min-height:96px !important;
+  min-height:50px !important;
   margin-top:auto !important;
 }
 

@@ -68,7 +68,7 @@ body.conquest-page [hidden],
 
 .setup-grid{
   display:grid;
-  grid-template-columns:repeat(4, minmax(0, 1fr));
+  grid-template-columns:repeat(5, minmax(0, 1fr));
   gap:12px;
   margin-bottom:14px;
 }
@@ -347,6 +347,7 @@ button:disabled{
   transition:transform .18s ease;
 }
 
+.source-map-layer,
 .map-image,
 .territory-layer{
   width:100%;
@@ -354,6 +355,12 @@ button:disabled{
   display:block;
   object-fit:contain;
   grid-area:1 / 1;
+}
+
+.source-map-layer,
+.map-image{
+  position:relative;
+  z-index:1;
 }
 
 .territory-layer{
@@ -448,6 +455,11 @@ button:disabled{
   transition:fill .16s ease, stroke .16s ease, stroke-width .16s ease, filter .16s ease;
 }
 
+.territory-shape.generated{
+  stroke-width:2;
+  filter:none;
+}
+
 .territory-shape:hover,
 .territory-shape.focused{
   fill:var(--territory-hover);
@@ -497,6 +509,10 @@ button:disabled{
   fill:rgba(12,17,22,.78);
   stroke:#f0c76e;
   stroke-dasharray:0;
+}
+
+.territory-token.compact .territory-label{
+  display:none;
 }
 
 .territory-label{
