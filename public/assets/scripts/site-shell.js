@@ -4,6 +4,10 @@
   let onlineSocket = null;
   let latestOnlineUsers = {};
   let invitePickerOpen = false;
+  let notificationOpen = false;
+  let notificationSequence = 0;
+  let notifications = [];
+  let friendState = { friends: [], incoming: [], outgoing: [] };
 
   function getUser(){
     try{
@@ -59,7 +63,12 @@
       settings: '<path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.8 1.8 0 0 0 15 19.4a1.8 1.8 0 0 0-1 .6 1.8 1.8 0 0 0-.4 1.1V21a2 2 0 1 1-4 0v-.09A1.8 1.8 0 0 0 8.6 19.4a1.8 1.8 0 0 0-1.98.36l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-1-.6 1.8 1.8 0 0 0-1.1-.4H2a2 2 0 1 1 0-4h.09a1.8 1.8 0 0 0 1.51-1A1.8 1.8 0 0 0 3.24 7l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.8 1.8 0 0 0 9 4.6a1.8 1.8 0 0 0 .6-1V3a2 2 0 1 1 4 0v.09A1.8 1.8 0 0 0 15 4.6a1.8 1.8 0 0 0 1.98-.36l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.8 1.8 0 0 0 19.4 9c.27.32.6.52 1 .6.35.07.72.1 1.1.1H22a2 2 0 1 1 0 4h-.09A1.8 1.8 0 0 0 19.4 15Z"/>',
       admin: '<path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3Z"/><path d="M9 12l2 2 4-5"/>',
       logout: '<path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M21 19V5a2 2 0 0 0-2-2h-5"/>',
-      search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>'
+      search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+      bell: '<path d="M10 21h4"/><path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+      fullscreen: '<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>',
+      userPlus: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/>',
+      check: '<path d="m20 6-11 11-5-5"/>',
+      menu: '<path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>'
     };
 
     return `<svg viewBox="0 0 24 24" aria-hidden="true">${icons[name] || icons.home}</svg>`;
@@ -81,6 +90,21 @@
     if(path.includes('/profile')) return 'profile';
     if(path.includes('/admin')) return 'admin';
     return 'home';
+  }
+
+  function isGameShellPage(){
+    const path = window.location.pathname;
+    return [
+      '/chess',
+      '/othello',
+      '/azul',
+      '/moonfall-p4',
+      '/hexblitz_moonfall',
+      '/moonfall-settlers',
+      '/moonfall-world-conquest',
+      '/moonfall-rts',
+      '/strategy'
+    ].some(segment => path.includes(segment));
   }
 
   function avatarMarkup(user, className = 'shell-avatar'){
@@ -105,6 +129,7 @@
     if(!user || isPublicPage()) return;
 
     document.body.classList.add('app-shell-active');
+    document.body.classList.toggle('game-shell-active', isGameShellPage());
     const active = getActiveLink();
     let container = document.getElementById('navbar-container');
     if(!container){
@@ -153,6 +178,15 @@
         </div>
       </aside>
 
+      <button id="shellNotificationBell" class="shell-notification-bell" type="button" aria-label="Notifications" title="Notifications">
+        ${icon('bell')}
+        <b id="shellNotificationCount" class="hidden">0</b>
+      </button>
+      <div id="shellNotificationPanel" class="shell-notification-panel hidden"></div>
+      <button id="shellFullscreenBtn" class="shell-fullscreen-btn ${isGameShellPage() ? '' : 'hidden'}" type="button" aria-label="Fullscreen" title="Fullscreen">
+        ${icon('fullscreen')}
+      </button>
+
       <div id="shellPlayerCard" class="shell-player-card hidden"></div>
       <div id="shellToastStack" class="shell-toast-stack"></div>
       <div id="activeGameBanner" class="active-game-banner hidden"></div>
@@ -162,8 +196,12 @@
       btn.addEventListener('click', ()=> goTo(btn.dataset.link));
     });
 
+    bindLeftGameSidebarControls();
     bindOnlinePanelControls();
+    bindNotificationControls();
+    bindFullscreenControls();
     bindGlobalProfileClicks();
+    loadFriends();
     bootOnlinePlayers(user);
   }
 
@@ -189,6 +227,80 @@
       if(event.target.closest('.app-sidebar-right')) return;
       sidebar?.classList.remove('expanded');
       closeInvitePicker();
+    });
+  }
+
+  function bindLeftGameSidebarControls(){
+    const sidebar = document.querySelector('.app-sidebar-left');
+    if(!sidebar || !document.body.classList.contains('game-shell-active')) return;
+
+    sidebar.addEventListener('click', event => {
+      if(event.target.closest('[data-link]') && sidebar.classList.contains('expanded')) return;
+      sidebar.classList.add('expanded');
+    });
+
+    document.addEventListener('click', event => {
+      if(event.target.closest('.app-sidebar-left')) return;
+      sidebar.classList.remove('expanded');
+    });
+  }
+
+  function bindNotificationControls(){
+    const bell = document.getElementById('shellNotificationBell');
+    const panel = document.getElementById('shellNotificationPanel');
+    if(!bell || !panel) return;
+
+    bell.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      notificationOpen = !notificationOpen;
+      panel.classList.toggle('hidden', !notificationOpen);
+      renderNotificationCenter();
+    });
+
+    document.addEventListener('click', event => {
+      if(event.target.closest('.shell-notification-bell, .shell-notification-panel')) return;
+      notificationOpen = false;
+      panel.classList.add('hidden');
+    });
+  }
+
+  function fullscreenTarget(){
+    const selectors = [
+      '#gameView:not([hidden])',
+      '#gameScreen:not([hidden])',
+      '.moonveil-scene',
+      '.azul-game',
+      '#main',
+      'main'
+    ];
+
+    for(const selector of selectors){
+      const target = document.querySelector(selector);
+      if(target && target.offsetWidth > 0 && target.offsetHeight > 0) return target;
+    }
+
+    return document.documentElement;
+  }
+
+  function bindFullscreenControls(){
+    const button = document.getElementById('shellFullscreenBtn');
+    if(!button) return;
+
+    button.addEventListener('click', async () => {
+      try{
+        if(document.fullscreenElement){
+          await document.exitFullscreen?.();
+        }else{
+          await fullscreenTarget().requestFullscreen?.();
+        }
+      }catch(err){
+        showToast({ title: 'Fullscreen', message: 'Fullscreen is not available in this browser.' });
+      }
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+      button.classList.toggle('is-active', Boolean(document.fullscreenElement));
     });
   }
 
@@ -273,6 +385,8 @@
     if(path.includes('/moonfall-settlers')) return 'moonfall';
     if(path.includes('/moonfall-p4')) return 'moonfall_p4';
     if(path.includes('/hexblitz_moonfall')) return 'hexblitz';
+    if(path.includes('/moonfall-world-conquest')) return 'moonfall_world_conquest';
+    if(path.includes('/moonfall-rts')) return 'moonfall_rts';
     return null;
   }
 
@@ -283,7 +397,9 @@
       azul: '/azul/game.html',
       moonfall: '/moonfall-settlers/index.html',
       moonfall_p4: '/moonfall-p4/index.html',
-      hexblitz: '/hexblitz_moonfall/index.html'
+      hexblitz: '/hexblitz_moonfall/index.html',
+      moonfall_world_conquest: '/moonfall-world-conquest/index.html',
+      moonfall_rts: '/moonfall-rts/index.html'
     }[gameKey] || '/games.html';
   }
 
@@ -317,6 +433,24 @@
       showToast({ title: 'Game notice', message: notice?.message || 'Game update.' });
     });
 
+    socket.on('friend_request', request => {
+      const from = request?.from || request?.username;
+      showToast({
+        title: 'Friend request',
+        message: request?.message || `${from || 'A player'} wants to add you as a friend.`,
+        actions: [
+          { label: 'Accept', onClick: () => acceptFriend(from) },
+          { label: 'Decline', quiet: true, onClick: () => declineFriend(from) }
+        ]
+      });
+      loadFriends();
+    });
+
+    socket.on('friend_update', update => {
+      showToast({ title: 'Friends', message: update?.message || 'Friends updated.' });
+      loadFriends();
+    });
+
     socket.on('active_game_status', renderActiveGameBanner);
     socket.on('auth_required', () => {
       localStorage.removeItem('user');
@@ -336,6 +470,7 @@
 
   function showToast({ title, message, actions = [] }){
     const stack = document.getElementById('shellToastStack');
+    const notification = addNotification({ title, message, actions });
     if(!stack) return;
 
     const toast = document.createElement('div');
@@ -351,12 +486,87 @@
     actions.forEach((action, index) => {
       toast.querySelector(`[data-action="${index}"]`)?.addEventListener('click', () => {
         action.onClick?.();
+        notification.read = true;
+        renderNotificationCenter();
         toast.remove();
       });
     });
 
     stack.appendChild(toast);
     if(!actions.length) setTimeout(()=>toast.remove(), 4200);
+  }
+
+  function addNotification({ title, message, actions = [] }){
+    const notification = {
+      id: `${Date.now()}-${notificationSequence += 1}`,
+      title: title || 'Notification',
+      message: message || '',
+      actions,
+      read: false,
+      createdAt: new Date()
+    };
+    notifications = [notification, ...notifications].slice(0, 20);
+    renderNotificationCenter();
+    return notification;
+  }
+
+  function unreadNotifications(){
+    return notifications.filter(notification => !notification.read).length;
+  }
+
+  function renderNotificationCenter(){
+    const count = document.getElementById('shellNotificationCount');
+    const panel = document.getElementById('shellNotificationPanel');
+    const unread = unreadNotifications();
+
+    if(count){
+      count.textContent = String(unread);
+      count.classList.toggle('hidden', unread === 0);
+    }
+
+    if(!panel) return;
+    panel.innerHTML = `
+      <div class="shell-notification-head">
+        <strong>Notifications</strong>
+        <button type="button" data-clear-notifications>Clear</button>
+      </div>
+      <div class="shell-notification-list">
+        ${notifications.length ? notifications.map(notification => `
+          <article class="shell-notification-item ${notification.read ? 'is-read' : ''}" data-notification-id="${escapeHtml(notification.id)}">
+            <strong>${escapeHtml(notification.title)}</strong>
+            <p>${escapeHtml(notification.message)}</p>
+            ${notification.actions?.length ? `
+              <div class="shell-notification-actions">
+                ${notification.actions.map((action, index) => `<button type="button" data-notification-action="${index}" class="${action.quiet ? 'quiet' : ''}">${escapeHtml(action.label)}</button>`).join('')}
+              </div>
+            ` : ''}
+          </article>
+        `).join('') : '<div class="online-empty">No notifications yet</div>'}
+      </div>
+    `;
+
+    panel.querySelector('[data-clear-notifications]')?.addEventListener('click', () => {
+      notifications = [];
+      renderNotificationCenter();
+    });
+
+    panel.querySelectorAll('.shell-notification-item').forEach(item => {
+      const notification = notifications.find(entry => entry.id === item.dataset.notificationId);
+      if(!notification) return;
+      item.addEventListener('click', () => {
+        notification.read = true;
+        renderNotificationCenter();
+      });
+      item.querySelectorAll('[data-notification-action]').forEach(button => {
+        button.addEventListener('click', event => {
+          event.stopPropagation();
+          const index = Number(button.dataset.notificationAction);
+          notification.actions?.[index]?.onClick?.();
+          notification.read = true;
+          renderNotificationCenter();
+        });
+      });
+    });
   }
 
   function renderActiveGameBanner(activeGame){
@@ -377,6 +587,106 @@
     banner.querySelector('button')?.addEventListener('click', () => {
       window.location.href = activeGame.url || '/games.html';
     });
+  }
+
+  function usernamesFrom(list){
+    return new Set((Array.isArray(list) ? list : []).map(entry => entry.username || entry).filter(Boolean));
+  }
+
+  function friendRelation(username){
+    const user = getUser();
+    if(!username || username === user?.username) return 'self';
+    if(usernamesFrom(friendState.friends).has(username)) return 'friend';
+    if(usernamesFrom(friendState.incoming).has(username)) return 'incoming';
+    if(usernamesFrom(friendState.outgoing).has(username)) return 'outgoing';
+    return 'none';
+  }
+
+  async function loadFriends(){
+    try{
+      const response = await fetch('/api/friends', { cache: 'no-store' });
+      if(!response.ok) return;
+      const data = await response.json();
+      friendState = {
+        friends: Array.isArray(data.friends) ? data.friends : [],
+        incoming: Array.isArray(data.incoming) ? data.incoming : [],
+        outgoing: Array.isArray(data.outgoing) ? data.outgoing : []
+      };
+      renderOnlinePlayers(latestOnlineUsers);
+      renderInvitePicker(currentGameKey(), entriesFromLatestUsers());
+      window.dispatchEvent(new CustomEvent('site-shell-friends-update', { detail: friendState }));
+    }catch(err){
+      console.error('Friends unavailable:', err);
+    }
+  }
+
+  async function requestFriend(username){
+    if(!username) return;
+    try{
+      const response = await fetch('/api/friends/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username })
+      });
+      const data = await response.json().catch(()=>({}));
+      if(!response.ok) throw new Error(data.error || 'Friend request unavailable');
+      friendState = {
+        friends: Array.isArray(data.friends) ? data.friends : friendState.friends,
+        incoming: Array.isArray(data.incoming) ? data.incoming : friendState.incoming,
+        outgoing: Array.isArray(data.outgoing) ? data.outgoing : friendState.outgoing
+      };
+      showToast({ title: 'Friends', message: data.status === 'friends' ? `${username} is now your friend.` : `Friend request sent to ${username}.` });
+      renderOnlinePlayers(latestOnlineUsers);
+      window.dispatchEvent(new CustomEvent('site-shell-friends-update', { detail: friendState }));
+    }catch(err){
+      showToast({ title: 'Friends', message: err.message || 'Friend request unavailable.' });
+    }
+  }
+
+  async function acceptFriend(username){
+    if(!username) return;
+    try{
+      const response = await fetch('/api/friends/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username })
+      });
+      const data = await response.json().catch(()=>({}));
+      if(!response.ok) throw new Error(data.error || 'Friend accept unavailable');
+      friendState = {
+        friends: Array.isArray(data.friends) ? data.friends : friendState.friends,
+        incoming: Array.isArray(data.incoming) ? data.incoming : friendState.incoming,
+        outgoing: Array.isArray(data.outgoing) ? data.outgoing : friendState.outgoing
+      };
+      showToast({ title: 'Friends', message: `${username} is now your friend.` });
+      renderOnlinePlayers(latestOnlineUsers);
+      window.dispatchEvent(new CustomEvent('site-shell-friends-update', { detail: friendState }));
+    }catch(err){
+      showToast({ title: 'Friends', message: err.message || 'Friend accept unavailable.' });
+    }
+  }
+
+  async function declineFriend(username){
+    if(!username) return;
+    try{
+      const response = await fetch('/api/friends/decline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username })
+      });
+      const data = await response.json().catch(()=>({}));
+      if(!response.ok) throw new Error(data.error || 'Friend decline unavailable');
+      friendState = {
+        friends: Array.isArray(data.friends) ? data.friends : friendState.friends,
+        incoming: Array.isArray(data.incoming) ? data.incoming : friendState.incoming,
+        outgoing: Array.isArray(data.outgoing) ? data.outgoing : friendState.outgoing
+      };
+      showToast({ title: 'Friends', message: `Friend request from ${username} declined.` });
+      renderOnlinePlayers(latestOnlineUsers);
+      window.dispatchEvent(new CustomEvent('site-shell-friends-update', { detail: friendState }));
+    }catch(err){
+      showToast({ title: 'Friends', message: err.message || 'Friend decline unavailable.' });
+    }
   }
 
   function renderOnlinePlayers(users){
@@ -404,6 +714,18 @@
     }
 
     list.innerHTML = entries.map(player => {
+      const relation = friendRelation(player.username);
+      const isMe = relation === 'self';
+      const friendAction = relation === 'friend'
+        ? (gameKey ? `<button class="online-row-action" type="button" data-invite-username="${escapeHtml(player.username)}" title="Invite friend">${icon('games')}</button>` : '<span class="online-friend-pill">Friend</span>')
+        : relation === 'incoming'
+          ? `<button class="online-row-action" type="button" data-accept-friend="${escapeHtml(player.username)}" title="Accept friend request">${icon('check')}</button>`
+          : relation === 'outgoing'
+            ? '<span class="online-friend-pill">Sent</span>'
+            : !isMe
+              ? `<button class="online-row-action" type="button" data-request-friend="${escapeHtml(player.username)}" title="Add friend">${icon('userPlus')}</button>`
+              : '';
+
       return `
         <div class="online-player-row">
           <button class="online-player" type="button" data-profile-username="${escapeHtml(player.username)}" data-player='${escapeHtml(JSON.stringify(player))}'>
@@ -413,11 +735,14 @@
             </span>
             <i></i>
           </button>
+          ${friendAction}
         </div>
       `;
     }).join('');
 
     bindPlayerCards();
+    bindFriendButtons();
+    bindInviteButtons(gameKey);
     renderInvitePicker(gameKey, entries);
   }
 
@@ -437,6 +762,24 @@
           showToast({ title: 'Invite sent', message: `Invite sent to ${toUsername}.` });
           closeInvitePicker();
         }
+      });
+    });
+  }
+
+  function bindFriendButtons(){
+    document.querySelectorAll('[data-request-friend]').forEach(button => {
+      button.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        requestFriend(button.dataset.requestFriend);
+      });
+    });
+
+    document.querySelectorAll('[data-accept-friend]').forEach(button => {
+      button.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        acceptFriend(button.dataset.acceptFriend);
       });
     });
   }
@@ -471,11 +814,12 @@
       return;
     }
 
-    const targets = entries.filter(player => user?.username && player.username !== user.username);
+    const friends = usernamesFrom(friendState.friends);
+    const targets = entries.filter(player => user?.username && player.username !== user.username && friends.has(player.username));
     picker.classList.remove('hidden');
     picker.innerHTML = targets.length
       ? `
-        <strong>Invite player</strong>
+        <strong>Invite friend</strong>
         <div>
           ${targets.map(player => `
             <button class="online-invite-target" type="button" data-invite-username="${escapeHtml(player.username)}">
@@ -485,7 +829,7 @@
           `).join('')}
         </div>
       `
-      : '<div class="online-empty">No invite targets online</div>';
+      : '<div class="online-empty">No friends online to invite</div>';
     bindInviteButtons(gameKey);
   }
 
@@ -585,6 +929,18 @@
     },
     openInvitePicker(gameKey){
       openInvitePicker(gameKey || currentGameKey());
+    },
+    requestFriend(username){
+      requestFriend(username);
+    },
+    acceptFriend(username){
+      acceptFriend(username);
+    },
+    declineFriend(username){
+      declineFriend(username);
+    },
+    getFriendState(){
+      return friendState;
     }
   };
 

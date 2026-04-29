@@ -203,6 +203,57 @@ function createAccessResponse(state, isGameAllowed, actor){
 function createApiRouter({ User, state, isGameAllowed, io }){
   const router = express.Router();
 
+  function emitToUsername(username, event, payload){
+    if(!io || !username) return;
+    [...io.sockets.sockets.values()]
+      .filter(socket => socket.username === username)
+      .forEach(socket => socket.emit(event, payload));
+  }
+
+  function requireAuth(req, res){
+    if(req.authUser?.username) return true;
+    res.status(401).json({ error: 'Authentication required' });
+    return false;
+  }
+
+  function uniqueStrings(values){
+    return [...new Set((Array.isArray(values) ? values : [])
+      .map(value => String(value || '').trim())
+      .filter(Boolean))];
+  }
+
+  async function summarizeUsers(usernames){
+    const names = uniqueStrings(usernames);
+    if(!names.length) return [];
+
+    const users = await User.find(
+      { username: { $in: names } },
+      { username: 1, avatar: 1, xp: 1, _id: 0 }
+    ).lean();
+
+    const order = new Map(names.map((name, index) => [name, index]));
+    return users
+      .map(user => ({
+        username: user.username,
+        avatar: user.avatar || '',
+        xp: user.xp || 0
+      }))
+      .sort((a, b) => (order.get(a.username) || 0) - (order.get(b.username) || 0));
+  }
+
+  async function createFriendsPayload(username){
+    const user = await User.findOne({ username }).lean();
+    if(!user) return null;
+
+    const [friends, incoming, outgoing] = await Promise.all([
+      summarizeUsers(user.friends),
+      summarizeUsers(user.incomingFriendRequests),
+      summarizeUsers(user.outgoingFriendRequests)
+    ]);
+
+    return { friends, incoming, outgoing };
+  }
+
   router.use((req, res, next)=>{
     if(
       req.path.startsWith('/admin') ||
@@ -470,6 +521,162 @@ function createApiRouter({ User, state, isGameAllowed, io }){
 
   router.get('/progression', (_req, res)=>{
     res.json(getProgressionData());
+  });
+
+  router.get('/friends', async (req, res)=>{
+    try{
+      if(!requireAuth(req, res)) return;
+      const payload = await createFriendsPayload(req.authUser.username);
+      if(!payload) return res.status(404).json({ error: 'User not found' });
+      res.json(payload);
+    }catch(err){
+      console.error('Friends load error:', err);
+      res.status(500).json({ error: 'Friends unavailable' });
+    }
+  });
+
+  router.post('/friends/request', async (req, res)=>{
+    try{
+      if(!requireAuth(req, res)) return;
+
+      const fromUsername = req.authUser.username;
+      const toUsername = String(req.body.username || req.body.toUsername || '').trim();
+      if(!toUsername || toUsername === fromUsername){
+        return res.status(400).json({ error: 'Choose another player.' });
+      }
+
+      const [fromUser, toUser] = await Promise.all([
+        User.findOne({ username: fromUsername }),
+        User.findOne({ username: toUsername })
+      ]);
+
+      if(!fromUser || !toUser){
+        return res.status(404).json({ error: 'Player not found.' });
+      }
+
+      fromUser.friends = uniqueStrings(fromUser.friends);
+      toUser.friends = uniqueStrings(toUser.friends);
+      fromUser.incomingFriendRequests = uniqueStrings(fromUser.incomingFriendRequests);
+      fromUser.outgoingFriendRequests = uniqueStrings(fromUser.outgoingFriendRequests);
+      toUser.incomingFriendRequests = uniqueStrings(toUser.incomingFriendRequests);
+      toUser.outgoingFriendRequests = uniqueStrings(toUser.outgoingFriendRequests);
+
+      if(fromUser.friends.includes(toUsername)){
+        return res.json({ success: true, status: 'friends', ...(await createFriendsPayload(fromUsername)) });
+      }
+
+      if(fromUser.incomingFriendRequests.includes(toUsername)){
+        fromUser.friends = uniqueStrings([...fromUser.friends, toUsername]);
+        toUser.friends = uniqueStrings([...toUser.friends, fromUsername]);
+        fromUser.incomingFriendRequests = fromUser.incomingFriendRequests.filter(name => name !== toUsername);
+        toUser.outgoingFriendRequests = toUser.outgoingFriendRequests.filter(name => name !== fromUsername);
+        await Promise.all([fromUser.save(), toUser.save()]);
+        emitToUsername(toUsername, 'friend_update', {
+          type: 'accepted',
+          username: fromUsername,
+          message: `${fromUsername} accepted your friend request.`
+        });
+        emitToUsername(fromUsername, 'friend_update', {
+          type: 'accepted',
+          username: toUsername,
+          message: `${toUsername} is now your friend.`
+        });
+        return res.json({ success: true, status: 'friends', ...(await createFriendsPayload(fromUsername)) });
+      }
+
+      if(!fromUser.outgoingFriendRequests.includes(toUsername)){
+        fromUser.outgoingFriendRequests.push(toUsername);
+      }
+      if(!toUser.incomingFriendRequests.includes(fromUsername)){
+        toUser.incomingFriendRequests.push(fromUsername);
+      }
+
+      await Promise.all([fromUser.save(), toUser.save()]);
+
+      emitToUsername(toUsername, 'friend_request', {
+        from: fromUsername,
+        message: `${fromUsername} wants to add you as a friend.`
+      });
+
+      res.json({ success: true, status: 'pending', ...(await createFriendsPayload(fromUsername)) });
+    }catch(err){
+      console.error('Friend request error:', err);
+      res.status(500).json({ error: 'Friend request unavailable' });
+    }
+  });
+
+  router.post('/friends/accept', async (req, res)=>{
+    try{
+      if(!requireAuth(req, res)) return;
+
+      const username = req.authUser.username;
+      const fromUsername = String(req.body.username || req.body.fromUsername || '').trim();
+      if(!fromUsername || fromUsername === username){
+        return res.status(400).json({ error: 'Invalid friend request.' });
+      }
+
+      const [user, requester] = await Promise.all([
+        User.findOne({ username }),
+        User.findOne({ username: fromUsername })
+      ]);
+
+      if(!user || !requester){
+        return res.status(404).json({ error: 'Player not found.' });
+      }
+
+      user.friends = uniqueStrings([...(user.friends || []), fromUsername]);
+      requester.friends = uniqueStrings([...(requester.friends || []), username]);
+      user.incomingFriendRequests = uniqueStrings(user.incomingFriendRequests).filter(name => name !== fromUsername);
+      user.outgoingFriendRequests = uniqueStrings(user.outgoingFriendRequests).filter(name => name !== fromUsername);
+      requester.outgoingFriendRequests = uniqueStrings(requester.outgoingFriendRequests).filter(name => name !== username);
+      requester.incomingFriendRequests = uniqueStrings(requester.incomingFriendRequests).filter(name => name !== username);
+
+      await Promise.all([user.save(), requester.save()]);
+
+      emitToUsername(fromUsername, 'friend_update', {
+        type: 'accepted',
+        username,
+        message: `${username} accepted your friend request.`
+      });
+      emitToUsername(username, 'friend_update', {
+        type: 'accepted',
+        username: fromUsername,
+        message: `${fromUsername} is now your friend.`
+      });
+
+      res.json({ success: true, status: 'friends', ...(await createFriendsPayload(username)) });
+    }catch(err){
+      console.error('Friend accept error:', err);
+      res.status(500).json({ error: 'Friend accept unavailable' });
+    }
+  });
+
+  router.post('/friends/decline', async (req, res)=>{
+    try{
+      if(!requireAuth(req, res)) return;
+
+      const username = req.authUser.username;
+      const fromUsername = String(req.body.username || req.body.fromUsername || '').trim();
+      if(!fromUsername || fromUsername === username){
+        return res.status(400).json({ error: 'Invalid friend request.' });
+      }
+
+      await Promise.all([
+        User.updateOne({ username }, { $pull: { incomingFriendRequests: fromUsername } }),
+        User.updateOne({ username: fromUsername }, { $pull: { outgoingFriendRequests: username } })
+      ]);
+
+      emitToUsername(fromUsername, 'friend_update', {
+        type: 'declined',
+        username,
+        message: `${username} declined your friend request.`
+      });
+
+      res.json({ success: true, status: 'declined', ...(await createFriendsPayload(username)) });
+    }catch(err){
+      console.error('Friend decline error:', err);
+      res.status(500).json({ error: 'Friend decline unavailable' });
+    }
   });
 
   router.get('/games/catalog', (req, res)=>{

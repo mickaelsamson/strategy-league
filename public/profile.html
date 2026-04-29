@@ -12,6 +12,9 @@ body{margin:0;color:var(--shell-text);display:flex;justify-content:center}
 .avatar img{width:100%;height:100%;object-fit:cover}
 .username{font-size:28px;font-weight:900}
 .subtitle{margin-top:6px;color:var(--shell-soft)}
+.profile-actions{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+.profile-actions button{min-height:38px;padding:0 14px;border:1px solid var(--shell-line);border-radius:8px;background:linear-gradient(135deg,var(--shell-red),var(--shell-red-dark));color:#fff;font-weight:900;cursor:pointer}
+.profile-actions button:disabled{opacity:.7;cursor:default}
 .elo-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0 20px}
 .elo-card{min-height:78px;padding:12px;border-radius:8px;background:linear-gradient(145deg,rgba(28,8,12,.88),rgba(49,14,20,.72));border:1px solid var(--shell-line)}
 .elo-card span{display:block;color:var(--shell-soft);font-size:12px;font-weight:800}
@@ -47,6 +50,7 @@ body{margin:0;color:var(--shell-text);display:flex;justify-content:center}
     <div>
       <div class="username" id="username">Player</div>
       <div class="subtitle" id="subtitle">Track ratings, level progress, and recent results.</div>
+      <div class="profile-actions" id="profileActions" hidden></div>
     </div>
   </div>
 
@@ -100,6 +104,7 @@ const requestedUsername = params.get("username");
 const profileUsername = requestedUsername || user.username;
 const isOwnProfile = profileUsername === user.username;
 let availableAvatars = [];
+let friendState = { friends: [], incoming: [], outgoing: [] };
 
 function escapeHtml(text){
   return String(text || "")
@@ -185,9 +190,97 @@ function setText(id, value){
   document.getElementById(id).innerText = value;
 }
 
+function stateNames(list){
+  return new Set((Array.isArray(list) ? list : []).map(entry => entry.username || entry).filter(Boolean));
+}
+
+function relationFor(username){
+  if(username === user.username) return "self";
+  if(stateNames(friendState.friends).has(username)) return "friend";
+  if(stateNames(friendState.incoming).has(username)) return "incoming";
+  if(stateNames(friendState.outgoing).has(username)) return "outgoing";
+  return "none";
+}
+
+function renderProfileActions(profile){
+  const actions = document.getElementById("profileActions");
+  if(isOwnProfile || !profile?.username){
+    actions.hidden = true;
+    actions.innerHTML = "";
+    return;
+  }
+
+  const relation = relationFor(profile.username);
+  actions.hidden = false;
+  if(relation === "friend"){
+    actions.innerHTML = "<button type=\"button\" disabled>Friend</button>";
+    return;
+  }
+  if(relation === "incoming"){
+    actions.innerHTML = "<button id=\"acceptFriendBtn\" type=\"button\">Accept friend request</button>";
+    document.getElementById("acceptFriendBtn").addEventListener("click", () => acceptFriend(profile.username));
+    return;
+  }
+  if(relation === "outgoing"){
+    actions.innerHTML = "<button type=\"button\" disabled>Request sent</button>";
+    return;
+  }
+
+  actions.innerHTML = "<button id=\"addFriendBtn\" type=\"button\">Add friend</button>";
+  document.getElementById("addFriendBtn").addEventListener("click", () => requestFriend(profile.username));
+}
+
+async function loadFriends(){
+  try{
+    const response = await fetch("/api/friends", { cache: "no-store" });
+    if(!response.ok) return;
+    const data = await response.json();
+    friendState = {
+      friends: Array.isArray(data.friends) ? data.friends : [],
+      incoming: Array.isArray(data.incoming) ? data.incoming : [],
+      outgoing: Array.isArray(data.outgoing) ? data.outgoing : []
+    };
+  }catch(err){
+    console.error(err);
+  }
+}
+
+async function requestFriend(username){
+  const response = await fetch("/api/friends/request", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username })
+  });
+  if(!response.ok) throw new Error("Friend request unavailable");
+  const data = await response.json();
+  friendState = {
+    friends: Array.isArray(data.friends) ? data.friends : friendState.friends,
+    incoming: Array.isArray(data.incoming) ? data.incoming : friendState.incoming,
+    outgoing: Array.isArray(data.outgoing) ? data.outgoing : friendState.outgoing
+  };
+  renderProfileActions({ username });
+}
+
+async function acceptFriend(username){
+  const response = await fetch("/api/friends/accept", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username })
+  });
+  if(!response.ok) throw new Error("Friend accept unavailable");
+  const data = await response.json();
+  friendState = {
+    friends: Array.isArray(data.friends) ? data.friends : friendState.friends,
+    incoming: Array.isArray(data.incoming) ? data.incoming : friendState.incoming,
+    outgoing: Array.isArray(data.outgoing) ? data.outgoing : friendState.outgoing
+  };
+  renderProfileActions({ username });
+}
+
 function renderProfile(profile){
   setText("username", profile.username || profileUsername);
   document.getElementById("subtitle").textContent = isOwnProfile ? "Your current ladder snapshot." : `${profile.username}'s current ladder snapshot.`;
+  renderProfileActions(profile);
   renderAvatar(profile.avatar || "");
   renderAvatarGrid(profile.avatar || "");
 
@@ -252,6 +345,7 @@ async function loadAvatars(){
 async function loadProfile(){
   try{
     await loadAvatars();
+    await loadFriends();
     const response = await fetch(`/api/profile/${encodeURIComponent(profileUsername)}`);
     if(!response.ok) throw new Error("Profile unavailable");
     const profile = await response.json();

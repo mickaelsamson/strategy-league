@@ -72,6 +72,11 @@ body.app-shell-active.with-navbar{
   padding-top:32px !important;
 }
 
+body.app-shell-active.game-shell-active,
+body.app-shell-active.game-shell-active.with-navbar{
+  padding:18px 84px !important;
+}
+
 #navbar{
   display:none;
 }
@@ -208,6 +213,88 @@ body.app-shell-active.with-navbar{
   border-color:rgba(229,170,83,0.18);
 }
 
+body.game-shell-active .app-sidebar-left{
+  width:54px;
+  padding:8px 0;
+  align-items:center;
+  gap:8px;
+  overflow:hidden;
+  transition:width .18s ease, padding .18s ease;
+}
+
+body.game-shell-active .app-sidebar-left:hover,
+body.game-shell-active .app-sidebar-left.expanded,
+body.game-shell-active .app-sidebar-left:focus-within{
+  width:176px;
+  padding:22px 12px;
+  align-items:stretch;
+  gap:18px;
+}
+
+body.game-shell-active .app-sidebar-left .shell-brand{
+  width:54px;
+  min-height:54px;
+  border-radius:0;
+  flex:0 0 auto;
+}
+
+body.game-shell-active .app-sidebar-left:hover .shell-brand,
+body.game-shell-active .app-sidebar-left.expanded .shell-brand,
+body.game-shell-active .app-sidebar-left:focus-within .shell-brand{
+  width:100%;
+  min-height:132px;
+}
+
+body.game-shell-active .app-sidebar-left .shell-brand img{
+  width:34px;
+  height:34px;
+}
+
+body.game-shell-active .app-sidebar-left .shell-brand b{
+  display:none;
+}
+
+body.game-shell-active .app-sidebar-left:hover .shell-brand img,
+body.game-shell-active .app-sidebar-left.expanded .shell-brand img,
+body.game-shell-active .app-sidebar-left:focus-within .shell-brand img{
+  width:78px;
+  height:78px;
+}
+
+body.game-shell-active .app-sidebar-left:hover .shell-brand b,
+body.game-shell-active .app-sidebar-left.expanded .shell-brand b,
+body.game-shell-active .app-sidebar-left:focus-within .shell-brand b{
+  display:block;
+}
+
+body.game-shell-active .app-sidebar-left .shell-nav-item{
+  width:54px;
+  min-height:50px;
+  padding:0;
+  justify-content:center;
+  gap:0;
+}
+
+body.game-shell-active .app-sidebar-left:hover .shell-nav-item,
+body.game-shell-active .app-sidebar-left.expanded .shell-nav-item,
+body.game-shell-active .app-sidebar-left:focus-within .shell-nav-item{
+  width:100%;
+  min-height:48px;
+  padding:0 10px;
+  justify-content:flex-start;
+  gap:11px;
+}
+
+body.game-shell-active .app-sidebar-left .shell-nav-item span{
+  display:none;
+}
+
+body.game-shell-active .app-sidebar-left:hover .shell-nav-item span,
+body.game-shell-active .app-sidebar-left.expanded .shell-nav-item span,
+body.game-shell-active .app-sidebar-left:focus-within .shell-nav-item span{
+  display:block;
+}
+
 .app-sidebar-right{
   right:14px;
   width:54px;
@@ -333,8 +420,44 @@ body.app-shell-active.with-navbar{
 
 .online-player-row{
   display:grid;
-  grid-template-columns:1fr;
+  grid-template-columns:minmax(0, 1fr) 34px;
+  align-items:center;
+  gap:4px;
   margin-bottom:6px;
+}
+
+.online-row-action{
+  width:32px;
+  min-height:32px;
+  padding:0;
+  border:1px solid rgba(94,228,109,0.24);
+  border-radius:8px;
+  background:rgba(94,228,109,0.1);
+  color:#dcffe0;
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+}
+
+.online-row-action svg{
+  width:17px;
+  height:17px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.online-friend-pill{
+  min-width:32px;
+  padding:5px 4px;
+  border-radius:8px;
+  background:rgba(255,255,255,0.06);
+  color:var(--shell-soft);
+  font-size:10px;
+  font-weight:900;
+  text-align:center;
 }
 
 .online-plus{
@@ -458,6 +581,149 @@ body.app-shell-active.with-navbar{
   display:grid;
   gap:10px;
   width:min(320px, calc(100vw - 36px));
+}
+
+.shell-notification-bell,
+.shell-fullscreen-btn{
+  position:fixed;
+  right:82px;
+  z-index:1280;
+  width:44px;
+  min-height:44px;
+  padding:0;
+  border:1px solid var(--shell-line);
+  border-radius:8px;
+  background:linear-gradient(180deg, rgba(10,20,28,0.92), rgba(5,12,18,0.88));
+  color:var(--shell-text);
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  box-shadow:0 16px 48px rgba(0,0,0,0.28);
+}
+
+.shell-notification-bell{
+  top:22px;
+}
+
+.shell-fullscreen-btn{
+  top:74px;
+}
+
+.shell-notification-bell svg,
+.shell-fullscreen-btn svg{
+  width:21px;
+  height:21px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.shell-notification-bell b{
+  position:absolute;
+  top:-7px;
+  right:-7px;
+  min-width:20px;
+  height:20px;
+  padding:0 5px;
+  display:grid;
+  place-items:center;
+  border-radius:999px;
+  background:var(--shell-danger);
+  color:#fff;
+  font-size:11px;
+  line-height:1;
+}
+
+.shell-fullscreen-btn.is-active{
+  border-color:var(--shell-line-strong);
+  color:var(--shell-amber);
+}
+
+.shell-notification-panel{
+  position:fixed;
+  top:72px;
+  right:82px;
+  z-index:1290;
+  width:min(340px, calc(100vw - 36px));
+  max-height:min(520px, calc(100vh - 94px));
+  overflow:hidden;
+  border:1px solid var(--shell-line-strong);
+  border-radius:8px;
+  background:linear-gradient(145deg, rgba(14,27,37,0.98), rgba(5,12,18,0.96));
+  box-shadow:0 20px 60px rgba(0,0,0,0.48);
+}
+
+.shell-notification-head{
+  min-height:46px;
+  padding:10px 12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  border-bottom:1px solid rgba(244,194,111,0.16);
+}
+
+.shell-notification-head button{
+  min-height:28px;
+  padding:0 9px;
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:8px;
+  background:rgba(255,255,255,0.06);
+  color:var(--shell-soft);
+  cursor:pointer;
+}
+
+.shell-notification-list{
+  max-height:470px;
+  overflow:auto;
+  padding:8px;
+}
+
+.shell-notification-item{
+  padding:11px;
+  margin-bottom:8px;
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:8px;
+  background:rgba(255,255,255,0.055);
+  cursor:pointer;
+}
+
+.shell-notification-item.is-read{
+  opacity:.72;
+}
+
+.shell-notification-item strong{
+  display:block;
+  margin-bottom:4px;
+}
+
+.shell-notification-item p{
+  margin:0;
+  color:var(--shell-soft);
+  line-height:1.35;
+}
+
+.shell-notification-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  margin-top:10px;
+}
+
+.shell-notification-actions button{
+  min-height:30px;
+  padding:0 10px;
+  border:1px solid var(--shell-line);
+  border-radius:8px;
+  background:linear-gradient(135deg, var(--shell-red), var(--shell-red-dark));
+  color:#fff;
+  cursor:pointer;
+}
+
+.shell-notification-actions button.quiet{
+  background:rgba(255,255,255,0.08);
 }
 
 .shell-toast{
@@ -621,7 +887,7 @@ body.app-shell-active #score{
   color:var(--shell-text) !important;
 }
 
-body.app-shell-active button:not(.shell-nav-item):not(.shell-brand):not(.online-player):not(.online-tab):not(.online-plus):not(.online-invite-target),
+body.app-shell-active button:not(.shell-nav-item):not(.shell-brand):not(.online-player):not(.online-tab):not(.online-plus):not(.online-invite-target):not(.online-row-action):not(.shell-notification-bell):not(.shell-fullscreen-btn),
 body.app-shell-active .back-btn{
   border:1px solid var(--shell-line) !important;
   border-radius:8px !important;
@@ -661,13 +927,37 @@ select{
   font-family:inherit;
 }
 
+#gameView:fullscreen,
+#gameScreen:fullscreen,
+.moonveil-scene:fullscreen,
+.azul-game:fullscreen,
+#main:fullscreen,
+main:fullscreen{
+  width:100vw;
+  height:100vh;
+  max-width:none;
+  overflow:auto;
+  background:var(--shell-bg-deep);
+}
+
 @media (max-width:1200px){
   body.app-shell-active{
     padding-right:32px !important;
     padding-left:204px !important;
   }
 
+  body.app-shell-active.game-shell-active,
+  body.app-shell-active.game-shell-active.with-navbar{
+    padding:18px 78px !important;
+  }
+
   .shell-toast-stack{
+    right:18px;
+  }
+
+  .shell-notification-bell,
+  .shell-fullscreen-btn,
+  .shell-notification-panel{
     right:18px;
   }
 }
@@ -680,6 +970,21 @@ select{
 
   .app-sidebar-right{
     display:none;
+  }
+
+  .shell-notification-bell{
+    top:88px;
+    right:14px;
+  }
+
+  .shell-fullscreen-btn{
+    top:140px;
+    right:14px;
+  }
+
+  .shell-notification-panel{
+    top:140px;
+    right:14px;
   }
 
   .app-sidebar-left{

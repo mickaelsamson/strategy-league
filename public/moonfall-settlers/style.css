@@ -364,7 +364,7 @@ button:disabled{
   background:rgba(255,255,255,.07);
 }
 
-body.app-shell-active.moonsettlers-page button:not(.shell-nav-item):not(.shell-brand):not(.online-player):not(.online-tab):not(.online-plus):not(.online-invite-target):not(.tutorial-btn){
+body.app-shell-active.moonsettlers-page button:not(.shell-nav-item):not(.shell-brand):not(.online-player):not(.online-tab):not(.online-plus):not(.online-invite-target):not(.online-row-action):not(.shell-notification-bell):not(.shell-fullscreen-btn):not(.tutorial-btn){
   border-color:rgba(230,203,135,.24) !important;
   background:#263d47 !important;
 }
@@ -1133,7 +1133,7 @@ body.moonsettlers-page{
   box-shadow:0 6px 0 rgba(0,0,0,.22), 0 18px 44px rgba(0,0,0,.2);
 }
 
-body.app-shell-active.moonsettlers-page button:not(.shell-nav-item):not(.shell-brand):not(.online-player):not(.online-tab):not(.online-plus):not(.online-invite-target){
+body.app-shell-active.moonsettlers-page button:not(.shell-nav-item):not(.shell-brand):not(.online-player):not(.online-tab):not(.online-plus):not(.online-invite-target):not(.online-row-action):not(.shell-notification-bell):not(.shell-fullscreen-btn){
   border-color:rgba(255,255,255,.78) !important;
   background:linear-gradient(180deg, #84d6ea, #49adca) !important;
   color:#143847 !important;
@@ -1429,7 +1429,7 @@ body.moonsettlers-page{
   color:#f1d49a;
 }
 
-body.app-shell-active.moonsettlers-page button:not(.shell-nav-item):not(.shell-brand):not(.online-player):not(.online-tab):not(.online-plus):not(.online-invite-target){
+body.app-shell-active.moonsettlers-page button:not(.shell-nav-item):not(.shell-brand):not(.online-player):not(.online-tab):not(.online-plus):not(.online-invite-target):not(.online-row-action):not(.shell-notification-bell):not(.shell-fullscreen-btn){
   border-color:rgba(174,119,58,.5) !important;
   background:linear-gradient(180deg, rgba(14,20,23,.96), rgba(5,8,11,.96)) !important;
   color:#d7b06b !important;

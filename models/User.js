@@ -11,6 +11,9 @@ const UserSchema = new mongoose.Schema({
 
   username: { type: String, required: true, unique: true },
   avatar: { type: String, default: "" },
+  friends: { type: [String], default: [] },
+  incomingFriendRequests: { type: [String], default: [] },
+  outgoingFriendRequests: { type: [String], default: [] },
 
   xp: { type: Number, default: 0 },
   elo: { type: Number, default: 1000 },

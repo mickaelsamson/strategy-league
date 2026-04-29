@@ -15,7 +15,9 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
     azul: { label: 'Azul Arena', lobbyUrl: '/azul/index.html', gameUrl: '/azul/game.html' },
     moonfall: { label: 'Moonfall Settlers', lobbyUrl: '/moonfall-settlers/index.html', gameUrl: '/moonfall-settlers/index.html' },
     moonfall_p4: { label: 'Moonfall Power 4', lobbyUrl: '/moonfall-p4/index.html', gameUrl: '/moonfall-p4/index.html' },
-    hexblitz: { label: 'Hexblitz Moonfall', lobbyUrl: '/hexblitz_moonfall/index.html', gameUrl: '/hexblitz_moonfall/index.html' }
+    hexblitz: { label: 'Hexblitz Moonfall', lobbyUrl: '/hexblitz_moonfall/index.html', gameUrl: '/hexblitz_moonfall/index.html' },
+    moonfall_world_conquest: { label: 'Moonfall World Conquest', lobbyUrl: '/moonfall-world-conquest/index.html', gameUrl: '/moonfall-world-conquest/index.html' },
+    moonfall_rts: { label: 'Moonfall RTS', lobbyUrl: '/moonfall-rts/index.html', gameUrl: '/moonfall-rts/index.html' }
   };
 
   function socketsForUsername(username){
@@ -267,25 +269,36 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
     moonfallP4.register();
     hexblitz.register();
 
-    socket.on('send_game_invite', ({ toUsername, gameKey } = {})=>{
-      if(!socket.username || !toUsername || toUsername === socket.username) return;
-      const meta = GAME_META[gameKey];
-      if(!meta) return;
+    socket.on('send_game_invite', async ({ toUsername, gameKey } = {})=>{
+      try{
+        if(!socket.username || !toUsername || toUsername === socket.username) return;
+        const meta = GAME_META[gameKey];
+        if(!meta) return;
 
-      const targets = socketsForUsername(toUsername);
-      if(!targets.length){
-        socket.emit('game_notice', { message: `${toUsername} is not online.` });
-        return;
+        const sender = await User.findOne({ username: socket.username }, { friends: 1 }).lean();
+        if(!sender?.friends?.includes(toUsername)){
+          socket.emit('game_notice', { message: `Add ${toUsername} as a friend before inviting them to a game.` });
+          return;
+        }
+
+        const targets = socketsForUsername(toUsername);
+        if(!targets.length){
+          socket.emit('game_notice', { message: `${toUsername} is not online.` });
+          return;
+        }
+
+        targets.forEach(target => target.emit('game_invite', {
+          from: socket.username,
+          gameKey,
+          label: meta.label,
+          url: meta.lobbyUrl,
+          message: `${socket.username} invited you to ${meta.label}.`
+        }));
+        socket.emit('game_notice', { message: `Invite sent to ${toUsername}.` });
+      }catch(err){
+        console.error('Game invite error:', err);
+        socket.emit('game_notice', { message: 'Invite unavailable right now.' });
       }
-
-      targets.forEach(target => target.emit('game_invite', {
-        from: socket.username,
-        gameKey,
-        label: meta.label,
-        url: meta.lobbyUrl,
-        message: `${socket.username} invited you to ${meta.label}.`
-      }));
-      socket.emit('game_notice', { message: `Invite sent to ${toUsername}.` });
     });
 
     socket.on('decline_game_invite', ({ toUsername, gameKey } = {})=>{
