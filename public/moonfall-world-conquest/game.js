@@ -744,7 +744,20 @@
     cardsHud: document.getElementById('cardsHud'),
     territoryLayer: document.getElementById('territoryLayer'),
     fxLayer: document.getElementById('fxLayer'),
+    mapFrame: document.querySelector('.map-frame'),
+    mapStage: document.getElementById('mapStage'),
+    zoomOutBtn: document.getElementById('zoomOutBtn'),
+    zoomInBtn: document.getElementById('zoomInBtn'),
+    zoomResetBtn: document.getElementById('zoomResetBtn'),
+    zoomLevel: document.getElementById('zoomLevel'),
     battleHud: document.getElementById('battleHud'),
+    deployPanel: document.getElementById('deployPanel'),
+    deployTerritory: document.getElementById('deployTerritory'),
+    deployRange: document.getElementById('deployRange'),
+    deployValue: document.getElementById('deployValue'),
+    deployMax: document.getElementById('deployMax'),
+    deployConfirmBtn: document.getElementById('deployConfirmBtn'),
+    deployCloseBtn: document.getElementById('deployCloseBtn'),
     territoryInfo: document.getElementById('territoryInfo'),
     playersPanel: document.getElementById('playersPanel'),
     regionsPanel: document.getElementById('regionsPanel'),
@@ -763,6 +776,8 @@
 
   let state = null;
   let noticeTimer = null;
+  const MAP_VIEW_WIDTH = 1536;
+  const MAP_VIEW_HEIGHT = 1024;
 
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const roll = sides => Math.floor(Math.random() * sides) + 1;
@@ -979,6 +994,8 @@
       capturedThisTurn: false,
       selectedId: null,
       targetId: null,
+      deployAmount: 1,
+      mapZoom: 1,
       logs: [],
       aiQueued: false,
       aiRunning: false,
@@ -990,7 +1007,9 @@
     };
     dom.battleHud.innerHTML = '';
     dom.battleHud.classList.remove('visible');
+    closeDeployPanel();
     dom.fxLayer.innerHTML = '';
+    setMapZoom(1);
 
     if(state.deploymentStyle === 'draft'){
       beginDraftDeployment();
@@ -1131,6 +1150,7 @@
     if(!state) return;
     renderStatus();
     renderMap();
+    updateZoomControls();
     renderTerritoryInfo();
     renderPlayers();
     renderCards();
@@ -1183,7 +1203,8 @@
       ].filter(Boolean).join(' ');
       const fill = owner ? hexToRgba(owner.color, .36) : 'rgba(255,255,255,.08)';
       const hover = owner ? hexToRgba(owner.color, .58) : 'rgba(255,241,184,.22)';
-      return `<path class="${className}" data-territory-id="${territory.id}" d="${territory.path}" style="--territory-fill:${fill};--territory-hover:${hover}"><title>${escapeHtml(territory.name)}</title></path>`;
+      const stroke = owner ? owner.color : 'rgba(255,248,214,.72)';
+      return `<path class="${className}" data-territory-id="${territory.id}" d="${territory.path}" style="--territory-fill:${fill};--territory-hover:${hover};--territory-stroke:${stroke}"><title>${escapeHtml(territory.name)}</title></path>`;
     }).join('');
 
     const tokens = TERRITORIES.map(territory => {
@@ -1219,6 +1240,22 @@
     });
 
     renderAttackPreview();
+  }
+
+  function setMapZoom(value){
+    const zoom = clamp(value, .8, 2.2);
+    if(state) state.mapZoom = zoom;
+    dom.mapStage.style.setProperty('--map-zoom', String(zoom));
+    updateZoomControls(zoom);
+    positionDeployPanel();
+  }
+
+  function updateZoomControls(value = state?.mapZoom || 1){
+    if(!dom.zoomLevel) return;
+    const zoom = clamp(value, .8, 2.2);
+    dom.zoomLevel.textContent = `${Math.round(zoom * 100)}%`;
+    dom.zoomOutBtn.disabled = zoom <= .8;
+    dom.zoomInBtn.disabled = zoom >= 2.2;
   }
 
   function shortName(name){
@@ -1373,8 +1410,9 @@
     dom.maxFortifyBtn.disabled = !human || !canFortify(selected, target);
     dom.nextBtn.disabled = !human || state.phase === 'draft' || (state.phase === 'reinforce' && (state.pendingReinforcements > 0 || mandatoryTrade));
 
-    dom.reinforceBtn.textContent = draftingArmies ? 'Draft +1' : 'Reinforce +1';
+    dom.reinforceBtn.textContent = draftingArmies ? 'Draft +1' : 'Deploy';
     dom.nextBtn.textContent = state.phase === 'draft' ? 'Drafting' : (state.phase === 'fortify' ? 'End Turn' : 'Next Phase');
+    renderDeployPanel();
   }
 
   function selectTerritory(id){
@@ -1407,6 +1445,7 @@
       if(clicked.owner === player.id){
         state.selectedId = id;
         state.targetId = null;
+        openDeployPanel();
       }
       render();
       return;
@@ -1456,11 +1495,106 @@
       if(selected && selected.owner === player.id) placeDraftArmy(selected.id);
       return;
     }
+    if(state.phase === 'reinforce'){
+      openDeployPanel();
+      return;
+    }
     if(!selected || selected.owner !== player.id || state.pendingReinforcements <= 0) return;
     selected.troops += 1;
     state.pendingReinforcements -= 1;
     if(state.pendingReinforcements === 0){
       addLog(`${player.name} finishes reinforcements.`);
+    }
+    render();
+  }
+
+  function openDeployPanel(){
+    const selected = selectedTerritory();
+    const player = currentPlayer();
+    if(!selected || selected.owner !== player.id || state.phase !== 'reinforce' || state.pendingReinforcements <= 0) return;
+    state.deployAmount = clamp(state.deployAmount || 1, 1, state.pendingReinforcements);
+    dom.deployPanel.hidden = false;
+    dom.deployPanel.classList.remove('is-hidden');
+    renderDeployPanel();
+  }
+
+  function closeDeployPanel(){
+    if(!dom.deployPanel) return;
+    dom.deployPanel.hidden = true;
+    dom.deployPanel.classList.add('is-hidden');
+  }
+
+  function renderDeployPanel(){
+    if(!dom.deployPanel || dom.deployPanel.hidden || !state) return;
+    const selected = selectedTerritory();
+    const player = currentPlayer();
+    if(!selected || selected.owner !== player.id || state.phase !== 'reinforce' || state.pendingReinforcements <= 0){
+      closeDeployPanel();
+      return;
+    }
+
+    const max = Math.max(1, state.pendingReinforcements);
+    const amount = clamp(Number(state.deployAmount) || 1, 1, max);
+    state.deployAmount = amount;
+    dom.deployTerritory.textContent = `${byId(selected.id).name} - ${state.pendingReinforcements} reserve`;
+    dom.deployRange.max = String(max);
+    dom.deployRange.value = String(amount);
+    dom.deployValue.textContent = String(amount);
+    dom.deployMax.textContent = String(max);
+    dom.deployConfirmBtn.textContent = `Deploy ${amount}`;
+    positionDeployPanel();
+  }
+
+  function positionDeployPanel(){
+    if(!dom.deployPanel || dom.deployPanel.hidden || !state || !dom.mapFrame) return;
+    const selected = selectedTerritory();
+    if(!selected) return;
+    const territory = byId(selected.id);
+    if(!territory) return;
+
+    const frame = dom.mapFrame.getBoundingClientRect();
+    const frameRatio = frame.width / frame.height;
+    const mapRatio = MAP_VIEW_WIDTH / MAP_VIEW_HEIGHT;
+    let mapWidth = frame.width;
+    let mapHeight = frame.height;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    if(frameRatio > mapRatio){
+      mapHeight = frame.height;
+      mapWidth = mapHeight * mapRatio;
+      offsetX = (frame.width - mapWidth) / 2;
+    }else{
+      mapWidth = frame.width;
+      mapHeight = mapWidth / mapRatio;
+      offsetY = (frame.height - mapHeight) / 2;
+    }
+
+    const baseX = offsetX + (territory.label.x / MAP_VIEW_WIDTH) * mapWidth;
+    const baseY = offsetY + (territory.label.y / MAP_VIEW_HEIGHT) * mapHeight;
+    const zoom = state.mapZoom || 1;
+    const visualX = frame.width / 2 + (baseX - frame.width / 2) * zoom;
+    const visualY = frame.height / 2 + (baseY - frame.height / 2) * zoom;
+    const panelWidth = dom.deployPanel.offsetWidth || 220;
+    const panelHeight = dom.deployPanel.offsetHeight || 124;
+
+    dom.deployPanel.style.left = `${clamp(visualX, panelWidth / 2 + 8, frame.width - panelWidth / 2 - 8)}px`;
+    dom.deployPanel.style.top = `${clamp(visualY - 12, panelHeight + 10, frame.height - 10)}px`;
+  }
+
+  function confirmDeploy(){
+    const selected = selectedTerritory();
+    const player = currentPlayer();
+    if(!selected || selected.owner !== player.id || state.phase !== 'reinforce') return;
+    const amount = clamp(Number(state.deployAmount) || 1, 1, state.pendingReinforcements);
+    selected.troops += amount;
+    state.pendingReinforcements -= amount;
+    addLog(`${player.name} deploys ${amount} arm${amount > 1 ? 'ies' : 'y'} to ${byId(selected.id).name}.`);
+    if(state.pendingReinforcements <= 0){
+      closeDeployPanel();
+      addLog(`${player.name} finishes reinforcements.`);
+    }else{
+      state.deployAmount = clamp(amount, 1, state.pendingReinforcements);
     }
     render();
   }
@@ -1944,12 +2078,25 @@
     dom.cardsBtn.addEventListener('click', () => tradeCards(false));
     dom.restartBtn.addEventListener('click', () => {
       state = null;
+      closeDeployPanel();
+      setMapZoom(1);
       dom.gameView.hidden = true;
       dom.gameView.classList.add('is-hidden');
       dom.setupView.hidden = false;
       dom.setupView.classList.remove('is-hidden');
       renderSlots();
     });
+    dom.deployRange.addEventListener('input', () => {
+      if(!state) return;
+      state.deployAmount = Number(dom.deployRange.value) || 1;
+      renderDeployPanel();
+    });
+    dom.deployConfirmBtn.addEventListener('click', confirmDeploy);
+    dom.deployCloseBtn.addEventListener('click', closeDeployPanel);
+    dom.zoomOutBtn.addEventListener('click', () => setMapZoom((state?.mapZoom || 1) - .2));
+    dom.zoomInBtn.addEventListener('click', () => setMapZoom((state?.mapZoom || 1) + .2));
+    dom.zoomResetBtn.addEventListener('click', () => setMapZoom(1));
+    window.addEventListener('resize', positionDeployPanel);
     dom.reinforceBtn.addEventListener('click', reinforceSelected);
     dom.attackBtn.addEventListener('click', () => confirmAttack(false));
     dom.blitzBtn.addEventListener('click', blitzAttack);

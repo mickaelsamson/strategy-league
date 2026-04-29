@@ -147,7 +147,27 @@
           <svg id="territoryLayer" class="territory-layer" viewBox="0 0 1536 1024" aria-label="Territories"></svg>
           <svg id="fxLayer" class="fx-layer" viewBox="0 0 1536 1024" aria-hidden="true"></svg>
         </div>
+        <div class="map-zoom-controls" aria-label="Map zoom controls">
+          <button id="zoomOutBtn" type="button" title="Zoom out">−</button>
+          <span id="zoomLevel">100%</span>
+          <button id="zoomInBtn" type="button" title="Zoom in">+</button>
+          <button id="zoomResetBtn" type="button" title="Reset zoom">100</button>
+        </div>
         <div id="battleHud" class="battle-hud" aria-live="polite"></div>
+        <div id="deployPanel" class="deploy-panel is-hidden" hidden aria-live="polite">
+          <strong>Deploy</strong>
+          <span id="deployTerritory">Select a territory</span>
+          <div class="deploy-control">
+            <input id="deployRange" type="range" min="1" max="1" value="1">
+            <output id="deployValue">1</output>
+          </div>
+          <div class="deploy-scale">
+            <span>1</span>
+            <span id="deployMax">1</span>
+          </div>
+          <button id="deployConfirmBtn" type="button">Deploy</button>
+          <button id="deployCloseBtn" type="button">Close</button>
+        </div>
         <div id="notice" class="notice" aria-live="polite"></div>
       </div>
 
