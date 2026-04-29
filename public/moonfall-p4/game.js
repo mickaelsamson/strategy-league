@@ -33,6 +33,8 @@
     selectedOrb: document.getElementById('selectedOrb'),
     resetBtn: document.getElementById('resetBtn'),
     backBtn: document.getElementById('backBtn'),
+    leaderboardBtn: document.getElementById('leaderboardBtn'),
+    exitBtn: document.getElementById('exitBtn'),
     leftSelect: document.getElementById('leftSelect'),
     rightSelect: document.getElementById('rightSelect'),
     timer: document.getElementById('timer'),
@@ -44,6 +46,7 @@
     playAgainBtn: document.getElementById('playAgainBtn'),
     menuBtn: document.getElementById('menuBtn'),
     surrenderBtn: document.getElementById('surrenderBtn'),
+    newGameShortcut: document.getElementById('newGameShortcut'),
     youName: document.getElementById('youName'),
     enemyName: document.getElementById('enemyName'),
     youRole: document.getElementById('youRole'),
@@ -386,8 +389,8 @@
     if(!isOnlineGame()){
       dom.youName.textContent = 'YOU';
       dom.enemyName.textContent = tutorialMode ? 'COACH AI' : 'RIVAL';
-      dom.youRole.textContent = 'Player 1';
-      dom.enemyRole.textContent = tutorialMode ? 'Tutorial AI' : 'Player 2';
+      dom.youRole.textContent = 'Moonveil';
+      dom.enemyRole.textContent = tutorialMode ? 'Tutorial AI' : 'Nexus';
       return;
     }
 
@@ -397,8 +400,8 @@
 
     dom.youName.textContent = online.me;
     dom.enemyName.textContent = meIsP1 ? p2 : p1;
-    dom.youRole.textContent = meIsP1 ? 'Red orbs' : 'Ivory orbs';
-    dom.enemyRole.textContent = meIsP1 ? 'Ivory orbs' : 'Red orbs';
+    dom.youRole.textContent = meIsP1 ? 'Moonveil orbs' : 'Nexus orbs';
+    dom.enemyRole.textContent = meIsP1 ? 'Nexus orbs' : 'Moonveil orbs';
   }
 
   function updateUI(){
@@ -413,13 +416,13 @@
       const token = myToken();
       const myTurn = token === state.currentPlayer;
       dom.status.textContent = myTurn ? 'YOUR TURN' : 'RIVAL TURN';
-      dom.status.style.color = myTurn ? '#f5efe8' : '#e84955';
+      dom.status.style.color = myTurn ? '#f5efe8' : '#f5dc96';
     }else if(tutorialMode){
       dom.status.textContent = currentIsP1 ? 'YOUR TURN' : 'COACH AI';
-      dom.status.style.color = currentIsP1 ? '#f5efe8' : '#e84955';
+      dom.status.style.color = currentIsP1 ? '#cf67ff' : '#f5dc96';
     }else{
-      dom.status.textContent = currentIsP1 ? 'PLAYER 1 TURN' : 'PLAYER 2 TURN';
-      dom.status.style.color = currentIsP1 ? '#f5efe8' : '#e84955';
+      dom.status.textContent = currentIsP1 ? 'MOONVEIL TURN' : 'NEXUS TURN';
+      dom.status.style.color = currentIsP1 ? '#cf67ff' : '#f5dc96';
     }
 
     dom.selectedOrb.classList.toggle('enemy-selected', !currentIsP1);
@@ -430,10 +433,17 @@
     const winnerToken = forcedWinner || state.winner;
     const localWin = !isOnlineGame() ? winnerToken === P1 : myToken() === winnerToken;
 
-    dom.winTitle.textContent = localWin ? 'VICTORY' : 'DEFEAT';
-    dom.winText.textContent = surrendered
-      ? (localWin ? 'Opponent surrendered.' : 'You surrendered.')
-      : (localWin ? 'You aligned 4 moon orbs.' : 'Your rival aligned 4 moon orbs.');
+    if(!isOnlineGame()){
+      dom.winTitle.textContent = winnerToken === P1 ? 'PLAYER 1 WINS!' : 'PLAYER 2 WINS!';
+      dom.winText.textContent = surrendered
+        ? (winnerToken === P1 ? 'NEXUS SURRENDERED' : 'MOONVEIL SURRENDERED')
+        : '4 IN A ROW';
+    }else{
+      dom.winTitle.textContent = localWin ? 'VICTORY' : 'DEFEAT';
+      dom.winText.textContent = surrendered
+        ? (localWin ? 'Opponent surrendered.' : 'You surrendered.')
+        : (localWin ? 'You aligned 4 moon orbs.' : 'Your rival aligned 4 moon orbs.');
+    }
     dom.winCard.classList.remove('hidden');
 
     window.dispatchEvent(new CustomEvent('moonfall:gameover', {
@@ -500,7 +510,7 @@
     online.players = [];
     resetState();
     tutorialGuide = tutorialGuide || window.TutorialGuide?.create({
-      title: 'Power 4 Tutorial',
+      title: 'Moonveil Nexus Tutorial',
       steps: TUTORIAL_STEPS,
       onBack: () => window.location.href = '/moonfall-p4/index.html'
     });
@@ -600,7 +610,7 @@
       return `
         <article class="sl-lobby-card">
           <div class="sl-lobby-head">
-            <div><strong>${escapeHtml(lobby.name)}</strong><span>${lobby.matchmaking === 'public' ? 'Public matchmaking' : 'Power 4 duel'}</span></div>
+            <div><strong>${escapeHtml(lobby.name)}</strong><span>${lobby.matchmaking === 'public' ? 'Public matchmaking' : 'Moonveil Nexus duel'}</span></div>
             <div class="sl-lobby-count">${lobby.players.length}/${lobby.maxPlayers || 2}</div>
           </div>
           <div class="sl-lobby-slots">${slots}</div>
@@ -775,6 +785,11 @@
 
     dom.menuBtn.addEventListener('click', goToSetup);
     dom.backBtn.addEventListener('click', goToSetup);
+    dom.exitBtn?.addEventListener('click', goToSetup);
+    dom.leaderboardBtn?.addEventListener('click', () => {
+      window.location.href = '/leaderboard.html';
+    });
+    dom.newGameShortcut?.addEventListener('click', () => dom.resetBtn.click());
 
     document.addEventListener('keydown', event => {
       if(dom.gameView.classList.contains('is-hidden')) return;

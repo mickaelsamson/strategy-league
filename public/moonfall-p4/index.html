@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Moonfall Power 4</title>
+  <title>Moonveil Nexus</title>
   <link rel="stylesheet" href="/assets/styles/theme.css" />
   <link rel="stylesheet" href="/assets/styles/tutorial-guide.css" />
   <link rel="stylesheet" href="/moonfall-p4/style.css" />
@@ -18,9 +18,9 @@
   <main class="moonfall-app">
     <section id="setupView" class="setup-view">
       <article class="setup-art panel-skin">
-        <p class="eyebrow">Moonfall Duel</p>
-        <h1>Power 4</h1>
-        <p>Align 4 moon orbs before your rival. Local face-off or online lobby with the site shell.</p>
+        <p class="eyebrow">Moonveil Nexus</p>
+        <h1>Moonveil Nexus</h1>
+        <p>Align 4 luminous orbs in the lunar nexus before your rival claims the board.</p>
         <div class="preview-grid" aria-hidden="true">
           <span></span><span></span><span></span><span></span>
           <span></span><span></span><span></span><span></span>
@@ -47,7 +47,7 @@
         <section id="onlineSetupPanel" class="is-hidden" hidden>
           <div class="setup-grid">
             <label>Lobby name
-              <input id="onlineLobbyName" value="Moonfall P4 Lobby" />
+              <input id="onlineLobbyName" value="Moonveil Nexus Lobby" />
             </label>
             <div class="online-cta-group">
               <button id="createOnlineLobbyBtn" type="button" class="primary-btn">Create lobby</button>
@@ -68,16 +68,26 @@
     </section>
 
     <section id="gameView" class="game-view is-hidden" hidden>
-      <header class="topbar panel-skin">
-        <button id="backBtn" class="icon-btn" type="button" title="Back to setup">←</button>
-        <div id="status" class="turn-banner">YOUR TURN</div>
-        <button id="resetBtn" class="icon-btn" type="button" title="Reset game">↻</button>
+      <header class="topbar">
+        <button id="backBtn" class="menu-btn" type="button" title="Back to setup">MENU</button>
+        <div class="brand-lockup" aria-label="Moonveil Nexus">
+          <span>Moonveil</span>
+          <strong>Nexus</strong>
+        </div>
+        <div class="top-actions" aria-label="Game actions">
+          <button id="leaderboardBtn" class="icon-btn" type="button" title="Leaderboard">▥</button>
+          <button id="resetBtn" class="icon-btn" type="button" title="Reset game">⚙</button>
+          <button id="exitBtn" class="icon-btn" type="button" title="Exit">↪</button>
+        </div>
       </header>
 
       <div class="play-layout">
-        <aside class="left-panel panel-skin">
+        <aside class="left-panel player-panel panel-skin">
+          <div class="crest crest-moonveil" aria-hidden="true"></div>
+          <p class="player-kicker">Player 1</p>
+          <h2>Moonveil</h2>
+          <div class="panel-divider"></div>
           <div class="info-box">
-            <h3>Game info</h3>
             <p><span>Time</span><b id="timer">00:00</b></p>
             <p><span>Turn</span><b id="turnCount">1</b></p>
             <p><span>Mode</span><b id="modeLabel">Local</b></p>
@@ -86,26 +96,31 @@
         </aside>
 
         <section class="board-panel panel-skin">
+          <div id="status" class="turn-banner">YOUR TURN</div>
           <div class="moonfall-board-frame">
             <ol class="row-labels" aria-hidden="true">
               <li>1</li><li>2</li><li>3</li><li>4</li><li>5</li><li>6</li>
             </ol>
-            <div id="board" class="board" aria-label="Moonfall Power 4 board"></div>
+            <div id="board" class="board" aria-label="Moonveil Nexus board"></div>
             <ol class="col-labels" aria-hidden="true">
               <li>1</li><li>2</li><li>3</li><li>4</li><li>5</li><li>6</li><li>7</li>
             </ol>
           </div>
           <div class="controls">
             <button class="arrow" id="leftSelect" type="button">◀</button>
+            <span class="next-label">Next</span>
             <div class="selected-orb" id="selectedOrb"></div>
             <button class="arrow" id="rightSelect" type="button">▶</button>
           </div>
         </section>
 
-        <aside class="right-panel panel-skin">
-          <h3>Players</h3>
+        <aside class="right-panel player-panel panel-skin">
+          <div class="crest crest-nexus" aria-hidden="true"></div>
+          <p class="player-kicker">Player 2</p>
+          <h2>Nexus</h2>
+          <div class="panel-divider"></div>
           <div class="player-card enemy">
-            <div class="avatar">☾</div>
+            <div class="avatar">◆</div>
             <div>
               <strong id="enemyName">RIVAL</strong>
               <p id="enemyRole">Player 2</p>
@@ -115,22 +130,19 @@
           <div class="vs">VS</div>
 
           <div class="player-card you">
-            <div class="avatar">●</div>
+            <div class="avatar">◇</div>
             <div>
               <strong id="youName">YOU</strong>
               <p id="youRole">Player 1</p>
             </div>
           </div>
 
-          <div class="how-box">
-            <h3>How to win</h3>
-            <p>Connect 4 orbs horizontally, vertically, or diagonally.</p>
-          </div>
+          <button id="newGameShortcut" type="button" class="secondary-btn">New Game</button>
         </aside>
       </div>
 
       <div class="win-card hidden" id="winCard">
-        <p class="eyebrow">Moonfall</p>
+        <p class="eyebrow">Moonveil Nexus</p>
         <h3 id="winTitle">VICTORY</h3>
         <p id="winText">You have defeated your opponent.</p>
         <div class="win-actions">

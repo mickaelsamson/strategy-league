@@ -10,7 +10,7 @@ const LEVEL_THRESHOLDS = [
 ];
 
 const XP_RULES = {
-  moonfall_p4: { gameName: 'Power 4', win: 20, loss: 10, draw: 10, abandonPenalty: -10 },
+  moonfall_p4: { gameName: 'Moonveil Nexus', win: 20, loss: 10, draw: 10, abandonPenalty: -10 },
   othello: { gameName: 'Othello / Reversi', win: 20, loss: 10, draw: 10, abandonPenalty: -10 },
   hexblitz: { gameName: 'Hexblitz', win: 20, loss: 10, draw: 10, abandonPenalty: -10 },
   chess: { gameName: 'Chess', win: 40, loss: 20, draw: 20, abandonPenalty: -10 },
@@ -56,12 +56,12 @@ const GAME_CATALOG = {
   },
   moonfall_p4: {
     key: 'moonfall_p4',
-    name: 'Moonfall Power 4',
-    shortName: 'Power 4',
+    name: 'Moonveil Nexus',
+    shortName: 'Moonveil Nexus',
     url: '/moonfall-p4/index.html',
     gameUrl: '/moonfall-p4/index.html',
     eloField: 'moonfallP4Elo',
-    leaderboardLabel: 'ELO Power 4',
+    leaderboardLabel: 'ELO Moonveil Nexus',
     gameOfWeekEligible: true
   },
   hexblitz: {

@@ -14,7 +14,7 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
     othello: { label: 'Othello', lobbyUrl: '/othello/index.html', gameUrl: '/othello/game.html' },
     azul: { label: 'Azul Arena', lobbyUrl: '/azul/index.html', gameUrl: '/azul/game.html' },
     moonfall: { label: 'Moonfall Settlers', lobbyUrl: '/moonfall-settlers/index.html', gameUrl: '/moonfall-settlers/index.html' },
-    moonfall_p4: { label: 'Moonfall Power 4', lobbyUrl: '/moonfall-p4/index.html', gameUrl: '/moonfall-p4/index.html' },
+    moonfall_p4: { label: 'Moonveil Nexus', lobbyUrl: '/moonfall-p4/index.html', gameUrl: '/moonfall-p4/index.html' },
     hexblitz: { label: 'Hexblitz Moonfall', lobbyUrl: '/hexblitz_moonfall/index.html', gameUrl: '/hexblitz_moonfall/index.html' },
     moonfall_world_conquest: { label: 'Moonfall World Conquest', lobbyUrl: '/moonfall-world-conquest/index.html', gameUrl: '/moonfall-world-conquest/index.html' },
     moonfall_rts: { label: 'Moonfall RTS', lobbyUrl: '/moonfall-rts/index.html', gameUrl: '/moonfall-rts/index.html' }

@@ -177,7 +177,7 @@ function createMoonfallP4Module({ io, socket, state, updatePresence, isGameAllow
 
       state.moonfallP4Lobbies[id] = {
         id,
-        name: (name || 'Moonfall P4 Lobby').trim() || 'Moonfall P4 Lobby',
+        name: (name || 'Moonveil Nexus Lobby').trim() || 'Moonveil Nexus Lobby',
         ownerUsername: socket.username,
         maxPlayers: parsedMaxPlayers,
         players: [{ id: socket.id, username: socket.username, ready: false }]

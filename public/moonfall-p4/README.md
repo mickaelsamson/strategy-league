@@ -1,4 +1,4 @@
-# Moonfall — Power 4 Module
+# Moonveil Nexus Module
 
 Module indépendant à placer dans ton site :
 
@@ -8,7 +8,7 @@ Module indépendant à placer dans ton site :
   style.css
   game.js
   assets/
-    moonfall-bg.png
+    moonveil-nexus-bg.png
     moonfall-board-reference.png
 ```
 
