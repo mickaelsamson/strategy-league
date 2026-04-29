@@ -55,6 +55,13 @@ textarea{min-height:92px;resize:vertical}
 .participant-list{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .participant-chip{display:inline-flex;align-items:center;gap:7px;min-height:30px;padding:0 9px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05)}
 .participant-chip button{min-height:24px;padding:0 7px;border-radius:999px;background:rgba(255,255,255,.08)}
+.tournament-games{margin-top:16px}
+.tournament-games h3{margin:0 0 8px;font-size:16px}
+.tournament-game-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tournament-game-row{display:flex;align-items:flex-start;gap:9px;padding:10px;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:rgba(255,255,255,.04);color:var(--shell-text);font-weight:800}
+.tournament-game-row input{width:auto;margin-top:2px}
+.tournament-game-row span{display:grid;gap:2px}
+.tournament-game-row small{color:var(--shell-soft);font-weight:700;line-height:1.35}
 .field-help{color:var(--shell-soft);font-size:12px;line-height:1.45;font-weight:700}
 .participant-picker{position:relative}
 .player-suggestions{position:absolute;z-index:20;top:calc(100% + 6px);left:0;right:0;display:grid;gap:4px;max-height:238px;overflow:auto;padding:8px;border:1px solid var(--shell-line);border-radius:8px;background:#070d11;box-shadow:0 18px 50px rgba(0,0,0,.38)}
@@ -74,7 +81,7 @@ textarea{min-height:92px;resize:vertical}
 .preview-box strong{color:#f6c56d}
 .is-hidden{display:none !important}
 @media (max-width:980px){.admin-grid{grid-template-columns:1fr}.game-row{grid-template-columns:1fr}.toggle-cell{justify-content:flex-start}}
-@media (max-width:760px){.weekly-grid,.tournament-grid,.check-grid{grid-template-columns:1fr}}
+@media (max-width:760px){.weekly-grid,.tournament-grid,.check-grid,.tournament-game-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body class="with-navbar">
@@ -230,6 +237,10 @@ textarea{min-height:92px;resize:vertical}
       </div>
       <button id="addParticipantBtn" class="ghost-btn" type="button">Ajouter le joueur</button>
       <div id="participantList" class="participant-list"></div>
+      <div class="tournament-games">
+        <h3>Jeux du tournoi</h3>
+        <div id="tournamentGames" class="tournament-game-grid"></div>
+      </div>
       <label style="margin-top:14px">
         <span>Notes</span>
         <textarea id="tournamentNotes" placeholder="Pairing notes, room groups, special rules..."></textarea>
@@ -243,6 +254,7 @@ textarea{min-height:92px;resize:vertical}
           <li><strong>Knockout</strong> : élimination directe. Rapide et dramatique, mais un joueur peut sortir après une seule défaite.</li>
           <li><strong>Ladder</strong> : classement vivant. Les joueurs se défient pour monter/descendre, pratique pour un tournoi étalé dans le temps.</li>
         </ul>
+        <p><strong>Jeux du tournoi:</strong> la liste vient du catalogue serveur. Quand tu ajoutes un jeu au catalogue, il apparaît automatiquement ici au prochain chargement de la page admin.</p>
         <p><strong>Statuts:</strong> Draft = préparation interne, Registration = inscriptions ouvertes, Live = tournoi en cours, Complete = terminé/archivé. “Tournament active” sert à afficher ou masquer le tournoi côté plateforme; “Round” indique le round actuel.</p>
       </div>
     </article>
@@ -262,7 +274,8 @@ const labels = {
   moonfall_world_conquest: { title: "Moonfall World Conquest", copy: "Risk-like campaign" },
   moonfall_rts: { title: "Moonfall RTS", copy: "Real-time strategy prototype" }
 };
-const gameKeys = Object.keys(labels);
+let gameCatalog = [];
+let gameKeys = Object.keys(labels);
 
 const gamesSwitch = document.getElementById("gamesSwitch");
 const switchLabel = document.getElementById("switchLabel");
@@ -289,6 +302,7 @@ const tournamentFormatHelp = document.getElementById("tournamentFormatHelp");
 const participantInput = document.getElementById("participantInput");
 const participantSuggestions = document.getElementById("participantSuggestions");
 const participantList = document.getElementById("participantList");
+const tournamentGames = document.getElementById("tournamentGames");
 const addParticipantBtn = document.getElementById("addParticipantBtn");
 
 const tournamentFormatDetails = {
@@ -319,6 +333,21 @@ function escapeHtml(value){
     '"': "&quot;",
     "'": "&#39;"
   }[char]));
+}
+
+function applyGameCatalog(games){
+  gameCatalog = Array.isArray(games) && games.length
+    ? games.filter(game => game?.key)
+    : gameKeys.map(key => ({ key, name: labels[key]?.title || key, shortName: labels[key]?.title || key }));
+
+  gameCatalog.forEach(game => {
+    labels[game.key] = {
+      title: game.name || game.shortName || labels[game.key]?.title || game.key,
+      copy: labels[game.key]?.copy || game.leaderboardLabel || game.url || ""
+    };
+  });
+
+  gameKeys = gameCatalog.map(game => game.key);
 }
 
 function setSaveState(dirty, message = ""){
@@ -438,6 +467,34 @@ function renderFormatHelp(){
   tournamentFormatHelp.textContent = tournamentFormatDetails[tournamentFormat.value] || "";
 }
 
+function selectedTournamentGameKeys(){
+  const selected = Array.isArray(draftTournament.gameKeys) ? draftTournament.gameKeys : gameKeys;
+  return selected.filter(key => gameKeys.includes(key));
+}
+
+function renderTournamentGames(){
+  const selected = new Set(selectedTournamentGameKeys());
+  tournamentGames.innerHTML = gameCatalog.map(game => {
+    const label = labels[game.key] || { title: game.name || game.key, copy: game.leaderboardLabel || "" };
+    return `
+      <label class="tournament-game-row">
+        <input type="checkbox" value="${escapeHtml(game.key)}" ${selected.has(game.key) ? "checked" : ""}>
+        <span>
+          <strong>${escapeHtml(label.title)}</strong>
+          <small>${escapeHtml(label.copy || game.url || "")}</small>
+        </span>
+      </label>
+    `;
+  }).join("");
+
+  tournamentGames.querySelectorAll("input").forEach(input => {
+    input.addEventListener("change", () => {
+      draftTournament.gameKeys = [...tournamentGames.querySelectorAll("input:checked")].map(el => el.value);
+      markDirty("Tournament games changed. Save Settings to apply it.");
+    });
+  });
+}
+
 function hideParticipantSuggestions(){
   participantSuggestions.classList.add("is-hidden");
   participantSuggestions.innerHTML = "";
@@ -541,6 +598,7 @@ function renderTournament(){
   tournamentRound.value = draftTournament.round || 1;
   tournamentNotes.value = draftTournament.notes || "";
   renderFormatHelp();
+  renderTournamentGames();
   participantList.innerHTML = (draftTournament.participants || []).map((name, index) => `
     <span class="participant-chip">${escapeHtml(name)}<button type="button" data-remove-index="${index}" aria-label="Remove ${escapeHtml(name)}">x</button></span>
   `).join("");
@@ -573,6 +631,7 @@ function syncTournamentDraft(){
     format: tournamentFormat.value,
     status: tournamentStatus.value,
     round: Number(tournamentRound.value) || 1,
+    gameKeys: [...tournamentGames.querySelectorAll("input:checked")].map(el => el.value),
     notes: tournamentNotes.value.trim(),
     participants: draftTournament.participants || []
   };
@@ -583,6 +642,7 @@ async function fetchSettings(){
   const data = await response.json();
   if(!response.ok) throw new Error(data?.error || "Settings unavailable");
   draftEnabled = Boolean(data.enabled);
+  applyGameCatalog(data.games);
   draftAccess = clone(data.access);
   draftWeekly = clone(data.weeklyChallenge);
   draftTournament = clone(data.tournament);
@@ -614,6 +674,7 @@ async function saveAllSettings(){
     const data = await response.json();
     if(!response.ok) throw new Error(data?.error || "Save rejected");
     draftEnabled = Boolean(data.enabled);
+    applyGameCatalog(data.games);
     draftAccess = clone(data.access);
     draftWeekly = clone(data.weeklyChallenge);
     draftTournament = clone(data.tournament);

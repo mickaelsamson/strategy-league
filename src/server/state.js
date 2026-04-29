@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { GAME_ACCESS_DEFAULTS } = require('./config/constants');
+const { GAME_ACCESS_DEFAULTS, GAME_CATALOG } = require('./config/constants');
 
 const SETTINGS_FILE = process.env.ADMIN_SETTINGS_FILE || path.join(process.cwd(), 'data', 'admin-settings.json');
 const WEEKLY_MODES = new Set(['double_xp', 'multi_game_bonus']);
@@ -17,6 +17,7 @@ const DEFAULT_TOURNAMENT = {
   format: 'swiss',
   status: 'draft',
   round: 1,
+  gameKeys: Object.keys(GAME_CATALOG),
   participants: [],
   notes: ''
 };
@@ -78,6 +79,9 @@ function normalizeTournament(tournament = {}){
   const participants = Array.isArray(tournament.participants)
     ? tournament.participants.map(name => String(name || '').trim()).filter(Boolean)
     : DEFAULT_TOURNAMENT.participants;
+  const gameKeys = Array.isArray(tournament.gameKeys)
+    ? tournament.gameKeys.filter(key => GAME_CATALOG[key])
+    : DEFAULT_TOURNAMENT.gameKeys;
 
   return {
     ...DEFAULT_TOURNAMENT,
@@ -86,6 +90,7 @@ function normalizeTournament(tournament = {}){
     format: String(tournament.format || DEFAULT_TOURNAMENT.format).trim(),
     status: String(tournament.status || DEFAULT_TOURNAMENT.status).trim(),
     round: Math.max(1, Math.round(Number(tournament.round) || DEFAULT_TOURNAMENT.round)),
+    gameKeys: [...new Set(gameKeys)],
     participants: [...new Set(participants)],
     notes: String(tournament.notes || '').trim()
   };

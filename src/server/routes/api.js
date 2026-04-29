@@ -198,6 +198,15 @@ function createAccessResponse(state, isGameAllowed, actor){
 
   return {
     enabled: state.manualOverride !== false,
+    games: Object.values(GAME_CATALOG).map(game => ({
+      key: game.key,
+      name: game.name,
+      shortName: game.shortName,
+      url: game.url,
+      gameUrl: game.gameUrl,
+      leaderboardLabel: game.leaderboardLabel,
+      gameOfWeekEligible: Boolean(game.gameOfWeekEligible)
+    })),
     access,
     weeklyChallenge: getWeeklyChallengeSettings(),
     tournament: getTournamentSettings()
