@@ -180,6 +180,7 @@
   const ctx = dom.canvas.getContext('2d');
   const images = {};
   const user = getSavedUser();
+  let pendingInviteLobbyId = new URLSearchParams(window.location.search).get('inviteLobbyId');
   const socket = !tutorialMode && typeof window.io === 'function' && user?.username ? window.io() : null;
   const onlineState = {
     available: Boolean(socket && user?.username),
@@ -347,6 +348,15 @@
     if(dom.onlineTurnTimer) dom.onlineTurnTimer.disabled = false;
 
     const lobbies = Object.values(onlineState.lobbies || {});
+    if(pendingInviteLobbyId){
+      const invited = lobbies.find(lobby => lobby.id === pendingInviteLobbyId);
+      const already = invited?.players?.some(player => player.username === onlineState.me);
+      const full = (invited?.players?.length || 0) >= (invited?.maxPlayers || 4);
+      if(invited && !already && !full){
+        socket?.emit('join_moonfall_settlers_lobby', pendingInviteLobbyId);
+        pendingInviteLobbyId = null;
+      }
+    }
     if(!lobbies.length){
       dom.onlineLobbyStatus.textContent = onlineState.currentLobbyId ? 'Waiting for more clans to gather.' : 'Choose a lobby or create one.';
       dom.onlineLobbyMeta.textContent = onlineState.currentLobbyId ? 'Everyone must ready up to enter Moonfall.' : 'Online Moonfall supports 2 to 4 human players.';
@@ -365,18 +375,26 @@
         : full
           ? '<button type="button" class="online-lobby-btn" disabled>Full</button>'
           : `<button type="button" class="online-lobby-btn" data-online-action="join" data-lobby-id="${lobby.id}">Join</button>`;
+      const slots = lobby.players.map(player => `
+        <div class="sl-player-slot ${player.ready ? 'is-ready' : ''}">
+          <div class="sl-player-avatar">${escapeHtml(player.username).slice(0, 1).toUpperCase()}</div>
+          <strong>${escapeHtml(player.username)}</strong>
+          <small>${player.ready ? 'Ready' : 'Waiting'}</small>
+        </div>
+      `).join('') + Array.from({ length: Math.max(0, (lobby.maxPlayers || 4) - lobby.players.length) }).map(() => mine
+        ? `<button class="sl-lobby-invite" type="button" data-online-action="invite" data-lobby-id="${lobby.id}"><b>+</b><span>Invite friend</span></button>`
+        : '<div class="sl-player-slot"><div class="sl-empty-avatar">+</div><strong>Available</strong><small>Invite a friend</small></div>'
+      ).join('');
 
       return `
-        <article class="online-lobby-card ${mine ? 'is-mine' : ''}">
-          <div class="online-lobby-head">
+        <article class="sl-lobby-card ${mine ? 'is-mine' : ''}">
+          <div class="sl-lobby-head">
             <strong>${escapeHtml(lobby.name)}</strong>
-            <span>${lobby.players.length}/${lobby.maxPlayers} players</span>
+            <span>${escapeHtml(lobby.boardMode)} board · ${lobby.targetScore} points · ${timerLabel(lobby.turnTimerSeconds)} timer${everyoneReady ? ' · ready to start' : ''}</span>
+            <div class="sl-lobby-count">${lobby.players.length}/${lobby.maxPlayers}</div>
           </div>
-          <div class="online-lobby-meta">${escapeHtml(lobby.boardMode)} board · ${lobby.targetScore} points · ${timerLabel(lobby.turnTimerSeconds)} timer${everyoneReady ? ' · ready to start' : ''}</div>
-          <div class="online-lobby-players">
-            ${lobby.players.map(player => `<span class="online-player-chip ${player.ready ? 'is-ready' : ''}">${escapeHtml(player.username)}${player.ready ? ' ready' : ''}</span>`).join('')}
-          </div>
-          <div class="online-lobby-actions">${action}</div>
+          <div class="sl-lobby-slots">${slots}</div>
+          <div class="sl-lobby-actions">${action}</div>
         </article>
       `;
     }).join('');
@@ -388,6 +406,7 @@
         if(action === 'join') socket?.emit('join_moonfall_settlers_lobby', lobbyId);
         if(action === 'leave') socket?.emit('leave_moonfall_settlers_lobby', lobbyId);
         if(action === 'ready') socket?.emit('toggle_moonfall_settlers_ready', lobbyId);
+        if(action === 'invite') window.SiteShell?.openLobbyInvitePicker?.('moonfall', lobbyId);
       });
     });
   }

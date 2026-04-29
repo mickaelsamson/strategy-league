@@ -6,6 +6,7 @@ if(!user){
   window.location = "/login.html";
 }
 let gamesEnabled = true;
+let pendingInviteLobbyId = new URLSearchParams(window.location.search).get("inviteLobbyId");
 
 socket.emit("register_online", user.username);
 
@@ -26,6 +27,16 @@ socket.on("azul_lobbies_update", lobbies => {
   const list = Object.values(lobbies || {});
   const target = document.getElementById("lobbies");
 
+  if(pendingInviteLobbyId){
+    const invited = list.find(lobby => lobby.id === pendingInviteLobbyId);
+    const already = invited?.players?.some(player => player.username === user.username);
+    const full = (invited?.players?.length || 0) >= (invited?.maxPlayers || 2);
+    if(invited && !already && !full){
+      join(pendingInviteLobbyId);
+      pendingInviteLobbyId = null;
+    }
+  }
+
   if(!list.length){
     target.innerHTML = `<div class="empty-state">No Azul lobby yet. Open the first table.</div>`;
     return;
@@ -36,19 +47,40 @@ socket.on("azul_lobbies_update", lobbies => {
     const maxPlayers = lobby.maxPlayers || 2;
     const full = lobby.players.length >= maxPlayers;
     return `
-      <div class="lobby-item panel">
-        <strong>${escapeHtml(lobby.name)}</strong>
-        <span class="lobby-size">${lobby.players.length}/${maxPlayers} players · ${maxPlayers * 2 + 1} factories</span>
-        <div class="lobby-players">
-          ${lobby.players.map(p => `${escapeHtml(p.username)} ${p.ready ? "Ready" : "Waiting"}`).join(" · ")}
+      <div class="sl-lobby-card">
+        <div class="sl-lobby-head">
+          <div>
+            <strong>${escapeHtml(lobby.name)}</strong>
+            <span>${maxPlayers * 2 + 1} factories</span>
+          </div>
+          <div class="sl-lobby-count">${lobby.players.length}/${maxPlayers}</div>
         </div>
-        ${!me && !full ? `<button onclick="join('${lobby.id}')">Join</button>` : ""}
-        ${!me && full ? `<button disabled>Full</button>` : ""}
-        ${me ? `<button onclick="ready('${lobby.id}')">${me.ready ? "Cancel Ready" : "Ready Up"}</button>` : ""}
+        <div class="sl-lobby-slots">${renderSlots(lobby, me, maxPlayers)}</div>
+        <div class="sl-lobby-actions">
+          ${!me && !full ? `<button onclick="join('${lobby.id}')">Join</button>` : ""}
+          ${!me && full ? `<button disabled>Full</button>` : ""}
+          ${me ? `<button onclick="ready('${lobby.id}')">${me.ready ? "Cancel Ready" : "Ready Up"}</button>` : ""}
+        </div>
       </div>
     `;
   }).join("");
 });
+
+function renderSlot(player){
+  if(!player){
+    return `<div class="sl-player-slot"><div class="sl-empty-avatar">+</div><strong>Available</strong><small>Invite a friend</small></div>`;
+  }
+  return `<div class="sl-player-slot ${player.ready ? "is-ready" : ""}">
+    <div class="sl-player-avatar">${escapeHtml(player.username).slice(0, 1).toUpperCase()}</div>
+    <strong>${escapeHtml(player.username)}</strong>
+    <small>${player.ready ? "Ready" : "Waiting"}</small>
+  </div>`;
+}
+
+function renderSlots(lobby, me, maxPlayers){
+  const empty = Math.max(0, maxPlayers - lobby.players.length);
+  return `${lobby.players.map(renderSlot).join("")}${Array.from({ length: empty }).map(() => me ? `<button class="sl-lobby-invite" type="button" onclick="inviteToLobby('${lobby.id}')"><b>+</b><span>Invite friend</span></button>` : renderSlot(null)).join("")}`;
+}
 
 function createLobby(){
   if(!gamesEnabled) return;
@@ -71,6 +103,11 @@ function ready(id){
 function openInvitePicker(){
   if(!gamesEnabled) return;
   window.SiteShell?.openInvitePicker?.("azul");
+}
+
+function inviteToLobby(id){
+  if(!gamesEnabled) return;
+  window.SiteShell?.openLobbyInvitePicker?.("azul", id);
 }
 
 async function checkGamesAccess(){

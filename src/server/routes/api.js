@@ -141,6 +141,10 @@ function isAdminRequest(req){
   return Boolean(req.authUser?.isAdmin);
 }
 
+function escapeRegExp(value){
+  return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function clearAllLobbies(state, io){
   state.lobbies = {};
   state.othelloLobbies = {};
@@ -532,6 +536,48 @@ function createApiRouter({ User, state, isGameAllowed, io }){
     }catch(err){
       console.error('Friends load error:', err);
       res.status(500).json({ error: 'Friends unavailable' });
+    }
+  });
+
+  router.get('/users/search', async (req, res)=>{
+    try{
+      if(!requireAuth(req, res)) return;
+
+      const q = String(req.query.q || '').trim();
+      if(q.length < 2){
+        return res.json({ users: [] });
+      }
+
+      const me = await User.findOne({ username: req.authUser.username }).lean();
+      if(!me) return res.status(404).json({ error: 'User not found' });
+
+      const friendNames = uniqueStrings(me.friends);
+      const incomingNames = uniqueStrings(me.incomingFriendRequests);
+      const outgoingNames = uniqueStrings(me.outgoingFriendRequests);
+      const users = await User.find(
+        {
+          username: { $ne: req.authUser.username, $regex: escapeRegExp(q), $options: 'i' }
+        },
+        { username: 1, avatar: 1, xp: 1, _id: 0 }
+      ).sort({ username: 1 }).limit(20).lean();
+
+      res.json({
+        users: users.map(user => ({
+          username: user.username,
+          avatar: user.avatar || '',
+          xp: user.xp || 0,
+          relation: friendNames.includes(user.username)
+            ? 'friend'
+            : incomingNames.includes(user.username)
+              ? 'incoming'
+              : outgoingNames.includes(user.username)
+                ? 'outgoing'
+                : 'none'
+        }))
+      });
+    }catch(err){
+      console.error('User search error:', err);
+      res.status(500).json({ error: 'Search unavailable' });
     }
   });
 

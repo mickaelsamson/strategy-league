@@ -45,6 +45,7 @@
   };
 
   const user = getUser();
+  let pendingInviteLobbyId = new URLSearchParams(window.location.search).get('inviteLobbyId');
   const socket = !tutorialMode && typeof window.io === 'function' && user?.username ? window.io() : null;
   if(socket){
     window.StrategyLeagueSocket = socket;
@@ -537,6 +538,15 @@
     }
 
     const list = Object.values(online.lobbies || {});
+    if(pendingInviteLobbyId){
+      const invited = list.find(lobby => lobby.id === pendingInviteLobbyId);
+      const already = invited?.players?.some(player => player.username === online.me);
+      const full = (invited?.players?.length || 0) >= (invited?.maxPlayers || 2);
+      if(invited && !already && !full){
+        socket?.emit('join_hexblitz_lobby', pendingInviteLobbyId);
+        pendingInviteLobbyId = null;
+      }
+    }
     if(!list.length){
       dom.onlineLobbyStatus.textContent = 'No lobby yet.';
       dom.onlineLobbyMeta.textContent = 'Create one and invite another player.';
@@ -562,13 +572,25 @@
         ? (isFull ? '<button class="secondary-btn" type="button" disabled>Full</button>' : `<button class="primary-btn" type="button" data-action="join" data-id="${lobby.id}">Join</button>`)
         : `<button class="primary-btn" type="button" data-action="ready" data-id="${lobby.id}">${me.ready ? 'Cancel ready' : 'Ready up'}</button>`;
       const leaveBtn = me ? `<button class="secondary-btn" type="button" data-action="leave" data-id="${lobby.id}">Leave</button>` : '<span></span>';
+      const slots = lobby.players.map(player => `
+        <div class="sl-player-slot ${player.ready ? 'is-ready' : ''}">
+          <div class="sl-player-avatar">${escapeHtml(player.username).slice(0, 1).toUpperCase()}</div>
+          <strong>${escapeHtml(player.username)}</strong>
+          <small>${player.ready ? 'Ready' : 'Waiting'}</small>
+        </div>
+      `).join('') + Array.from({ length: Math.max(0, (lobby.maxPlayers || 2) - lobby.players.length) }).map(() => me
+        ? `<button class="sl-lobby-invite" type="button" data-action="invite" data-id="${lobby.id}"><b>+</b><span>Invite friend</span></button>`
+        : '<div class="sl-player-slot"><div class="sl-empty-avatar">+</div><strong>Available</strong><small>Invite a friend</small></div>'
+      ).join('');
 
       return `
-        <article class="online-lobby-card">
-          <strong>${escapeHtml(lobby.name)}</strong>
-          <p>${lobby.players.length}/${lobby.maxPlayers || 2} players</p>
-          <p>${lobby.players.map(player => `${escapeHtml(player.username)} ${player.ready ? 'Ready' : 'Waiting'}`).join(' · ')}</p>
-          <div class="lobby-actions">
+        <article class="sl-lobby-card">
+          <div class="sl-lobby-head">
+            <div><strong>${escapeHtml(lobby.name)}</strong><span>Hexblitz duel</span></div>
+            <div class="sl-lobby-count">${lobby.players.length}/${lobby.maxPlayers || 2}</div>
+          </div>
+          <div class="sl-lobby-slots">${slots}</div>
+          <div class="sl-lobby-actions">
             ${action}
             ${leaveBtn}
           </div>
@@ -583,6 +605,7 @@
         if(button.dataset.action === 'join') socket.emit('join_hexblitz_lobby', id);
         if(button.dataset.action === 'ready') socket.emit('toggle_hexblitz_ready', id);
         if(button.dataset.action === 'leave') socket.emit('leave_hexblitz_lobby', id);
+        if(button.dataset.action === 'invite') window.SiteShell?.openLobbyInvitePicker?.('hexblitz', id);
       });
     });
   }

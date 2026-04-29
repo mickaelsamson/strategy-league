@@ -114,8 +114,8 @@
             </label>
           </div>
           <div class="mode-actions">
-            <button onclick="createLobby()">Create Lobby</button>
-            <button type="button" class="ghost-btn" onclick="openInvitePicker()">Invite player</button>
+            <button onclick="createLobby()">Create lobby</button>
+            <button type="button" class="ghost-btn" onclick="openInvitePicker()">Invite friend</button>
             <button type="button" class="ghost-btn" onclick="goBack()">Back</button>
           </div>
           <div class="rules">
@@ -197,10 +197,57 @@ async function checkGamesAccess(){
     classic: "Classic",
     moonveil: "Moonveil"
   };
+  let pendingInviteLobbyId = new URLSearchParams(window.location.search).get("inviteLobbyId");
+
+  function escapeLobbyHtml(text){
+    return String(text || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function lobbySlot(player){
+    if(!player){
+      return `<div class="sl-player-slot"><div class="sl-empty-avatar">+</div><strong>Available</strong><small>Invite a friend</small></div>`;
+    }
+    return `
+      <div class="sl-player-slot ${player.ready ? "is-ready" : ""}">
+        <div class="sl-player-avatar">${escapeLobbyHtml(player.username).slice(0, 1).toUpperCase()}</div>
+        <strong>${escapeLobbyHtml(player.username)}</strong>
+        <small>${player.ready ? "Ready" : "Waiting"}</small>
+      </div>
+    `;
+  }
+
+  function lobbySlots(lobby, me){
+    const players = lobby.players || [];
+    const maxPlayers = 2;
+    const emptySlots = Array.from({ length: Math.max(0, maxPlayers - players.length) });
+    return `
+      ${players.map(lobbySlot).join("")}
+      ${emptySlots.map((_slot, index) => me ? `
+        <button class="sl-lobby-invite" type="button" onclick="inviteToLobby('${lobby.id}')">
+          <b>+</b><span>Invite friend</span>
+        </button>
+      ` : lobbySlot(null)).join("")}
+    `;
+  }
   
-  socket.on("lobbies_update", lobbies=>{
+      socket.on("lobbies_update", lobbies=>{
 
       const list = Object.values(lobbies);
+
+      if(pendingInviteLobbyId){
+        const invitedLobby = list.find(lobby => lobby.id === pendingInviteLobbyId);
+        const alreadyInLobby = invitedLobby?.players?.some(player => player.username === user.username);
+        const full = (invitedLobby?.players?.length || 0) >= 2;
+        if(invitedLobby && !alreadyInLobby && !full){
+          joinLobby(pendingInviteLobbyId);
+          pendingInviteLobbyId = null;
+        }
+      }
 
       if(!list.length){
         document.getElementById("lobbies").innerHTML = "<div class='empty-state'>No lobby yet. Create the first room.</div>";
@@ -213,23 +260,18 @@ async function checkGamesAccess(){
         const me = l.players.find(p=>p.username===user.username);
 
         return `
-          <div class="lobby">
-            <strong>${l.name}</strong> (${timeLabels[l.time] || `${l.time}s`})
-            <span class="lobby-mode">${gameModeLabels[l.gameMode] || "Classic"}</span>
-            
-            <div class="players">
-              ${l.players.map(p=>`
-                <span class="${p.ready?'ready':'notready'}">
-                  ${p.username} ${p.ready?'✔':'✖'}
-                </span>
-              `).join(", ")}
+          <div class="sl-lobby-card">
+            <div class="sl-lobby-head">
+              <div>
+                <strong>${escapeLobbyHtml(l.name)}</strong>
+                <span>${timeLabels[l.time] || `${l.time}s`} · ${gameModeLabels[l.gameMode] || "Classic"}</span>
+              </div>
+              <div class="sl-lobby-count">${l.players.length}/2</div>
             </div>
-
-            ${
-              !me
-              ? `<button onclick="joinLobby('${l.id}')">Join</button>`
-              : `<button onclick="toggleReady('${l.id}')">Ready</button>`
-            }
+            <div class="sl-lobby-slots">${lobbySlots(l, me)}</div>
+            <div class="sl-lobby-actions">
+              ${!me ? `<button onclick="joinLobby('${l.id}')">Join</button>` : `<button onclick="toggleReady('${l.id}')">Ready</button>`}
+            </div>
           </div>
         `;
       }).join("");
@@ -253,6 +295,12 @@ async function checkGamesAccess(){
   function openInvitePicker(){
     window.SiteShell?.openInvitePicker?.("chess");
   }
+
+  function inviteToLobby(id){
+    window.SiteShell?.openLobbyInvitePicker?.("chess", id);
+  }
+
+  Object.assign(window, { createLobby, joinLobby, toggleReady, openInvitePicker, inviteToLobby });
 
   socket.on("chess_start", (data)=>{
   localStorage.setItem("chessSession", JSON.stringify(data));

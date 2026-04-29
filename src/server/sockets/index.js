@@ -269,7 +269,7 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
     moonfallP4.register();
     hexblitz.register();
 
-    socket.on('send_game_invite', async ({ toUsername, gameKey } = {})=>{
+    socket.on('send_game_invite', async ({ toUsername, gameKey, lobbyId } = {})=>{
       try{
         if(!socket.username || !toUsername || toUsername === socket.username) return;
         const meta = GAME_META[gameKey];
@@ -287,11 +287,16 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
           return;
         }
 
+        const lobbyUrl = lobbyId
+          ? `${meta.lobbyUrl}?inviteLobbyId=${encodeURIComponent(String(lobbyId))}`
+          : meta.lobbyUrl;
+
         targets.forEach(target => target.emit('game_invite', {
           from: socket.username,
           gameKey,
+          lobbyId: lobbyId || null,
           label: meta.label,
-          url: meta.lobbyUrl,
+          url: lobbyUrl,
           message: `${socket.username} invited you to ${meta.label}.`
         }));
         socket.emit('game_notice', { message: `Invite sent to ${toUsername}.` });

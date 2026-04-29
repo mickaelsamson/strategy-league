@@ -8,6 +8,9 @@
   let notificationSequence = 0;
   let notifications = [];
   let friendState = { friends: [], incoming: [], outgoing: [] };
+  let friendSearchResults = [];
+  let friendSearchTimer = null;
+  let inviteContext = { gameKey: null, lobbyId: null };
 
   function getUser(){
     try{
@@ -172,6 +175,10 @@
             <span><i></i><b id="onlineCount">0</b></span>
             <button id="onlineInviteToggle" class="online-plus hidden" type="button" aria-label="Invite friend" title="Invite friend">+</button>
           </div>
+          <label class="friend-search">
+            <input id="friendSearchInput" type="search" placeholder="Find players..." autocomplete="off">
+            <button id="friendSearchClear" class="hidden" type="button" aria-label="Clear search" title="Clear search">×</button>
+          </label>
           <div id="onlineInvitePicker" class="online-invite-picker hidden"></div>
           <div id="onlinePlayers" class="online-list">
             <div class="online-empty">Connecting...</div>
@@ -224,10 +231,34 @@
       });
     }
 
+    bindFriendSearch();
+
     document.addEventListener('click', event => {
       if(event.target.closest('.app-sidebar-right')) return;
       sidebar?.classList.remove('expanded');
       closeInvitePicker();
+    });
+  }
+
+  function bindFriendSearch(){
+    const input = document.getElementById('friendSearchInput');
+    const clear = document.getElementById('friendSearchClear');
+    if(!input) return;
+
+    input.addEventListener('input', () => {
+      const q = input.value.trim();
+      clear?.classList.toggle('hidden', q.length === 0);
+      clearTimeout(friendSearchTimer);
+      friendSearchTimer = setTimeout(() => searchPlayers(q), 180);
+    });
+
+    clear?.addEventListener('click', event => {
+      event.preventDefault();
+      input.value = '';
+      friendSearchResults = [];
+      clear.classList.add('hidden');
+      renderOnlinePlayers(latestOnlineUsers);
+      input.focus();
     });
   }
 
@@ -690,65 +721,136 @@
     }
   }
 
+  async function searchPlayers(q){
+    if(!q || q.length < 2){
+      friendSearchResults = [];
+      renderOnlinePlayers(latestOnlineUsers);
+      return;
+    }
+
+    try{
+      const response = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`, { cache: 'no-store' });
+      if(!response.ok) throw new Error('Search unavailable');
+      const data = await response.json();
+      friendSearchResults = Array.isArray(data.users) ? data.users : [];
+      renderOnlinePlayers(latestOnlineUsers);
+    }catch(err){
+      console.error(err);
+      friendSearchResults = [];
+      renderOnlinePlayers(latestOnlineUsers);
+    }
+  }
+
+  function enrichedFriend(friend){
+    const username = friend?.username || friend;
+    return {
+      ...(friend || {}),
+      ...(latestOnlineUsers?.[username] || {}),
+      username,
+      online: Boolean(latestOnlineUsers?.[username])
+    };
+  }
+
+  function playerActionMarkup(player, relation, gameKey){
+    if(relation === 'self') return '';
+    if(relation === 'friend'){
+      if(player.online && gameKey){
+        return `<button class="online-row-action" type="button" data-invite-username="${escapeHtml(player.username)}" title="Invite friend">${icon('games')}</button>`;
+      }
+      return '<span class="online-friend-pill">Friend</span>';
+    }
+    if(relation === 'incoming'){
+      return `<button class="online-row-action" type="button" data-accept-friend="${escapeHtml(player.username)}" title="Accept friend request">${icon('check')}</button>`;
+    }
+    if(relation === 'outgoing') return '<span class="online-friend-pill">Sent</span>';
+    return `<button class="online-row-action" type="button" data-request-friend="${escapeHtml(player.username)}" title="Add friend">${icon('userPlus')}</button>`;
+  }
+
+  function friendRow(player, options = {}){
+    const relation = options.relation || friendRelation(player.username);
+    const action = playerActionMarkup(player, relation, options.gameKey || currentGameKey());
+    const onlineClass = player.online ? 'is-online' : 'is-offline';
+    const status = player.online ? '<i></i>' : '<em></em>';
+    return `
+      <div class="online-player-row ${onlineClass}">
+        <button class="online-player" type="button" data-profile-username="${escapeHtml(player.username)}" data-player='${escapeHtml(JSON.stringify(player))}'>
+          ${avatarMarkup(player, 'online-avatar')}
+          <span class="online-player-copy">
+            <strong>${escapeHtml(player.username)}</strong>
+            <small>${player.online ? 'Online' : 'Offline'}</small>
+          </span>
+          ${status}
+        </button>
+        ${action}
+      </div>
+    `;
+  }
+
+  function renderSearchResults(gameKey){
+    if(!friendSearchResults.length){
+      return '<div class="online-empty">No players found</div>';
+    }
+
+    return `
+      <div class="friend-section">
+        <div class="friend-section-title"><strong>Search results</strong><span>${friendSearchResults.length}</span></div>
+        ${friendSearchResults.map(player => friendRow({
+          ...player,
+          online: Boolean(latestOnlineUsers?.[player.username])
+        }, { relation: player.relation || friendRelation(player.username), gameKey })).join('')}
+      </div>
+    `;
+  }
+
   function renderOnlinePlayers(users){
     const list = document.getElementById('onlinePlayers');
     const count = document.getElementById('onlineCount');
     const tabCount = document.getElementById('onlineCountTab');
     const inviteToggle = document.getElementById('onlineInviteToggle');
     if(!list) return;
-    const user = getUser();
     const gameKey = currentGameKey();
     latestOnlineUsers = users || {};
 
-    const allEntries = Object.entries(users || {}).map(([username, data]) => ({
-      username,
-      ...(data || {})
-    })).sort((a, b) => (b.xp || 0) - (a.xp || 0));
-    const friendNames = usernamesFrom(friendState.friends);
-    const entries = allEntries.filter(player => friendNames.has(player.username));
+    const onlineFriends = (friendState.friends || [])
+      .map(enrichedFriend)
+      .filter(player => player.online)
+      .sort((a, b) => (b.xp || 0) - (a.xp || 0));
+    const offlineFriends = (friendState.friends || [])
+      .map(enrichedFriend)
+      .filter(player => !player.online)
+      .sort((a, b) => a.username.localeCompare(b.username));
+    const searchActive = Boolean(document.getElementById('friendSearchInput')?.value.trim());
 
-    if(count) count.textContent = String(entries.length);
-    if(tabCount) tabCount.textContent = String(entries.length);
-    if(inviteToggle) inviteToggle.classList.toggle('hidden', !gameKey || entries.length === 0);
-    if(!entries.length){
-      list.innerHTML = friendNames.size
-        ? '<div class="online-empty">No friends online</div>'
-        : '<div class="online-empty">Add friends from player profiles to invite them here.</div>';
-      renderInvitePicker(gameKey, allEntries);
+    if(count) count.textContent = String(onlineFriends.length);
+    if(tabCount) tabCount.textContent = String(onlineFriends.length);
+    if(inviteToggle) inviteToggle.classList.toggle('hidden', !gameKey || onlineFriends.length === 0);
+
+    if(searchActive){
+      list.innerHTML = renderSearchResults(gameKey);
+      bindPlayerCards();
+      bindFriendButtons();
+      bindInviteButtons(gameKey);
+      renderInvitePicker(gameKey, onlineFriends);
       return;
     }
 
-    list.innerHTML = entries.map(player => {
-      const relation = friendRelation(player.username);
-      const isMe = relation === 'self';
-      const friendAction = relation === 'friend'
-        ? (gameKey ? `<button class="online-row-action" type="button" data-invite-username="${escapeHtml(player.username)}" title="Invite friend">${icon('games')}</button>` : '<span class="online-friend-pill">Friend</span>')
-        : relation === 'incoming'
-          ? `<button class="online-row-action" type="button" data-accept-friend="${escapeHtml(player.username)}" title="Accept friend request">${icon('check')}</button>`
-          : relation === 'outgoing'
-            ? '<span class="online-friend-pill">Sent</span>'
-            : !isMe
-              ? `<button class="online-row-action" type="button" data-request-friend="${escapeHtml(player.username)}" title="Add friend">${icon('userPlus')}</button>`
-              : '';
-
-      return `
-        <div class="online-player-row">
-          <button class="online-player" type="button" data-profile-username="${escapeHtml(player.username)}" data-player='${escapeHtml(JSON.stringify(player))}'>
-            ${avatarMarkup(player, 'online-avatar')}
-            <span class="online-player-copy">
-              <strong>${escapeHtml(player.username)}</strong>
-            </span>
-            <i></i>
-          </button>
-          ${friendAction}
+    list.innerHTML = (onlineFriends.length || offlineFriends.length)
+      ? `
+        <div class="friend-section">
+          <div class="friend-section-title"><strong>Online</strong><span>${onlineFriends.length} / ${friendState.friends.length}</span></div>
+          ${onlineFriends.length ? onlineFriends.map(player => friendRow(player, { gameKey })).join('') : '<div class="online-empty compact">No friends online</div>'}
         </div>
-      `;
-    }).join('');
+        <div class="friend-section">
+          <div class="friend-section-title"><strong>Offline</strong><span>${offlineFriends.length} / ${friendState.friends.length}</span></div>
+          ${offlineFriends.length ? offlineFriends.map(player => friendRow(player, { gameKey })).join('') : '<div class="online-empty compact">No offline friends</div>'}
+        </div>
+      `
+      : '<div class="online-empty">Find players above to add friends, then invite them from game lobbies.</div>';
 
     bindPlayerCards();
     bindFriendButtons();
     bindInviteButtons(gameKey);
-    renderInvitePicker(gameKey, allEntries);
+    renderInvitePicker(gameKey, onlineFriends);
   }
 
   function getSharedSocket(){
@@ -763,7 +865,7 @@
         const socket = getSharedSocket();
         const toUsername = button.dataset.inviteUsername;
         if(socket && toUsername && gameKey){
-          socket.emit('send_game_invite', { toUsername, gameKey });
+          socket.emit('send_game_invite', { toUsername, gameKey, lobbyId: inviteContext.lobbyId || button.dataset.lobbyId || null });
           showToast({ title: 'Invite sent', message: `Invite sent to ${toUsername}.` });
           closeInvitePicker();
         }
@@ -796,17 +898,19 @@
     })).sort((a, b) => (b.xp || 0) - (a.xp || 0));
   }
 
-  function openInvitePicker(gameKey){
+  function openInvitePicker(gameKey, options = {}){
     if(!gameKey) return;
+    inviteContext = { gameKey, lobbyId: options.lobbyId || null };
     invitePickerOpen = true;
     document.querySelector('.app-sidebar-right')?.classList.add('expanded');
-    renderInvitePicker(gameKey, entriesFromLatestUsers());
+    renderInvitePicker(gameKey, (friendState.friends || []).map(enrichedFriend).filter(player => player.online));
   }
 
   function closeInvitePicker(){
     invitePickerOpen = false;
     const picker = document.getElementById('onlineInvitePicker');
     if(picker) picker.classList.add('hidden');
+    inviteContext = { gameKey: null, lobbyId: null };
   }
 
   function renderInvitePicker(gameKey, entries){
@@ -820,14 +924,14 @@
     }
 
     const friends = usernamesFrom(friendState.friends);
-    const targets = entries.filter(player => user?.username && player.username !== user.username && friends.has(player.username));
+    const targets = entries.filter(player => user?.username && player.username !== user.username && player.online !== false && friends.has(player.username));
     picker.classList.remove('hidden');
     picker.innerHTML = targets.length
       ? `
-        <strong>Invite friend</strong>
+        <strong>${inviteContext.lobbyId ? 'Invite to table' : 'Invite friend'}</strong>
         <div>
           ${targets.map(player => `
-            <button class="online-invite-target" type="button" data-invite-username="${escapeHtml(player.username)}">
+            <button class="online-invite-target" type="button" data-invite-username="${escapeHtml(player.username)}" ${inviteContext.lobbyId ? `data-lobby-id="${escapeHtml(inviteContext.lobbyId)}"` : ''}>
               ${avatarMarkup(player, 'online-avatar')}
               <span>${escapeHtml(player.username)}</span>
             </button>
@@ -934,6 +1038,9 @@
     },
     openInvitePicker(gameKey){
       openInvitePicker(gameKey || currentGameKey());
+    },
+    openLobbyInvitePicker(gameKey, lobbyId){
+      openInvitePicker(gameKey || currentGameKey(), { lobbyId });
     },
     requestFriend(username){
       requestFriend(username);
