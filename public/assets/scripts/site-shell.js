@@ -234,7 +234,7 @@
     bindFriendSearch();
 
     document.addEventListener('click', event => {
-      if(event.target.closest('.app-sidebar-right')) return;
+      if(event.target.closest('.app-sidebar-right, .sl-lobby-invite')) return;
       sidebar?.classList.remove('expanded');
       closeInvitePicker();
     });
