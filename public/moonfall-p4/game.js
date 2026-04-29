@@ -21,6 +21,7 @@
     startLocalBtn: document.getElementById('startLocalBtn'),
     onlineLobbyName: document.getElementById('onlineLobbyName'),
     createOnlineLobbyBtn: document.getElementById('createOnlineLobbyBtn'),
+    publicMatchmakingBtn: document.getElementById('publicMatchmakingBtn'),
     refreshOnlineBtn: document.getElementById('refreshOnlineBtn'),
     onlineLobbyStatus: document.getElementById('onlineLobbyStatus'),
     onlineLobbyMeta: document.getElementById('onlineLobbyMeta'),
@@ -599,7 +600,7 @@
       return `
         <article class="sl-lobby-card">
           <div class="sl-lobby-head">
-            <div><strong>${escapeHtml(lobby.name)}</strong><span>Power 4 duel</span></div>
+            <div><strong>${escapeHtml(lobby.name)}</strong><span>${lobby.matchmaking === 'public' ? 'Public matchmaking' : 'Power 4 duel'}</span></div>
             <div class="sl-lobby-count">${lobby.players.length}/${lobby.maxPlayers || 2}</div>
           </div>
           <div class="sl-lobby-slots">${slots}</div>
@@ -690,6 +691,11 @@
     dom.createOnlineLobbyBtn.addEventListener('click', () => {
       if(!socket || isGameDisabled()) return;
       socket.emit('create_moonfall_p4_lobby', { name: dom.onlineLobbyName.value, maxPlayers: 2 });
+    });
+
+    dom.publicMatchmakingBtn?.addEventListener('click', () => {
+      if(!socket || isGameDisabled()) return;
+      socket.emit('public_moonfall_p4_matchmaking', { maxPlayers: 2 });
     });
 
     dom.refreshOnlineBtn.addEventListener('click', () => renderOnlineLobbies());

@@ -4,7 +4,17 @@ function randomId(){
   return Math.random().toString(36).substr(2, 9);
 }
 
+function randomEntry(entries){
+  return entries[Math.floor(Math.random() * entries.length)] || null;
+}
+
 function createChessModule({ io, socket, state, updatePresence, applyRankedResult, isGameAllowed }){
+  function findLobbyByUsername(username){
+    return Object.values(state.lobbies).find(lobby =>
+      lobby.players.some(player => player.username === username)
+    ) || null;
+  }
+
   function findGameIdForSocket(){
     let gameId = state.playerGames[socket.id];
     if(gameId) return gameId;
@@ -50,6 +60,44 @@ function createChessModule({ io, socket, state, updatePresence, applyRankedResul
     });
   }
 
+  function startLobbyGame(lobbyId){
+    const lobby = state.lobbies[lobbyId];
+    if(!lobby || lobby.players.length !== 2) return false;
+
+    const gameId = randomId();
+    const [p1, p2] = lobby.matchmaking === 'public'
+      ? lobby.players.slice().sort(() => Math.random() - 0.5)
+      : lobby.players;
+
+    state.chessGames[gameId] = {
+      id: gameId,
+      players: [
+        { id: p1.id, username: p1.username, color: 'w' },
+        { id: p2.id, username: p2.username, color: 'b' }
+      ],
+      turn: 'w',
+      fen: null,
+      ended: false,
+      rated: false,
+      gameMode: lobby.gameMode || 'classic',
+      timeControl: lobby.time
+    };
+
+    emitGameStart(state.chessGames[gameId]);
+    delete state.lobbies[lobbyId];
+    return true;
+  }
+
+  function findPublicMatch({ time, gameMode }){
+    return randomEntry(Object.values(state.lobbies).filter(lobby =>
+      lobby.matchmaking === 'public' &&
+      lobby.time === time &&
+      (lobby.gameMode || 'classic') === gameMode &&
+      lobby.players.length < 2 &&
+      !lobby.players.some(player => player.username === socket.username)
+    ));
+  }
+
   function register(){
     socket.on('create_lobby', ({ name, time, gameMode })=>{
       if(isGameAllowed && !isGameAllowed('chess', socket)) return;
@@ -57,9 +105,7 @@ function createChessModule({ io, socket, state, updatePresence, applyRankedResul
       if(!CHESS_TIME_CONTROLS.includes(parsedTime)) return;
       const selectedGameMode = CHESS_GAME_MODES.includes(gameMode) ? gameMode : 'classic';
 
-      const existing = Object.values(state.lobbies).find(l =>
-        l.players.some(p => p.username === socket.username)
-      );
+      const existing = findLobbyByUsername(socket.username);
       if(existing) return;
 
       const id = randomId();
@@ -79,9 +125,7 @@ function createChessModule({ io, socket, state, updatePresence, applyRankedResul
       const lobby = state.lobbies[id];
       if(!lobby) return;
 
-      const existing = Object.values(state.lobbies).find(l =>
-        l.players.some(p => p.username === socket.username)
-      );
+      const existing = findLobbyByUsername(socket.username);
       if(existing) return;
 
       lobby.players.push({ id: socket.id, username: socket.username, ready: false });
@@ -98,27 +142,37 @@ function createChessModule({ io, socket, state, updatePresence, applyRankedResul
       player.ready = !player.ready;
 
       if(lobby.players.length === 2 && lobby.players.every(p => p.ready)){
-        const gameId = randomId();
-        const p1 = lobby.players[0];
-        const p2 = lobby.players[1];
-
-        state.chessGames[gameId] = {
-          id: gameId,
-          players: [
-            { id: p1.id, username: p1.username, color: 'w' },
-            { id: p2.id, username: p2.username, color: 'b' }
-          ],
-          turn: 'w',
-          fen: null,
-          ended: false,
-          rated: false,
-          gameMode: lobby.gameMode || 'classic',
-          timeControl: lobby.time
-        };
-
-        emitGameStart(state.chessGames[gameId]);
-        delete state.lobbies[id];
+        startLobbyGame(id);
       }
+
+      updatePresence();
+    });
+
+    socket.on('public_chess_matchmaking', ({ time, gameMode } = {}) => {
+      if(isGameAllowed && !isGameAllowed('chess', socket)) return;
+      if(!socket.username) return;
+      if(findLobbyByUsername(socket.username)) return;
+
+      const parsedTime = CHESS_TIME_CONTROLS.includes(Number(time)) ? Number(time) : 300;
+      const selectedGameMode = CHESS_GAME_MODES.includes(gameMode) ? gameMode : 'classic';
+      const match = findPublicMatch({ time: parsedTime, gameMode: selectedGameMode });
+
+      if(match){
+        match.players.push({ id: socket.id, username: socket.username, ready: true });
+        startLobbyGame(match.id);
+        updatePresence();
+        return;
+      }
+
+      const id = randomId();
+      state.lobbies[id] = {
+        id,
+        name: 'Public matchmaking',
+        matchmaking: 'public',
+        gameMode: selectedGameMode,
+        time: parsedTime,
+        players: [{ id: socket.id, username: socket.username, ready: true }]
+      };
 
       updatePresence();
     });

@@ -124,6 +124,7 @@
     onlineTargetScore: document.getElementById('onlineTargetScore'),
     onlineTurnTimer: document.getElementById('onlineTurnTimer'),
     createOnlineLobbyBtn: document.getElementById('createOnlineLobbyBtn'),
+    publicMatchmakingBtn: document.getElementById('publicMatchmakingBtn'),
     refreshOnlineBtn: document.getElementById('refreshOnlineBtn'),
     onlineLobbyList: document.getElementById('onlineLobbyList'),
     onlineLobbyStatus: document.getElementById('onlineLobbyStatus'),
@@ -329,6 +330,7 @@
       dom.onlineLobbyStatus.textContent = 'Open Moonfall through the app server to unlock online lobbies.';
       dom.onlineLobbyMeta.textContent = 'Local mode still works here, but Socket.IO and account presence need the main app server.';
       if(dom.createOnlineLobbyBtn) dom.createOnlineLobbyBtn.disabled = true;
+      if(dom.publicMatchmakingBtn) dom.publicMatchmakingBtn.disabled = true;
       if(dom.refreshOnlineBtn) dom.refreshOnlineBtn.disabled = true;
       if(dom.onlineLobbyName) dom.onlineLobbyName.disabled = true;
       if(dom.onlineMaxPlayers) dom.onlineMaxPlayers.disabled = true;
@@ -340,6 +342,7 @@
     }
 
     if(dom.createOnlineLobbyBtn) dom.createOnlineLobbyBtn.disabled = false;
+    if(dom.publicMatchmakingBtn) dom.publicMatchmakingBtn.disabled = false;
     if(dom.refreshOnlineBtn) dom.refreshOnlineBtn.disabled = false;
     if(dom.onlineLobbyName) dom.onlineLobbyName.disabled = false;
     if(dom.onlineMaxPlayers) dom.onlineMaxPlayers.disabled = false;
@@ -390,7 +393,7 @@
         <article class="sl-lobby-card ${mine ? 'is-mine' : ''}">
           <div class="sl-lobby-head">
             <strong>${escapeHtml(lobby.name)}</strong>
-            <span>${escapeHtml(lobby.boardMode)} board · ${lobby.targetScore} points · ${timerLabel(lobby.turnTimerSeconds)} timer${everyoneReady ? ' · ready to start' : ''}</span>
+            <span>${escapeHtml(lobby.boardMode)} board · ${lobby.targetScore} points · ${timerLabel(lobby.turnTimerSeconds)} timer${lobby.matchmaking === 'public' ? ' · public matchmaking' : ''}${everyoneReady ? ' · ready to start' : ''}</span>
             <div class="sl-lobby-count">${lobby.players.length}/${lobby.maxPlayers}</div>
           </div>
           <div class="sl-lobby-slots">${slots}</div>
@@ -3503,6 +3506,15 @@
     if(!socket) return;
     socket.emit('create_moonfall_settlers_lobby', {
       name: dom.onlineLobbyName.value,
+      maxPlayers: Number(dom.onlineMaxPlayers.value) || 4,
+      boardMode: dom.onlineBoardMode.value,
+      targetScore: Number(dom.onlineTargetScore.value) || TARGET_DEFAULT,
+      turnTimerSeconds: readTimerValue(dom.onlineTurnTimer)
+    });
+  });
+  dom.publicMatchmakingBtn?.addEventListener('click', () => {
+    if(!socket) return;
+    socket.emit('public_moonfall_settlers_matchmaking', {
       maxPlayers: Number(dom.onlineMaxPlayers.value) || 4,
       boardMode: dom.onlineBoardMode.value,
       targetScore: Number(dom.onlineTargetScore.value) || TARGET_DEFAULT,

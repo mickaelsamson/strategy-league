@@ -115,6 +115,7 @@
           </div>
           <div class="mode-actions">
             <button onclick="createLobby()">Create lobby</button>
+            <button type="button" onclick="publicMatchmaking()">Public matchmaking</button>
             <button type="button" class="ghost-btn" onclick="openInvitePicker()">Invite friend</button>
             <button type="button" class="ghost-btn" onclick="goBack()">Back</button>
           </div>
@@ -264,7 +265,7 @@ async function checkGamesAccess(){
             <div class="sl-lobby-head">
               <div>
                 <strong>${escapeLobbyHtml(l.name)}</strong>
-                <span>${timeLabels[l.time] || `${l.time}s`} · ${gameModeLabels[l.gameMode] || "Classic"}</span>
+                <span>${timeLabels[l.time] || `${l.time}s`} · ${gameModeLabels[l.gameMode] || "Classic"}${l.matchmaking === "public" ? " · Public matchmaking" : ""}</span>
               </div>
               <div class="sl-lobby-count">${l.players.length}/2</div>
             </div>
@@ -284,6 +285,12 @@ async function checkGamesAccess(){
     socket.emit("create_lobby",{ name, time, gameMode });
   }
 
+  function publicMatchmaking(){
+    const time = parseInt(document.getElementById("timeControl").value);
+    const gameMode = document.getElementById("gameMode").value;
+    socket.emit("public_chess_matchmaking", { time, gameMode });
+  }
+
   function joinLobby(id){
     socket.emit("join_lobby", id);
   }
@@ -300,7 +307,7 @@ async function checkGamesAccess(){
     window.SiteShell?.openLobbyInvitePicker?.("chess", id);
   }
 
-  Object.assign(window, { createLobby, joinLobby, toggleReady, openInvitePicker, inviteToLobby });
+  Object.assign(window, { createLobby, publicMatchmaking, joinLobby, toggleReady, openInvitePicker, inviteToLobby });
 
   socket.on("chess_start", (data)=>{
   localStorage.setItem("chessSession", JSON.stringify(data));
@@ -308,6 +315,7 @@ async function checkGamesAccess(){
   });
 
   window.createLobby = createLobby;
+  window.publicMatchmaking = publicMatchmaking;
   window.joinLobby = joinLobby;
   window.toggleReady = toggleReady;
   window.openInvitePicker = openInvitePicker;

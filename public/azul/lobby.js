@@ -51,7 +51,7 @@ socket.on("azul_lobbies_update", lobbies => {
         <div class="sl-lobby-head">
           <div>
             <strong>${escapeHtml(lobby.name)}</strong>
-            <span>${maxPlayers * 2 + 1} factories</span>
+            <span>${maxPlayers * 2 + 1} factories${lobby.matchmaking === "public" ? " · Public matchmaking" : ""}</span>
           </div>
           <div class="sl-lobby-count">${lobby.players.length}/${maxPlayers}</div>
         </div>
@@ -86,6 +86,13 @@ function createLobby(){
   if(!gamesEnabled) return;
   socket.emit("create_azul_lobby", {
     name: document.getElementById("name").value,
+    maxPlayers: Number(document.getElementById("maxPlayers").value)
+  });
+}
+
+function publicMatchmaking(){
+  if(!gamesEnabled) return;
+  socket.emit("public_azul_matchmaking", {
     maxPlayers: Number(document.getElementById("maxPlayers").value)
   });
 }

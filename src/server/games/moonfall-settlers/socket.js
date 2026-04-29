@@ -5,6 +5,10 @@ function randomId(){
   return Math.random().toString(36).slice(2, 11);
 }
 
+function randomEntry(entries){
+  return entries[Math.floor(Math.random() * entries.length)] || null;
+}
+
 function createMoonfallSettlersModule({ io, socket, state, updatePresence, isGameAllowed, applyStructuredGameResult }){
   function findLobbyByUsername(username){
     return Object.values(state.moonfallSettlersLobbies).find(lobby =>
@@ -107,6 +111,9 @@ function createMoonfallSettlersModule({ io, socket, state, updatePresence, isGam
 
   function startLobbyGame(lobby){
     const gameId = randomId();
+    const players = lobby.matchmaking === 'public'
+      ? lobby.players.slice().sort(() => Math.random() - 0.5)
+      : lobby.players;
     const game = {
       id: gameId,
       name: lobby.name,
@@ -114,9 +121,9 @@ function createMoonfallSettlersModule({ io, socket, state, updatePresence, isGam
       boardMode: lobby.boardMode,
       targetScore: lobby.targetScore,
       turnTimerSeconds: lobby.turnTimerSeconds || 0,
-      hostUsername: lobby.players[0].username,
-      hostSocketId: lobby.players[0].id,
-      players: lobby.players.map(player => ({
+      hostUsername: players[0].username,
+      hostSocketId: players[0].id,
+      players: players.map(player => ({
         id: player.id,
         username: player.username
       })),
@@ -130,6 +137,18 @@ function createMoonfallSettlersModule({ io, socket, state, updatePresence, isGam
       if(player.id) state.moonfallSettlersPlayerGames[player.id] = gameId;
     });
     emitStart(game);
+  }
+
+  function findPublicMatch({ maxPlayers, boardMode, targetScore, turnTimerSeconds }){
+    return randomEntry(Object.values(state.moonfallSettlersLobbies).filter(lobby =>
+      lobby.matchmaking === 'public' &&
+      (lobby.maxPlayers || MAX_PLAYERS) === maxPlayers &&
+      (lobby.boardMode || 'balanced') === boardMode &&
+      Number(lobby.targetScore || 10) === targetScore &&
+      Number(lobby.turnTimerSeconds || 0) === turnTimerSeconds &&
+      lobby.players.length < maxPlayers &&
+      !lobby.players.some(player => player.username === socket.username)
+    ));
   }
 
   function handleLobbyDisconnect(socketId){
@@ -247,6 +266,46 @@ function createMoonfallSettlersModule({ io, socket, state, updatePresence, isGam
       if(canStart){
         startLobbyGame(lobby);
       }
+      updatePresence();
+    });
+
+    socket.on('public_moonfall_settlers_matchmaking', ({ maxPlayers, boardMode, targetScore, turnTimerSeconds } = {}) => {
+      if(isGameAllowed && !isGameAllowed('moonfall_settlers', socket)) return;
+      if(!socket.username) return;
+      if(findLobbyByUsername(socket.username) || findGameByUsername(socket.username)) return;
+
+      const parsedMaxPlayers = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, Number(maxPlayers) || MAX_PLAYERS));
+      const selectedBoardMode = boardMode === 'wild' ? 'wild' : 'balanced';
+      const selectedTargetScore = Math.max(8, Math.min(12, Number(targetScore) || 10));
+      const selectedTurnTimerSeconds = Math.max(0, Math.min(300, Number(turnTimerSeconds) || 0));
+      const match = findPublicMatch({
+        maxPlayers: parsedMaxPlayers,
+        boardMode: selectedBoardMode,
+        targetScore: selectedTargetScore,
+        turnTimerSeconds: selectedTurnTimerSeconds
+      });
+
+      if(match){
+        match.players.push({ id: socket.id, username: socket.username, ready: true });
+        if(match.players.length >= MIN_PLAYERS && match.players.every(entry => entry.ready)){
+          startLobbyGame(match);
+        }
+        updatePresence();
+        return;
+      }
+
+      const id = randomId();
+      state.moonfallSettlersLobbies[id] = {
+        id,
+        name: 'Public matchmaking',
+        matchmaking: 'public',
+        ownerUsername: socket.username,
+        maxPlayers: parsedMaxPlayers,
+        boardMode: selectedBoardMode,
+        targetScore: selectedTargetScore,
+        turnTimerSeconds: selectedTurnTimerSeconds,
+        players: [{ id: socket.id, username: socket.username, ready: true }]
+      };
       updatePresence();
     });
 

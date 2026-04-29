@@ -31,7 +31,7 @@ socket.on("othello_lobbies_update",lobbies=>{
   const me=l.players.find(p=>p.username===user.username);
  return `<div class="sl-lobby-card">
   <div class="sl-lobby-head">
-   <div><strong>${escapeHtml(l.name)}</strong><span>Othello duel</span></div>
+   <div><strong>${escapeHtml(l.name)}</strong><span>${l.matchmaking==="public"?"Public matchmaking":"Othello duel"}</span></div>
    <div class="sl-lobby-count">${l.players.length}/2</div>
   </div>
   <div class="sl-lobby-slots">${renderSlots(l,me)}</div>
@@ -71,6 +71,10 @@ function renderSlots(lobby,me){
 function createLobby(){
  if(!gamesEnabled)return;
  socket.emit("create_othello_lobby",{name:document.getElementById("name").value});
+}
+function publicMatchmaking(){
+ if(!gamesEnabled)return;
+ socket.emit("public_othello_matchmaking");
 }
 function join(id){if(gamesEnabled)socket.emit("join_othello_lobby",id);}
 function ready(id){if(gamesEnabled)socket.emit("toggle_othello_ready",id);}

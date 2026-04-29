@@ -2,6 +2,10 @@ function randomId(){
   return Math.random().toString(36).substr(2, 9);
 }
 
+function randomEntry(entries){
+  return entries[Math.floor(Math.random() * entries.length)] || null;
+}
+
 function createInitialOthelloBoard(){
   const board = Array.from({ length: 8 }, ()=>Array(8).fill(null));
   board[3][3] = 'white';
@@ -73,6 +77,12 @@ function countOthelloDisks(board){
 }
 
 function createOthelloModule({ io, socket, state, updatePresence, applyOthelloResult, isGameAllowed }){
+  function findLobbyByUsername(username){
+    return Object.values(state.othelloLobbies).find(lobby =>
+      lobby.players.some(player => player.username === username)
+    ) || null;
+  }
+
   function findGameIdForSocket(){
     let gameId = state.othelloPlayerGames[socket.id];
     if(gameId) return gameId;
@@ -103,12 +113,50 @@ function createOthelloModule({ io, socket, state, updatePresence, applyOthelloRe
     });
   }
 
+  function startLobbyGame(lobbyId){
+    const lobby = state.othelloLobbies[lobbyId];
+    if(!lobby || lobby.players.length !== 2) return false;
+
+    const gameId = randomId();
+    const [p1, p2] = lobby.matchmaking === 'public'
+      ? lobby.players.slice().sort(() => Math.random() - 0.5)
+      : lobby.players;
+
+    state.othelloGames[gameId] = {
+      id: gameId,
+      players: [
+        { id: p1.id, username: p1.username, color: 'black' },
+        { id: p2.id, username: p2.username, color: 'white' }
+      ],
+      board: createInitialOthelloBoard(),
+      turn: 'black',
+      ended: false,
+      rated: false
+    };
+
+    delete state.othelloLobbies[lobbyId];
+
+    state.othelloGames[gameId].players.forEach(p => {
+      const s = io.sockets.sockets.get(p.id);
+      if(s) s.emit('othello_start');
+    });
+
+    emitState(state.othelloGames[gameId]);
+    return true;
+  }
+
+  function findPublicMatch(){
+    return randomEntry(Object.values(state.othelloLobbies).filter(lobby =>
+      lobby.matchmaking === 'public' &&
+      lobby.players.length < 2 &&
+      !lobby.players.some(player => player.username === socket.username)
+    ));
+  }
+
   function register(){
     socket.on('create_othello_lobby', ({ name })=>{
       if(isGameAllowed && !isGameAllowed('othello', socket)) return;
-      const existing = Object.values(state.othelloLobbies).find(l =>
-        l.players.some(p => p.username === socket.username)
-      );
+      const existing = findLobbyByUsername(socket.username);
       if(existing) return;
 
       const id = randomId();
@@ -126,9 +174,7 @@ function createOthelloModule({ io, socket, state, updatePresence, applyOthelloRe
       const lobby = state.othelloLobbies[id];
       if(!lobby || lobby.players.length >= 2) return;
 
-      const existing = Object.values(state.othelloLobbies).find(l =>
-        l.players.some(p => p.username === socket.username)
-      );
+      const existing = findLobbyByUsername(socket.username);
       if(existing) return;
 
       lobby.players.push({ id: socket.id, username: socket.username, ready: false });
@@ -145,31 +191,32 @@ function createOthelloModule({ io, socket, state, updatePresence, applyOthelloRe
       player.ready = !player.ready;
 
       if(lobby.players.length === 2 && lobby.players.every(p => p.ready)){
-        const gameId = randomId();
-        const p1 = lobby.players[0];
-        const p2 = lobby.players[1];
-
-        state.othelloGames[gameId] = {
-          id: gameId,
-          players: [
-            { id: p1.id, username: p1.username, color: 'black' },
-            { id: p2.id, username: p2.username, color: 'white' }
-          ],
-          board: createInitialOthelloBoard(),
-          turn: 'black',
-          ended: false,
-          rated: false
-        };
-
-        delete state.othelloLobbies[id];
-
-        state.othelloGames[gameId].players.forEach(p => {
-          const s = io.sockets.sockets.get(p.id);
-          if(s) s.emit('othello_start');
-        });
-
-        emitState(state.othelloGames[gameId]);
+        startLobbyGame(id);
       }
+
+      io.emit('othello_lobbies_update', state.othelloLobbies);
+    });
+
+    socket.on('public_othello_matchmaking', () => {
+      if(isGameAllowed && !isGameAllowed('othello', socket)) return;
+      if(!socket.username) return;
+      if(findLobbyByUsername(socket.username)) return;
+
+      const match = findPublicMatch();
+      if(match){
+        match.players.push({ id: socket.id, username: socket.username, ready: true });
+        startLobbyGame(match.id);
+        io.emit('othello_lobbies_update', state.othelloLobbies);
+        return;
+      }
+
+      const id = randomId();
+      state.othelloLobbies[id] = {
+        id,
+        name: 'Public matchmaking',
+        matchmaking: 'public',
+        players: [{ id: socket.id, username: socket.username, ready: true }]
+      };
 
       io.emit('othello_lobbies_update', state.othelloLobbies);
     });

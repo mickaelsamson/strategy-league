@@ -18,6 +18,10 @@ function randomId(){
   return Math.random().toString(36).substr(2, 9);
 }
 
+function randomEntry(entries){
+  return entries[Math.floor(Math.random() * entries.length)] || null;
+}
+
 function shuffle(list){
   const copy = [...list];
   for(let i = copy.length - 1; i > 0; i -= 1){
@@ -448,12 +452,47 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult, 
     });
   }
 
+  function findLobbyByUsername(username){
+    return Object.values(state.azulLobbies).find(lobby =>
+      lobby.players.some(player => player.username === username)
+    ) || null;
+  }
+
+  function startLobbyGame(lobbyId){
+    const lobby = state.azulLobbies[lobbyId];
+    if(!lobby || lobby.players.length !== (lobby.maxPlayers || MIN_PLAYERS)) return false;
+
+    const gameId = randomId();
+    const sourceLobby = lobby.matchmaking === 'public'
+      ? { ...lobby, players: shuffle(lobby.players) }
+      : lobby;
+
+    state.azulGames[gameId] = createGame(gameId, sourceLobby);
+    delete state.azulLobbies[lobbyId];
+    startTurnTimer(state.azulGames[gameId]);
+
+    state.azulGames[gameId].players.forEach(p => {
+      const s = io.sockets.sockets.get(p.id);
+      if(s) s.emit('azul_start');
+    });
+
+    emitState(state.azulGames[gameId]);
+    return true;
+  }
+
+  function findPublicMatch(maxPlayers){
+    return randomEntry(Object.values(state.azulLobbies).filter(lobby =>
+      lobby.matchmaking === 'public' &&
+      (lobby.maxPlayers || MIN_PLAYERS) === maxPlayers &&
+      lobby.players.length < maxPlayers &&
+      !lobby.players.some(player => player.username === socket.username)
+    ));
+  }
+
   function register(){
     socket.on('create_azul_lobby', ({ name, maxPlayers } = {})=>{
       if(isGameAllowed && !isGameAllowed('azul', socket)) return;
-      const existing = Object.values(state.azulLobbies).find(l =>
-        l.players.some(p => p.username === socket.username)
-      );
+      const existing = findLobbyByUsername(socket.username);
       if(existing) return;
 
       const parsedMaxPlayers = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, Number(maxPlayers) || MIN_PLAYERS));
@@ -473,9 +512,7 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult, 
       const lobby = state.azulLobbies[id];
       if(!lobby || lobby.players.length >= (lobby.maxPlayers || MIN_PLAYERS)) return;
 
-      const existing = Object.values(state.azulLobbies).find(l =>
-        l.players.some(p => p.username === socket.username)
-      );
+      const existing = findLobbyByUsername(socket.username);
       if(existing) return;
 
       lobby.players.push({ id: socket.id, username: socket.username, ready: false });
@@ -492,18 +529,35 @@ function createAzulModule({ io, socket, state, updatePresence, applyAzulResult, 
       player.ready = !player.ready;
 
       if(lobby.players.length === (lobby.maxPlayers || MIN_PLAYERS) && lobby.players.every(p => p.ready)){
-        const gameId = randomId();
-        state.azulGames[gameId] = createGame(gameId, lobby);
-        delete state.azulLobbies[id];
-        startTurnTimer(state.azulGames[gameId]);
-
-        state.azulGames[gameId].players.forEach(p => {
-          const s = io.sockets.sockets.get(p.id);
-          if(s) s.emit('azul_start');
-        });
-
-        emitState(state.azulGames[gameId]);
+        startLobbyGame(id);
       }
+
+      updatePresence();
+    });
+
+    socket.on('public_azul_matchmaking', ({ maxPlayers } = {}) => {
+      if(isGameAllowed && !isGameAllowed('azul', socket)) return;
+      if(!socket.username) return;
+      if(findLobbyByUsername(socket.username)) return;
+
+      const parsedMaxPlayers = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, Number(maxPlayers) || MIN_PLAYERS));
+      const match = findPublicMatch(parsedMaxPlayers);
+
+      if(match){
+        match.players.push({ id: socket.id, username: socket.username, ready: true });
+        startLobbyGame(match.id);
+        updatePresence();
+        return;
+      }
+
+      const id = randomId();
+      state.azulLobbies[id] = {
+        id,
+        name: 'Public matchmaking',
+        matchmaking: 'public',
+        maxPlayers: parsedMaxPlayers,
+        players: [{ id: socket.id, username: socket.username, ready: true }]
+      };
 
       updatePresence();
     });

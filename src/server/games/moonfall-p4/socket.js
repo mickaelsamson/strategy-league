@@ -5,6 +5,10 @@ function randomId(){
   return Math.random().toString(36).slice(2, 11);
 }
 
+function randomEntry(entries){
+  return entries[Math.floor(Math.random() * entries.length)] || null;
+}
+
 function createMoonfallP4Module({ io, socket, state, updatePresence, isGameAllowed, applyStructuredGameResult }){
   function findLobbyByUsername(username){
     return Object.values(state.moonfallP4Lobbies).find(lobby =>
@@ -68,13 +72,16 @@ function createMoonfallP4Module({ io, socket, state, updatePresence, isGameAllow
 
   function startLobbyGame(lobby){
     const gameId = randomId();
+    const players = lobby.matchmaking === 'public'
+      ? lobby.players.slice().sort(() => Math.random() - 0.5)
+      : lobby.players;
     const game = {
       id: gameId,
       name: lobby.name,
       maxPlayers: lobby.maxPlayers,
-      hostUsername: lobby.players[0].username,
-      hostSocketId: lobby.players[0].id,
-      players: lobby.players.map(player => ({ id: player.id, username: player.username })),
+      hostUsername: players[0].username,
+      hostSocketId: players[0].id,
+      players: players.map(player => ({ id: player.id, username: player.username })),
       snapshot: null,
       ended: false
     };
@@ -87,6 +94,15 @@ function createMoonfallP4Module({ io, socket, state, updatePresence, isGameAllow
     });
 
     emitStart(game);
+  }
+
+  function findPublicMatch(maxPlayers){
+    return randomEntry(Object.values(state.moonfallP4Lobbies).filter(lobby =>
+      lobby.matchmaking === 'public' &&
+      (lobby.maxPlayers || MAX_PLAYERS) === maxPlayers &&
+      lobby.players.length < maxPlayers &&
+      !lobby.players.some(player => player.username === socket.username)
+    ));
   }
 
   function handleLobbyDisconnect(socketId){
@@ -203,6 +219,35 @@ function createMoonfallP4Module({ io, socket, state, updatePresence, isGameAllow
       if(lobby.players.length >= MIN_PLAYERS && lobby.players.every(entry => entry.ready)){
         startLobbyGame(lobby);
       }
+      updatePresence();
+    });
+
+    socket.on('public_moonfall_p4_matchmaking', ({ maxPlayers } = {}) => {
+      if(isGameAllowed && !isGameAllowed('moonfall_p4', socket)) return;
+      if(!socket.username) return;
+      if(findLobbyByUsername(socket.username) || findGameByUsername(socket.username)) return;
+
+      const parsedMaxPlayers = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, Number(maxPlayers) || MAX_PLAYERS));
+      const match = findPublicMatch(parsedMaxPlayers);
+
+      if(match){
+        match.players.push({ id: socket.id, username: socket.username, ready: true });
+        if(match.players.length >= MIN_PLAYERS && match.players.every(entry => entry.ready)){
+          startLobbyGame(match);
+        }
+        updatePresence();
+        return;
+      }
+
+      const id = randomId();
+      state.moonfallP4Lobbies[id] = {
+        id,
+        name: 'Public matchmaking',
+        matchmaking: 'public',
+        ownerUsername: socket.username,
+        maxPlayers: parsedMaxPlayers,
+        players: [{ id: socket.id, username: socket.username, ready: true }]
+      };
       updatePresence();
     });
 
