@@ -76,7 +76,7 @@
 
   function getActiveLink(){
     const path = window.location.pathname;
-    if(path === '/' || path.endsWith('/index.html')) return 'home';
+    if(path === '/' || path === '/index.html') return 'home';
     if(path.includes('/chess') || path.includes('/othello') || path.includes('/azul') || path.includes('/moonfall') || path.endsWith('/games.html')) return 'games';
     if(path.includes('/leaderboard')) return 'leaderboard';
     if(path.includes('/weekly-challenge')) return 'challenges';
@@ -162,15 +162,15 @@
         </button>
       </aside>
 
-      <aside class="app-sidebar-right" aria-label="Online players">
-        <button class="online-tab" type="button" aria-label="Show online players" title="Online players">
+      <aside class="app-sidebar-right" aria-label="Friends online">
+        <button class="online-tab" type="button" aria-label="Show friends online" title="Friends online">
           <i></i><b id="onlineCountTab">0</b>
         </button>
         <div class="online-panel">
           <div class="online-head">
-            <strong>Online</strong>
+            <strong>Friends online</strong>
             <span><i></i><b id="onlineCount">0</b></span>
-            <button id="onlineInviteToggle" class="online-plus hidden" type="button" aria-label="Invite online player" title="Invite online player">+</button>
+            <button id="onlineInviteToggle" class="online-plus hidden" type="button" aria-label="Invite friend" title="Invite friend">+</button>
           </div>
           <div id="onlineInvitePicker" class="online-invite-picker hidden"></div>
           <div id="onlinePlayers" class="online-list">
@@ -700,17 +700,21 @@
     const gameKey = currentGameKey();
     latestOnlineUsers = users || {};
 
-    const entries = Object.entries(users || {}).map(([username, data]) => ({
+    const allEntries = Object.entries(users || {}).map(([username, data]) => ({
       username,
       ...(data || {})
     })).sort((a, b) => (b.xp || 0) - (a.xp || 0));
+    const friendNames = usernamesFrom(friendState.friends);
+    const entries = allEntries.filter(player => friendNames.has(player.username));
 
     if(count) count.textContent = String(entries.length);
     if(tabCount) tabCount.textContent = String(entries.length);
-    if(inviteToggle) inviteToggle.classList.toggle('hidden', !gameKey);
+    if(inviteToggle) inviteToggle.classList.toggle('hidden', !gameKey || entries.length === 0);
     if(!entries.length){
-      list.innerHTML = '<div class="online-empty">No players online</div>';
-      renderInvitePicker(gameKey, entries);
+      list.innerHTML = friendNames.size
+        ? '<div class="online-empty">No friends online</div>'
+        : '<div class="online-empty">Add friends from player profiles to invite them here.</div>';
+      renderInvitePicker(gameKey, allEntries);
       return;
     }
 
@@ -744,7 +748,7 @@
     bindPlayerCards();
     bindFriendButtons();
     bindInviteButtons(gameKey);
-    renderInvitePicker(gameKey, entries);
+    renderInvitePicker(gameKey, allEntries);
   }
 
   function getSharedSocket(){
