@@ -202,7 +202,7 @@ function getChessScoreFinal(game, winnerUsername){
   return winner.color === 'w' ? '1-0' : '0-1';
 }
 
-function countOthelloDisks(board){
+function countMoonveilDominionDisks(board){
   const score = { black: 0, white: 0 };
   if(!Array.isArray(board)) return score;
 
@@ -217,12 +217,12 @@ function countOthelloDisks(board){
   return score;
 }
 
-function getOthelloScoreFinal(game){
-  const score = countOthelloDisks(game.board);
+function getMoonveilDominionScoreFinal(game){
+  const score = countMoonveilDominionDisks(game.board);
   return `${score.black}-${score.white}`;
 }
 
-function getAzulScoreFinal(game){
+function getMoonveilGlyphScoreFinal(game){
   if(!Array.isArray(game?.players)) return '';
   return game.players.map(player => `${player.username} ${player.score || 0}`).join(' - ');
 }
@@ -283,14 +283,14 @@ function getPublicProfile(user){
     ratings,
     elo: ratings.chess,
     chessElo: ratings.chess,
-    othelloElo: ratings.othello,
-    azulElo: ratings.azul,
-    strategyElo: ratings.moonfall_world_conquest,
-    moonfallP4Elo: ratings.moonfall_p4,
-    hexblitzElo: ratings.hexblitz,
-    moonfallSettlersElo: ratings.moonfall_settlers,
-    moonfallWorldConquestElo: ratings.moonfall_world_conquest,
-    moonfallRtsElo: ratings.moonfall_rts,
+    moonveil_dominionElo: ratings.moonveil_dominion,
+    moonveil_glyphElo: ratings.moonveil_glyph,
+    strategyElo: ratings.moonveil_conquest,
+    moonveilNexusElo: ratings.moonveil_nexus,
+    moonveil_hexfallElo: ratings.moonveil_hexfall,
+    moonveilRealmsElo: ratings.moonveil_realms,
+    moonveilConquestElo: ratings.moonveil_conquest,
+    moonveilAscendElo: ratings.moonveil_ascend,
     stats: { wins, losses, draws, total, winrate },
     matchHistory: (user.matchHistory || []).slice(0, 20)
   };
@@ -313,8 +313,8 @@ async function applyRankedResult(User, game, winnerUsername, reason = 'game_end'
     userB.draws = (userB.draws || 0) + 1;
 
     const scoreFinal = getChessScoreFinal(game, null);
-    pushHistoryEntry(userA, { result: 'draw', opponent: userB.username, xpChange: userAXp.total, reason, gameKey: 'chess', gameName: 'Chess', scoreFinal, eloChange: 0, gameOfWeekBonus: userAXp.bonus, weeklyChallengeBonus: userAXp.weeklyChallengeBonus });
-    pushHistoryEntry(userB, { result: 'draw', opponent: userA.username, xpChange: userBXp.total, reason, gameKey: 'chess', gameName: 'Chess', scoreFinal, eloChange: 0, gameOfWeekBonus: userBXp.bonus, weeklyChallengeBonus: userBXp.weeklyChallengeBonus });
+    pushHistoryEntry(userA, { result: 'draw', opponent: userB.username, xpChange: userAXp.total, reason, gameKey: 'chess', gameName: 'Moonveil Chess', scoreFinal, eloChange: 0, gameOfWeekBonus: userAXp.bonus, weeklyChallengeBonus: userAXp.weeklyChallengeBonus });
+    pushHistoryEntry(userB, { result: 'draw', opponent: userA.username, xpChange: userBXp.total, reason, gameKey: 'chess', gameName: 'Moonveil Chess', scoreFinal, eloChange: 0, gameOfWeekBonus: userBXp.bonus, weeklyChallengeBonus: userBXp.weeklyChallengeBonus });
 
     await Promise.all([userA.save(), userB.save()]);
     game.rated = true;
@@ -348,8 +348,8 @@ async function applyRankedResult(User, game, winnerUsername, reason = 'game_end'
   loserUser.losses = (loserUser.losses || 0) + 1;
 
   const scoreFinal = getChessScoreFinal(game, winnerUsername);
-  pushHistoryEntry(winnerUser, { result: 'win', opponent: loserUser.username, xpChange: winnerXp.total, reason, gameKey: 'chess', gameName: 'Chess', scoreFinal, eloChange: eloDelta, gameOfWeekBonus: winnerXp.bonus, weeklyChallengeBonus: winnerXp.weeklyChallengeBonus });
-  pushHistoryEntry(loserUser, { result: 'loss', opponent: winnerUser.username, xpChange: loserXp.total, reason, gameKey: 'chess', gameName: 'Chess', scoreFinal, eloChange: -eloDelta, gameOfWeekBonus: loserXp.bonus, weeklyChallengeBonus: loserXp.weeklyChallengeBonus });
+  pushHistoryEntry(winnerUser, { result: 'win', opponent: loserUser.username, xpChange: winnerXp.total, reason, gameKey: 'chess', gameName: 'Moonveil Chess', scoreFinal, eloChange: eloDelta, gameOfWeekBonus: winnerXp.bonus, weeklyChallengeBonus: winnerXp.weeklyChallengeBonus });
+  pushHistoryEntry(loserUser, { result: 'loss', opponent: winnerUser.username, xpChange: loserXp.total, reason, gameKey: 'chess', gameName: 'Moonveil Chess', scoreFinal, eloChange: -eloDelta, gameOfWeekBonus: loserXp.bonus, weeklyChallengeBonus: loserXp.weeklyChallengeBonus });
 
   await Promise.all([winnerUser.save(), loserUser.save()]);
   game.rated = true;
@@ -362,7 +362,7 @@ async function applyRankedResult(User, game, winnerUsername, reason = 'game_end'
   };
 }
 
-async function applyOthelloResult(User, game, winnerColor, reason = 'game_end'){
+async function applyMoonveilDominionResult(User, game, winnerColor, reason = 'game_end'){
   if(!game || game.rated) return;
 
   const blackPlayer = game.players.find(player => player.color === 'black');
@@ -375,39 +375,39 @@ async function applyOthelloResult(User, game, winnerColor, reason = 'game_end'){
   ]);
   if(!blackUser || !whiteUser) return;
 
-  const blackElo = getUserElo(blackUser, 'othello');
-  const whiteElo = getUserElo(whiteUser, 'othello');
-  const scoreFinal = getOthelloScoreFinal(game);
+  const blackElo = getUserElo(blackUser, 'moonveil_dominion');
+  const whiteElo = getUserElo(whiteUser, 'moonveil_dominion');
+  const scoreFinal = getMoonveilDominionScoreFinal(game);
 
   if(!winnerColor){
-    const blackXp = resolveMatchXp(blackUser, 'othello', 'draw', { reason });
-    const whiteXp = resolveMatchXp(whiteUser, 'othello', 'draw', { reason });
+    const blackXp = resolveMatchXp(blackUser, 'moonveil_dominion', 'draw', { reason });
+    const whiteXp = resolveMatchXp(whiteUser, 'moonveil_dominion', 'draw', { reason });
     blackUser.draws = (blackUser.draws || 0) + 1;
     whiteUser.draws = (whiteUser.draws || 0) + 1;
-    pushHistoryEntry(blackUser, { result: 'draw', opponent: whiteUser.username, xpChange: blackXp.total, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: 0, gameOfWeekBonus: blackXp.bonus, weeklyChallengeBonus: blackXp.weeklyChallengeBonus });
-    pushHistoryEntry(whiteUser, { result: 'draw', opponent: blackUser.username, xpChange: whiteXp.total, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: 0, gameOfWeekBonus: whiteXp.bonus, weeklyChallengeBonus: whiteXp.weeklyChallengeBonus });
+    pushHistoryEntry(blackUser, { result: 'draw', opponent: whiteUser.username, xpChange: blackXp.total, reason, gameKey: 'moonveil_dominion', gameName: 'Moonveil Dominion', scoreFinal, eloChange: 0, gameOfWeekBonus: blackXp.bonus, weeklyChallengeBonus: blackXp.weeklyChallengeBonus });
+    pushHistoryEntry(whiteUser, { result: 'draw', opponent: blackUser.username, xpChange: whiteXp.total, reason, gameKey: 'moonveil_dominion', gameName: 'Moonveil Dominion', scoreFinal, eloChange: 0, gameOfWeekBonus: whiteXp.bonus, weeklyChallengeBonus: whiteXp.weeklyChallengeBonus });
     game.result = { winner: null, loser: null, reason, eloDelta: 0 };
   } else if(winnerColor === 'black'){
     const eloDelta = computeEloDelta(blackElo, whiteElo);
-    setUserElo(blackUser, 'othello', blackElo + eloDelta);
-    setUserElo(whiteUser, 'othello', whiteElo - eloDelta);
-    const blackXp = resolveMatchXp(blackUser, 'othello', 'win', { reason });
-    const whiteXp = resolveMatchXp(whiteUser, 'othello', isAbandonReason(reason) ? 'abandon' : 'loss', { reason });
+    setUserElo(blackUser, 'moonveil_dominion', blackElo + eloDelta);
+    setUserElo(whiteUser, 'moonveil_dominion', whiteElo - eloDelta);
+    const blackXp = resolveMatchXp(blackUser, 'moonveil_dominion', 'win', { reason });
+    const whiteXp = resolveMatchXp(whiteUser, 'moonveil_dominion', isAbandonReason(reason) ? 'abandon' : 'loss', { reason });
     blackUser.wins = (blackUser.wins || 0) + 1;
     whiteUser.losses = (whiteUser.losses || 0) + 1;
-    pushHistoryEntry(blackUser, { result: 'win', opponent: whiteUser.username, xpChange: blackXp.total, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: eloDelta, gameOfWeekBonus: blackXp.bonus, weeklyChallengeBonus: blackXp.weeklyChallengeBonus });
-    pushHistoryEntry(whiteUser, { result: 'loss', opponent: blackUser.username, xpChange: whiteXp.total, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: -eloDelta, gameOfWeekBonus: whiteXp.bonus, weeklyChallengeBonus: whiteXp.weeklyChallengeBonus });
+    pushHistoryEntry(blackUser, { result: 'win', opponent: whiteUser.username, xpChange: blackXp.total, reason, gameKey: 'moonveil_dominion', gameName: 'Moonveil Dominion', scoreFinal, eloChange: eloDelta, gameOfWeekBonus: blackXp.bonus, weeklyChallengeBonus: blackXp.weeklyChallengeBonus });
+    pushHistoryEntry(whiteUser, { result: 'loss', opponent: blackUser.username, xpChange: whiteXp.total, reason, gameKey: 'moonveil_dominion', gameName: 'Moonveil Dominion', scoreFinal, eloChange: -eloDelta, gameOfWeekBonus: whiteXp.bonus, weeklyChallengeBonus: whiteXp.weeklyChallengeBonus });
     game.result = { winner: blackUser.username, loser: whiteUser.username, reason, eloDelta };
   } else {
     const eloDelta = computeEloDelta(whiteElo, blackElo);
-    setUserElo(whiteUser, 'othello', whiteElo + eloDelta);
-    setUserElo(blackUser, 'othello', blackElo - eloDelta);
-    const whiteXp = resolveMatchXp(whiteUser, 'othello', 'win', { reason });
-    const blackXp = resolveMatchXp(blackUser, 'othello', isAbandonReason(reason) ? 'abandon' : 'loss', { reason });
+    setUserElo(whiteUser, 'moonveil_dominion', whiteElo + eloDelta);
+    setUserElo(blackUser, 'moonveil_dominion', blackElo - eloDelta);
+    const whiteXp = resolveMatchXp(whiteUser, 'moonveil_dominion', 'win', { reason });
+    const blackXp = resolveMatchXp(blackUser, 'moonveil_dominion', isAbandonReason(reason) ? 'abandon' : 'loss', { reason });
     whiteUser.wins = (whiteUser.wins || 0) + 1;
     blackUser.losses = (blackUser.losses || 0) + 1;
-    pushHistoryEntry(whiteUser, { result: 'win', opponent: blackUser.username, xpChange: whiteXp.total, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: eloDelta, gameOfWeekBonus: whiteXp.bonus, weeklyChallengeBonus: whiteXp.weeklyChallengeBonus });
-    pushHistoryEntry(blackUser, { result: 'loss', opponent: whiteUser.username, xpChange: blackXp.total, reason, gameKey: 'othello', gameName: 'Othello', scoreFinal, eloChange: -eloDelta, gameOfWeekBonus: blackXp.bonus, weeklyChallengeBonus: blackXp.weeklyChallengeBonus });
+    pushHistoryEntry(whiteUser, { result: 'win', opponent: blackUser.username, xpChange: whiteXp.total, reason, gameKey: 'moonveil_dominion', gameName: 'Moonveil Dominion', scoreFinal, eloChange: eloDelta, gameOfWeekBonus: whiteXp.bonus, weeklyChallengeBonus: whiteXp.weeklyChallengeBonus });
+    pushHistoryEntry(blackUser, { result: 'loss', opponent: whiteUser.username, xpChange: blackXp.total, reason, gameKey: 'moonveil_dominion', gameName: 'Moonveil Dominion', scoreFinal, eloChange: -eloDelta, gameOfWeekBonus: blackXp.bonus, weeklyChallengeBonus: blackXp.weeklyChallengeBonus });
     game.result = { winner: whiteUser.username, loser: blackUser.username, reason, eloDelta };
   }
 
@@ -437,22 +437,22 @@ async function applyOthelloResult(User, game, winnerColor, reason = 'game_end'){
   };
 }
 
-async function applyAzulResult(User, game, winnerUsername, reason = 'game_end'){
+async function applyMoonveilGlyphResult(User, game, winnerUsername, reason = 'game_end'){
   if(!game || game.rated) return;
   if(!Array.isArray(game.players) || game.players.length < 2) return;
 
   const users = await Promise.all(game.players.map(player => User.findOne({ username: player.username })));
   if(users.some(user => !user)) return;
 
-  const scoreFinal = getAzulScoreFinal(game);
+  const scoreFinal = getMoonveilGlyphScoreFinal(game);
   const payload = {};
 
   if(!winnerUsername){
     users.forEach(user => {
       const opponents = users.filter(other => other.username !== user.username).map(other => other.username).join(', ');
-      const xp = resolveMatchXp(user, 'azul', 'draw', { reason });
+      const xp = resolveMatchXp(user, 'moonveil_glyph', 'draw', { reason });
       user.draws = (user.draws || 0) + 1;
-      pushHistoryEntry(user, { result: 'draw', opponent: opponents || 'Table', xpChange: xp.total, reason, gameKey: 'azul', gameName: 'Azul', scoreFinal, eloChange: 0, gameOfWeekBonus: xp.bonus, weeklyChallengeBonus: xp.weeklyChallengeBonus });
+      pushHistoryEntry(user, { result: 'draw', opponent: opponents || 'Table', xpChange: xp.total, reason, gameKey: 'moonveil_glyph', gameName: 'Moonveil Glyph', scoreFinal, eloChange: 0, gameOfWeekBonus: xp.bonus, weeklyChallengeBonus: xp.weeklyChallengeBonus });
       payload[user.username] = resultPayload(user.username, 'draw', xp.total, 0, xp.bonus, xp.weeklyChallengeBonus);
     });
     game.result = { winner: null, loser: null, reason, eloDelta: 0 };
@@ -465,24 +465,24 @@ async function applyAzulResult(User, game, winnerUsername, reason = 'game_end'){
   if(!winnerUser) return;
 
   const loserUsers = users.filter(user => user.username !== winnerUsername);
-  const winnerElo = getUserElo(winnerUser, 'azul');
+  const winnerElo = getUserElo(winnerUser, 'moonveil_glyph');
   const eloDelta = Math.max(8, Math.round(
-    loserUsers.reduce((total, loserUser) => total + computeEloDelta(winnerElo, getUserElo(loserUser, 'azul')), 0) /
+    loserUsers.reduce((total, loserUser) => total + computeEloDelta(winnerElo, getUserElo(loserUser, 'moonveil_glyph')), 0) /
     Math.max(1, loserUsers.length)
   ));
 
-  setUserElo(winnerUser, 'azul', winnerElo + eloDelta);
-  const winnerXp = resolveMatchXp(winnerUser, 'azul', 'win', { reason });
+  setUserElo(winnerUser, 'moonveil_glyph', winnerElo + eloDelta);
+  const winnerXp = resolveMatchXp(winnerUser, 'moonveil_glyph', 'win', { reason });
   winnerUser.wins = (winnerUser.wins || 0) + 1;
-  pushHistoryEntry(winnerUser, { result: 'win', opponent: loserUsers.map(user => user.username).join(', ') || 'Table', xpChange: winnerXp.total, reason, gameKey: 'azul', gameName: 'Azul', scoreFinal, eloChange: eloDelta, gameOfWeekBonus: winnerXp.bonus, weeklyChallengeBonus: winnerXp.weeklyChallengeBonus });
+  pushHistoryEntry(winnerUser, { result: 'win', opponent: loserUsers.map(user => user.username).join(', ') || 'Table', xpChange: winnerXp.total, reason, gameKey: 'moonveil_glyph', gameName: 'Moonveil Glyph', scoreFinal, eloChange: eloDelta, gameOfWeekBonus: winnerXp.bonus, weeklyChallengeBonus: winnerXp.weeklyChallengeBonus });
   payload[winnerUser.username] = resultPayload(winnerUser.username, 'win', winnerXp.total, eloDelta, winnerXp.bonus, winnerXp.weeklyChallengeBonus);
 
   loserUsers.forEach(loserUser => {
-    const loserElo = getUserElo(loserUser, 'azul');
-    setUserElo(loserUser, 'azul', loserElo - eloDelta);
-    const loserXp = resolveMatchXp(loserUser, 'azul', isAbandonReason(reason) ? 'abandon' : 'loss', { reason });
+    const loserElo = getUserElo(loserUser, 'moonveil_glyph');
+    setUserElo(loserUser, 'moonveil_glyph', loserElo - eloDelta);
+    const loserXp = resolveMatchXp(loserUser, 'moonveil_glyph', isAbandonReason(reason) ? 'abandon' : 'loss', { reason });
     loserUser.losses = (loserUser.losses || 0) + 1;
-    pushHistoryEntry(loserUser, { result: 'loss', opponent: winnerUser.username, xpChange: loserXp.total, reason, gameKey: 'azul', gameName: 'Azul', scoreFinal, eloChange: -eloDelta, gameOfWeekBonus: loserXp.bonus, weeklyChallengeBonus: loserXp.weeklyChallengeBonus });
+    pushHistoryEntry(loserUser, { result: 'loss', opponent: winnerUser.username, xpChange: loserXp.total, reason, gameKey: 'moonveil_glyph', gameName: 'Moonveil Glyph', scoreFinal, eloChange: -eloDelta, gameOfWeekBonus: loserXp.bonus, weeklyChallengeBonus: loserXp.weeklyChallengeBonus });
     payload[loserUser.username] = resultPayload(loserUser.username, 'loss', loserXp.total, -eloDelta, loserXp.bonus, loserXp.weeklyChallengeBonus);
   });
 
@@ -635,8 +635,8 @@ function getProgressionData(){
 }
 
 module.exports = {
-  applyAzulResult,
-  applyOthelloResult,
+  applyMoonveilGlyphResult,
+  applyMoonveilDominionResult,
   applyRankedResult,
   applyStructuredGameResult,
   applyXpDelta,

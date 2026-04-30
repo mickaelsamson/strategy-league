@@ -55,12 +55,12 @@ const content = {
     title: "Settings",
     copy: "Account settings are coming soon. Profile, avatar, XP and match history remain available from your profile page."
   },
-  "world-conquest": {
-    title: "World Conquest",
+  "moonveil-conquest": {
+    title: "Moonveil Conquest",
     copy: "World-scale conquest is coming soon."
   },
-  "real-time-strategy": {
-    title: "Real-Time Strategy",
+  "moonveil-ascend": {
+    title: "Moonveil Ascend",
     copy: "Real-time tactical battles are coming soon."
   }
 };
@@ -75,13 +75,13 @@ document.getElementById("soonTitle").textContent = page.title;
 document.getElementById("soonCopy").textContent = page.copy;
 
 async function hydrateLiveFeature(){
-  if(feature === "world-conquest" || feature === "moonfall_world_conquest"){
+  if(feature === "moonveil-conquest" || feature === "moonveil_conquest"){
     try{
       const response = await fetch("/api/games/catalog", { cache: "no-store" });
       const data = await response.json();
-      const access = data.access?.moonfall_world_conquest;
+      const access = data.access?.moonveil_conquest;
       if(response.ok && access?.allowed && access?.enabled && !access?.comingSoon && !access?.adminOnly){
-        window.location.replace("/moonfall-world-conquest/index.html");
+        window.location.replace("/moonveil-conquest/index.html");
       }
     }catch(err){}
   }

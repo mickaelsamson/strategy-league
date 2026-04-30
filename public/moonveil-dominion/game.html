@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="/assets/styles/theme.css">
+<link rel="stylesheet" href="/assets/styles/tutorial-guide.css">
+<script defer src="/assets/scripts/site-shell.js"></script>
+<script src="/assets/scripts/tutorial-guide.js"></script>
+<title>Moonveil Dominion Game</title>
+<script src="/socket.io/socket.io.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="game-page">
+  
+<div id="main">
+  <header class="game-hero">
+    <div>
+      <span class="game-kicker">Ranked Moonveil Dominion</span>
+      <h1>Moonveil Dominion Arena</h1>
+    </div>
+    <button class="ghost-btn" onclick="goBack()">Exit</button>
+  </header>
+
+  <section class="moonveil_dominion-arena">
+    <div class="match-panel">
+      <div class="player-card you">
+        <div>
+          <span>You</span>
+          <strong id="youName">You</strong>
+        </div>
+        <div id="youColor"></div>
+      </div>
+
+      <div id="turn"></div>
+      <div id="score"></div>
+      <div id="moveDisk" class="move-disk" draggable="true" title="Drag to a highlighted square"></div>
+
+      <div class="player-card opponent">
+        <div>
+          <span>Opponent</span>
+          <strong id="opponentName">Opponent</strong>
+        </div>
+        <div id="opponentColor"></div>
+      </div>
+
+      <button id="resignBtn" onclick="resign()">Resign</button>
+      <div id="status"></div>
+    </div>
+
+    <div class="board-shell">
+      <div id="board"></div>
+    </div>
+  </section>
+</div>
+
+<div id="sidebar">
+  <h3>Players Online</h3>
+  <div id="players"></div>
+</div>
+  
+<!-- END SCREEN -->
+<div id="endScreen" class="end-screen">
+  <h1 id="winnerText"></h1>
+  <p id="endMessage"></p>
+  <div id="finalScore" class="final-score"></div>
+  <div id="xpReward" class="xp-reward">+0 XP</div>
+  <div class="end-actions">
+    <button onclick="viewBoard()">View Board</button>
+    <button id="rematchBtn" onclick="rematch()">Rematch</button>
+    <button onclick="goBack()">Back</button>
+  </div>
+  <p id="rematchStatus" class="rematch-status"></p>
+</div>
+
+<button id="showResultBtn" class="show-result-btn" onclick="showResult()" hidden>Show Result</button>
+
+<audio id="flipSound" src="https://assets.mixkit.co/sfx/preview/mixkit-game-click-1114.mp3"></audio>
+
+<script src="game.js"></script>
+</body>
+</html>

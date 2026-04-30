@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/assets/styles/theme.css">
+<link rel="stylesheet" href="/moonveil-glyph/style.css">
+<title>Moonveil Glyph Visual Preview</title>
+</head>
+<body class="moonveil_glyph-game-page" data-moonveil_glyph-players="2">
+<main class="moonveil_glyph-game">
+  <header class="game-hero">
+    <div>
+      <span class="game-kicker">Preview</span>
+      <h1>Moonveil Glyph</h1>
+    </div>
+  </header>
+
+  <section class="top-status">
+    <div class="turn-card your-turn">
+      <span>Round 4</span>
+      <strong>Your turn</strong>
+      <div class="turn-timer">
+        <i id="timerFill" style="width:68%"></i>
+        <b id="timerText">00:41</b>
+      </div>
+      <p>Place 3 Gold tile(s) on a pattern line or the floor.</p>
+    </div>
+  </section>
+
+  <section class="moonveil_glyph-table">
+    <section class="draft-zone">
+      <div class="table-draft">
+        <div class="factories">
+          <div class="factory" style="left:50%;top:13%;">
+            <div class="plate-ring"></div>
+            <div class="factory-tiles">
+              <button class="tile-stack selected">
+                <span class="tile blue" title="Blue"></span>
+                <span class="tile blue" title="Blue"></span>
+              </button>
+            </div>
+          </div>
+          <div class="factory" style="left:85%;top:32%;">
+            <div class="plate-ring"></div>
+            <div class="factory-tiles">
+              <button class="tile-stack">
+                <span class="tile red" title="Red"></span>
+                <span class="tile black" title="Black"></span>
+              </button>
+            </div>
+          </div>
+          <div class="factory" style="left:72%;top:74%;">
+            <div class="plate-ring"></div>
+            <div class="factory-tiles">
+              <button class="tile-stack">
+                <span class="tile teal" title="Teal"></span>
+                <span class="tile teal" title="Teal"></span>
+              </button>
+            </div>
+          </div>
+          <div class="factory" style="left:28%;top:74%;">
+            <div class="plate-ring"></div>
+            <div class="factory-tiles">
+              <button class="tile-stack">
+                <span class="tile yellow" title="Yellow"></span>
+                <span class="tile yellow" title="Yellow"></span>
+              </button>
+            </div>
+          </div>
+          <div class="factory" style="left:15%;top:32%;">
+            <div class="plate-ring"></div>
+            <div class="factory-tiles">
+              <button class="tile-stack">
+                <span class="tile black" title="Black"></span>
+                <span class="tile blue" title="Blue"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="center-zone">
+          <h3>Center</h3>
+          <div class="center-pool">
+            <span class="tile first marker" title="First"></span>
+            <button class="tile-stack">
+              <span class="tile yellow" title="Yellow"></span>
+              <span class="tile yellow" title="Yellow"></span>
+              <span class="tile yellow" title="Yellow"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="boards">
+      <article class="player-board mine active" data-seat="0">
+        <header>
+          <div>
+            <span>You</span>
+            <strong>Mickael</strong>
+          </div>
+          <b>24</b>
+        </header>
+        <div class="board-surface">
+          <div class="board-grid">
+            <div class="pattern-lines">
+              <button class="pattern-line">
+                <span class="pattern-slot filled"><span class="tile blue" title="Blue"></span></span>
+              </button>
+              <button class="pattern-line">
+                <span class="pattern-slot"></span>
+                <span class="pattern-slot filled"><span class="tile teal" title="Teal"></span></span>
+              </button>
+              <button class="pattern-line can-place">
+                <span class="pattern-slot"></span>
+                <span class="pattern-slot"></span>
+                <span class="pattern-slot preview"><span class="tile yellow" title="Yellow"></span></span>
+              </button>
+              <button class="pattern-line">
+                <span class="pattern-slot filled"><span class="tile red" title="Red"></span></span>
+                <span class="pattern-slot filled"><span class="tile red" title="Red"></span></span>
+                <span class="pattern-slot"></span>
+                <span class="pattern-slot"></span>
+              </button>
+              <button class="pattern-line">
+                <span class="pattern-slot"></span>
+                <span class="pattern-slot"></span>
+                <span class="pattern-slot"></span>
+                <span class="pattern-slot"></span>
+                <span class="pattern-slot"></span>
+              </button>
+            </div>
+            <div class="wall">
+              <div class="wall-row">
+                <span class="wall-cell blue placed"><span class="tile blue" title="Blue"></span></span>
+                <span class="wall-cell yellow"></span>
+                <span class="wall-cell red placed"><span class="tile red" title="Red"></span></span>
+                <span class="wall-cell black"></span>
+                <span class="wall-cell teal"></span>
+              </div>
+              <div class="wall-row">
+                <span class="wall-cell teal"></span>
+                <span class="wall-cell blue"></span>
+                <span class="wall-cell yellow placed"><span class="tile yellow" title="Yellow"></span></span>
+                <span class="wall-cell red"></span>
+                <span class="wall-cell black"></span>
+              </div>
+              <div class="wall-row">
+                <span class="wall-cell black"></span>
+                <span class="wall-cell teal placed"><span class="tile teal" title="Teal"></span></span>
+                <span class="wall-cell blue"></span>
+                <span class="wall-cell yellow"></span>
+                <span class="wall-cell red"></span>
+              </div>
+              <div class="wall-row">
+                <span class="wall-cell red"></span>
+                <span class="wall-cell black"></span>
+                <span class="wall-cell teal"></span>
+                <span class="wall-cell blue"></span>
+                <span class="wall-cell yellow"></span>
+              </div>
+              <div class="wall-row">
+                <span class="wall-cell yellow"></span>
+                <span class="wall-cell red"></span>
+                <span class="wall-cell black"></span>
+                <span class="wall-cell teal"></span>
+                <span class="wall-cell blue"></span>
+              </div>
+            </div>
+          </div>
+          <div class="floor-line can-place">
+            <span class="floor-slot has-tile" data-penalty="-1"><span class="tile first" title="First"></span></span>
+            <span class="floor-slot has-tile" data-penalty="-1"><span class="tile yellow" title="Yellow"></span></span>
+            <span class="floor-slot has-tile" data-penalty="-2"><span class="tile yellow" title="Yellow"></span></span>
+            <span class="floor-slot" data-penalty="-2"><b>-2</b></span>
+            <span class="floor-slot" data-penalty="-2"><b>-2</b></span>
+            <span class="floor-slot" data-penalty="-3"><b>-3</b></span>
+            <span class="floor-slot" data-penalty="-3"><b>-3</b></span>
+          </div>
+        </div>
+      </article>
+    </section>
+  </section>
+</main>
+</body>
+</html>

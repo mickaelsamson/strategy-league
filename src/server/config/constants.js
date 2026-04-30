@@ -10,124 +10,124 @@ const LEVEL_THRESHOLDS = [
 ];
 
 const XP_RULES = {
-  moonfall_p4: { gameName: 'Moonveil Nexus', win: 20, loss: 10, draw: 10, abandonPenalty: -10 },
-  othello: { gameName: 'Othello / Reversi', win: 20, loss: 10, draw: 10, abandonPenalty: -10 },
-  hexblitz: { gameName: 'Hexblitz', win: 20, loss: 10, draw: 10, abandonPenalty: -10 },
-  chess: { gameName: 'Chess', win: 40, loss: 20, draw: 20, abandonPenalty: -10 },
-  azul: { gameName: 'Azul', win: 40, loss: 20, draw: 20, abandonPenalty: -10 },
-  moonfall_settlers: { gameName: 'Settlers / Catan', win: 75, loss: 40, draw: 40, abandonPenalty: -10 },
-  moonfall_rts: { gameName: 'RTS Moonfall', win: 100, loss: 40, draw: 40, abandonPenalty: -10 },
-  moonfall_world_conquest: { gameName: 'World Conquest', win: 75, loss: 40, draw: 40, abandonPenalty: -10 }
+  moonveil_nexus: { gameName: 'Moonveil Nexus', win: 20, loss: 10, draw: 10, abandonPenalty: -10 },
+  moonveil_dominion: { gameName: 'Moonveil Dominion', win: 20, loss: 10, draw: 10, abandonPenalty: -10 },
+  moonveil_hexfall: { gameName: 'Moonveil Hexfall', win: 20, loss: 10, draw: 10, abandonPenalty: -10 },
+  chess: { gameName: 'Moonveil Chess', win: 40, loss: 20, draw: 20, abandonPenalty: -10 },
+  moonveil_glyph: { gameName: 'Moonveil Glyph', win: 40, loss: 20, draw: 20, abandonPenalty: -10 },
+  moonveil_realms: { gameName: 'Moonveil Realms', win: 75, loss: 40, draw: 40, abandonPenalty: -10 },
+  moonveil_ascend: { gameName: 'Moonveil Ascend', win: 100, loss: 40, draw: 40, abandonPenalty: -10 },
+  moonveil_conquest: { gameName: 'Moonveil Conquest', win: 75, loss: 40, draw: 40, abandonPenalty: -10 }
 };
 
 const GAME_CATALOG = {
   chess: {
     key: 'chess',
-    name: 'Chess',
-    shortName: 'Chess',
-    url: '/chess/index.html',
-    gameUrl: '/chess/chess-game.html',
+    name: 'Moonveil Chess',
+    shortName: 'Moonveil Chess',
+    url: '/moonveil-chess/index.html',
+    gameUrl: '/moonveil-chess/game.html',
     eloField: 'chessElo',
     legacyEloField: 'elo',
-    leaderboardLabel: 'ELO Chess',
+    leaderboardLabel: 'ELO Moonveil Chess',
     gameOfWeekEligible: true
   },
-  othello: {
-    key: 'othello',
-    name: 'Othello',
-    shortName: 'Othello',
-    url: '/othello/index.html',
-    gameUrl: '/othello/game.html',
-    eloField: 'othelloElo',
-    pointsField: 'othelloPoints',
-    leaderboardLabel: 'ELO Othello',
+  moonveil_dominion: {
+    key: 'moonveil_dominion',
+    name: 'Moonveil Dominion',
+    shortName: 'Moonveil Dominion',
+    url: '/moonveil-dominion/index.html',
+    gameUrl: '/moonveil-dominion/game.html',
+    eloField: 'moonveil_dominionElo',
+    pointsField: 'moonveil_dominionPoints',
+    leaderboardLabel: 'ELO Moonveil Dominion',
     gameOfWeekEligible: true
   },
-  azul: {
-    key: 'azul',
-    name: 'Azul Arena',
-    shortName: 'Azul',
-    url: '/azul/index.html',
-    gameUrl: '/azul/game.html',
-    eloField: 'azulElo',
-    pointsField: 'azulPoints',
-    leaderboardLabel: 'ELO Azul',
+  moonveil_glyph: {
+    key: 'moonveil_glyph',
+    name: 'Moonveil Glyph',
+    shortName: 'Moonveil Glyph',
+    url: '/moonveil-glyph/index.html',
+    gameUrl: '/moonveil-glyph/game.html',
+    eloField: 'moonveil_glyphElo',
+    pointsField: 'moonveil_glyphPoints',
+    leaderboardLabel: 'ELO Moonveil Glyph',
     gameOfWeekEligible: true
   },
-  moonfall_p4: {
-    key: 'moonfall_p4',
+  moonveil_nexus: {
+    key: 'moonveil_nexus',
     name: 'Moonveil Nexus',
     shortName: 'Moonveil Nexus',
-    url: '/moonfall-p4/index.html',
-    gameUrl: '/moonfall-p4/index.html',
-    eloField: 'moonfallP4Elo',
+    url: '/moonveil-nexus/index.html',
+    gameUrl: '/moonveil-nexus/index.html',
+    eloField: 'moonveilNexusElo',
     leaderboardLabel: 'ELO Moonveil Nexus',
     gameOfWeekEligible: true
   },
-  hexblitz: {
-    key: 'hexblitz',
-    name: 'Hexblitz Moonfall',
-    shortName: 'Hexblitz',
-    url: '/hexblitz_moonfall/index.html',
-    gameUrl: '/hexblitz_moonfall/index.html',
-    eloField: 'hexblitzElo',
-    leaderboardLabel: 'ELO Hexblitz',
+  moonveil_hexfall: {
+    key: 'moonveil_hexfall',
+    name: 'Moonveil Hexfall',
+    shortName: 'Moonveil Hexfall',
+    url: '/moonveil-hexfall/index.html',
+    gameUrl: '/moonveil-hexfall/index.html',
+    eloField: 'moonveil_hexfallElo',
+    leaderboardLabel: 'ELO Moonveil Hexfall',
     gameOfWeekEligible: true
   },
-  moonfall_settlers: {
-    key: 'moonfall_settlers',
-    name: 'Moonfall Settlers',
-    shortName: 'Settlers',
-    url: '/moonfall-settlers/index.html',
-    gameUrl: '/moonfall-settlers/index.html',
-    eloField: 'moonfallSettlersElo',
+  moonveil_realms: {
+    key: 'moonveil_realms',
+    name: 'Moonveil Realms',
+    shortName: 'Moonveil Realms',
+    url: '/moonveil-realms/index.html',
+    gameUrl: '/moonveil-realms/index.html',
+    eloField: 'moonveilRealmsElo',
     legacyEloField: 'strategyElo',
     legacyPointsField: 'strategyPoints',
-    leaderboardLabel: 'ELO Settlers',
+    leaderboardLabel: 'ELO Moonveil Realms',
     gameOfWeekEligible: true
   },
-  moonfall_world_conquest: {
-    key: 'moonfall_world_conquest',
-    name: 'Moonfall World Conquest',
-    shortName: 'World Conquest',
-    url: '/moonfall-world-conquest/index.html',
-    gameUrl: '/moonfall-world-conquest/index.html',
-    eloField: 'moonfallWorldConquestElo',
-    leaderboardLabel: 'ELO World Conquest',
+  moonveil_conquest: {
+    key: 'moonveil_conquest',
+    name: 'Moonveil Conquest',
+    shortName: 'Moonveil Conquest',
+    url: '/moonveil-conquest/index.html',
+    gameUrl: '/moonveil-conquest/index.html',
+    eloField: 'moonveilConquestElo',
+    leaderboardLabel: 'ELO Moonveil Conquest',
     gameOfWeekEligible: false
   },
-  moonfall_rts: {
-    key: 'moonfall_rts',
-    name: 'Moonfall RTS',
-    shortName: 'RTS Moonfall',
-    url: '/moonfall-rts/index.html',
-    gameUrl: '/moonfall-rts/index.html',
-    eloField: 'moonfallRtsElo',
-    leaderboardLabel: 'ELO RTS',
+  moonveil_ascend: {
+    key: 'moonveil_ascend',
+    name: 'Moonveil Ascend',
+    shortName: 'Moonveil Ascend',
+    url: '/moonveil-ascend/index.html',
+    gameUrl: '/moonveil-ascend/index.html',
+    eloField: 'moonveilAscendElo',
+    leaderboardLabel: 'ELO Moonveil Ascend',
     gameOfWeekEligible: false
   }
 };
 
 const GAME_ACCESS_DEFAULTS = {
   chess: { enabled: true, adminOnly: false, comingSoon: false, noXp: false },
-  othello: { enabled: true, adminOnly: false, comingSoon: false, noXp: false },
-  azul: { enabled: true, adminOnly: false, comingSoon: false, noXp: false },
-  moonfall_p4: { enabled: true, adminOnly: false, comingSoon: false, noXp: false },
-  hexblitz: { enabled: true, adminOnly: false, comingSoon: false, noXp: false },
-  moonfall_settlers: { enabled: true, adminOnly: false, comingSoon: false, noXp: false },
-  moonfall_world_conquest: { enabled: true, adminOnly: false, comingSoon: false, noXp: false },
-  moonfall_rts: { enabled: false, adminOnly: true, comingSoon: true, noXp: false }
+  moonveil_dominion: { enabled: true, adminOnly: false, comingSoon: false, noXp: false },
+  moonveil_glyph: { enabled: true, adminOnly: false, comingSoon: false, noXp: false },
+  moonveil_nexus: { enabled: true, adminOnly: false, comingSoon: false, noXp: false },
+  moonveil_hexfall: { enabled: true, adminOnly: false, comingSoon: false, noXp: false },
+  moonveil_realms: { enabled: true, adminOnly: false, comingSoon: false, noXp: false },
+  moonveil_conquest: { enabled: true, adminOnly: false, comingSoon: false, noXp: false },
+  moonveil_ascend: { enabled: false, adminOnly: true, comingSoon: true, noXp: false }
 };
 
 const PROTECTED_PAGE_RULES = {
   '/admin': { adminOnly: true },
   '/admin.html': { adminOnly: true },
-  '/moonfall-world-conquest': { gameKey: 'moonfall_world_conquest' },
-  '/moonfall-world-conquest/': { gameKey: 'moonfall_world_conquest' },
-  '/moonfall-world-conquest/index.html': { gameKey: 'moonfall_world_conquest' },
-  '/moonfall-rts': { gameKey: 'moonfall_rts' },
-  '/moonfall-rts/': { gameKey: 'moonfall_rts' },
-  '/moonfall-rts/index.html': { gameKey: 'moonfall_rts' }
+  '/moonveil-conquest': { gameKey: 'moonveil_conquest' },
+  '/moonveil-conquest/': { gameKey: 'moonveil_conquest' },
+  '/moonveil-conquest/index.html': { gameKey: 'moonveil_conquest' },
+  '/moonveil-ascend': { gameKey: 'moonveil_ascend' },
+  '/moonveil-ascend/': { gameKey: 'moonveil_ascend' },
+  '/moonveil-ascend/index.html': { gameKey: 'moonveil_ascend' }
 };
 
 module.exports = {

@@ -1152,13 +1152,13 @@ body.game-shell-active .app-sidebar-left:focus-within .shell-logout{
   flex-wrap:wrap;
 }
 
-.game-art-chess{background-image:url("/assets/images/games/chess-game.webp") !important;}
-.game-art-othello{background-image:url("/assets/images/games/reversi-game.webp") !important;}
-.game-art-azul{background-image:url("/assets/images/games/azul-game.webp") !important;}
-.game-art-hexblitz{background-image:url("/assets/images/games/hexblitz-game.webp") !important;}
-.game-art-p4{background-image:url("/assets/images/games/p4-game.webp") !important;}
-.game-art-settlers{background-image:url("/assets/images/games/settlers-game.webp") !important;}
-.game-art-world-conquest{background-image:url("/assets/images/games/world-conquest-game.svg") !important;}
+.game-art-chess{background-image:url("/assets/images/games/moonveil-chess-game.webp") !important;}
+.game-art-moonveil_dominion{background-image:url("/assets/images/games/moonveil-dominion-game.webp") !important;}
+.game-art-moonveil_glyph{background-image:url("/assets/images/games/moonveil-glyph-game.webp") !important;}
+.game-art-moonveil_hexfall{background-image:url("/assets/images/games/moonveil-hexfall-game.webp") !important;}
+.game-art-moonveil-nexus{background-image:url("/assets/images/games/moonveil-nexus-card.webp") !important;}
+.game-art-moonveil-realms{background-image:url("/assets/images/games/moonveil-realms-game.webp") !important;}
+.game-art-moonveil-conquest{background-image:url("/assets/images/games/moonveil-conquest-game.svg") !important;}
 .game-art-comingsoon{background-image:url("/assets/images/games/comingsoon-game.webp") !important;}
 
 body.app-shell-active .card,
@@ -1172,7 +1172,7 @@ body.app-shell-active #score{
   color:var(--shell-text) !important;
 }
 
-body.app-shell-active:not(.moonfall-p4-page) button:not(.shell-nav-item):not(.shell-brand):not(.online-player):not(.online-tab):not(.online-plus):not(.online-invite-target):not(.online-row-action):not(.shell-notification-bell):not(.shell-fullscreen-btn):not(.sl-lobby-invite):not(#friendSearchClear),
+body.app-shell-active:not(.moonveil-nexus-page) button:not(.shell-nav-item):not(.shell-brand):not(.online-player):not(.online-tab):not(.online-plus):not(.online-invite-target):not(.online-row-action):not(.shell-notification-bell):not(.shell-fullscreen-btn):not(.sl-lobby-invite):not(#friendSearchClear),
 body.app-shell-active .back-btn{
   border:1px solid var(--shell-line) !important;
   border-radius:8px !important;
@@ -1215,7 +1215,7 @@ select{
 #gameView:fullscreen,
 #gameScreen:fullscreen,
 .moonveil-scene:fullscreen,
-.azul-game:fullscreen,
+.moonveil_glyph-game:fullscreen,
 #main:fullscreen,
 main:fullscreen{
   width:100vw;

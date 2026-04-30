@@ -20,12 +20,12 @@ body{margin:0}
 .game-tile::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05) 10%,rgba(0,0,0,.28) 44%,rgba(3,7,10,.94))}
 .game-tile::after{content:"";position:absolute;inset:0;border:1px solid transparent;pointer-events:none}
 .game-tile.chess::after{border-color:rgba(240,170,61,.8)}
-.game-tile.othello::after{border-color:rgba(148,163,184,.45)}
-.game-tile.azul::after{border-color:rgba(59,130,246,.65)}
-.game-tile.hexblitz::after{border-color:rgba(168,85,247,.75)}
-.game-tile.p4::after{border-color:rgba(196,93,255,.82);box-shadow:inset 0 0 0 1px rgba(245,195,95,.22)}
-.game-tile.settlers::after{border-color:rgba(245,158,11,.72)}
-.game-tile.world-conquest::after{border-color:rgba(240,199,110,.82)}
+.game-tile.moonveil_dominion::after{border-color:rgba(148,163,184,.45)}
+.game-tile.moonveil_glyph::after{border-color:rgba(59,130,246,.65)}
+.game-tile.moonveil_hexfall::after{border-color:rgba(168,85,247,.75)}
+.game-tile.moonveil-nexus::after{border-color:rgba(196,93,255,.82);box-shadow:inset 0 0 0 1px rgba(245,195,95,.22)}
+.game-tile.moonveil-realms::after{border-color:rgba(245,158,11,.72)}
+.game-tile.moonveil-conquest::after{border-color:rgba(240,199,110,.82)}
 .game-tile.comingsoon::after{border-color:rgba(34,211,238,.62)}
 .game-tile.locked{cursor:pointer}
 .game-tile>*{position:relative;z-index:1}
@@ -109,14 +109,14 @@ if(!user){
 }
 
 const catalog = [
-  { key: "chess", className: "chess game-art-chess", title: "Chess", copy: "Classic strategy duel", href: "/chess/index.html", tag: "Ranked" },
-  { key: "othello", className: "othello game-art-othello", title: "Othello", copy: "Master the flip", href: "/othello/index.html", tag: "Classic" },
-  { key: "azul", className: "azul game-art-azul", title: "Azul", copy: "Tile strategy and beauty", href: "/azul/index.html", tag: "Drafting" },
-  { key: "hexblitz", className: "hexblitz game-art-hexblitz", title: "Hexblitz", copy: "Hex. Plan. Dominate.", href: "/hexblitz_moonfall/index.html", tag: "Hex Path" },
-  { key: "moonfall_p4", className: "p4 game-art-p4", title: "Moonveil Nexus", copy: "Four lunar orbs. One nexus.", href: "/moonfall-p4/index.html", tag: "Connect 4" },
-  { key: "moonfall_settlers", className: "settlers game-art-settlers", title: "Settlers", copy: "Build. Trade. Expand.", href: "/moonfall-settlers/index.html", tag: "Catan-like" },
-  { key: "moonfall_world_conquest", className: "world-conquest game-art-world-conquest", title: "World Conquest", copy: "Territories. Dice. Domination.", href: "/moonfall-world-conquest/index.html", tag: "Risklike" },
-  { key: "moonfall_rts", className: "comingsoon game-art-comingsoon", title: "Real-Time Strategy", copy: "Fast. Tactical. Victory.", href: "/coming-soon.html?feature=real-time-strategy", tag: "Coming Soon" }
+  { key: "chess", className: "chess game-art-chess", title: "Moonveil Chess", copy: "Classic strategy duel", href: "/moonveil-chess/index.html", tag: "Ranked" },
+  { key: "moonveil_dominion", className: "moonveil_dominion game-art-moonveil_dominion", title: "Moonveil Dominion", copy: "Master the flip", href: "/moonveil-dominion/index.html", tag: "Classic" },
+  { key: "moonveil_glyph", className: "moonveil_glyph game-art-moonveil_glyph", title: "Moonveil Glyph", copy: "Tile strategy and beauty", href: "/moonveil-glyph/index.html", tag: "Drafting" },
+  { key: "moonveil_hexfall", className: "moonveil_hexfall game-art-moonveil_hexfall", title: "Moonveil Hexfall", copy: "Hex. Plan. Dominate.", href: "/moonveil-hexfall/index.html", tag: "Hex Path" },
+  { key: "moonveil_nexus", className: "moonveil-nexus game-art-moonveil-nexus", title: "Moonveil Nexus", copy: "Four lunar orbs. One nexus.", href: "/moonveil-nexus/index.html", tag: "Nexus duel" },
+  { key: "moonveil_realms", className: "realms game-art-moonveil-realms", title: "Moonveil Realms", copy: "Build. Trade. Expand.", href: "/moonveil-realms/index.html", tag: "Realmcraft" },
+  { key: "moonveil_conquest", className: "moonveil-conquest game-art-moonveil-conquest", title: "Moonveil Conquest", copy: "Territories. Dice. Domination.", href: "/moonveil-conquest/index.html", tag: "Conquest" },
+  { key: "moonveil_ascend", className: "comingsoon game-art-comingsoon", title: "Moonveil Ascend", copy: "Fast. Tactical. Victory.", href: "/coming-soon.html?feature=moonveil-ascend", tag: "Coming Soon" }
 ];
 
 function escapeHtml(text){

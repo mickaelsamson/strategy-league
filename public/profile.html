@@ -55,14 +55,14 @@ body{margin:0;color:var(--shell-text);display:flex;justify-content:center}
   </div>
 
   <section class="elo-grid" aria-label="Game ELO ratings">
-    <div class="elo-card"><span>Chess ELO</span><strong id="chessElo">1000</strong></div>
-    <div class="elo-card"><span>Othello ELO</span><strong id="othelloElo">1000</strong></div>
-    <div class="elo-card"><span>Azul ELO</span><strong id="azulElo">1000</strong></div>
-    <div class="elo-card"><span>Moonveil Nexus ELO</span><strong id="moonfallP4Elo">1000</strong></div>
-    <div class="elo-card"><span>Hexblitz ELO</span><strong id="hexblitzElo">1000</strong></div>
-    <div class="elo-card"><span>Settlers ELO</span><strong id="moonfallSettlersElo">1000</strong></div>
-    <div class="elo-card"><span>World Conquest ELO</span><strong id="moonfallWorldConquestElo">1000</strong></div>
-    <div class="elo-card"><span>RTS ELO</span><strong id="moonfallRtsElo">1000</strong></div>
+    <div class="elo-card"><span>Moonveil Chess ELO</span><strong id="chessElo">1000</strong></div>
+    <div class="elo-card"><span>Moonveil Dominion ELO</span><strong id="moonveil_dominionElo">1000</strong></div>
+    <div class="elo-card"><span>Moonveil Glyph ELO</span><strong id="moonveil_glyphElo">1000</strong></div>
+    <div class="elo-card"><span>Moonveil Nexus ELO</span><strong id="moonveilNexusElo">1000</strong></div>
+    <div class="elo-card"><span>Moonveil Hexfall ELO</span><strong id="moonveil_hexfallElo">1000</strong></div>
+    <div class="elo-card"><span>Moonveil Realms ELO</span><strong id="moonveilRealmsElo">1000</strong></div>
+    <div class="elo-card"><span>Moonveil Conquest ELO</span><strong id="moonveilConquestElo">1000</strong></div>
+    <div class="elo-card"><span>Moonveil Ascend ELO</span><strong id="moonveilAscendElo">1000</strong></div>
   </section>
 
   <div class="card" id="avatarCard" hidden>
@@ -286,13 +286,13 @@ function renderProfile(profile){
 
   const ratings = profile.ratings || {};
   setText("chessElo", ratings.chess ?? profile.chessElo ?? profile.elo ?? 1000);
-  setText("othelloElo", ratings.othello ?? profile.othelloElo ?? 1000);
-  setText("azulElo", ratings.azul ?? profile.azulElo ?? 1000);
-  setText("moonfallP4Elo", ratings.moonfall_p4 ?? profile.moonfallP4Elo ?? 1000);
-  setText("hexblitzElo", ratings.hexblitz ?? profile.hexblitzElo ?? 1000);
-  setText("moonfallSettlersElo", ratings.moonfall_settlers ?? profile.moonfallSettlersElo ?? 1000);
-  setText("moonfallWorldConquestElo", ratings.moonfall_world_conquest ?? profile.moonfallWorldConquestElo ?? 1000);
-  setText("moonfallRtsElo", ratings.moonfall_rts ?? profile.moonfallRtsElo ?? 1000);
+  setText("moonveil_dominionElo", ratings.moonveil_dominion ?? profile.moonveil_dominionElo ?? 1000);
+  setText("moonveil_glyphElo", ratings.moonveil_glyph ?? profile.moonveil_glyphElo ?? 1000);
+  setText("moonveilNexusElo", ratings.moonveil_nexus ?? profile.moonveilNexusElo ?? 1000);
+  setText("moonveil_hexfallElo", ratings.moonveil_hexfall ?? profile.moonveil_hexfallElo ?? 1000);
+  setText("moonveilRealmsElo", ratings.moonveil_realms ?? profile.moonveilRealmsElo ?? 1000);
+  setText("moonveilConquestElo", ratings.moonveil_conquest ?? profile.moonveilConquestElo ?? 1000);
+  setText("moonveilAscendElo", ratings.moonveil_ascend ?? profile.moonveilAscendElo ?? 1000);
 
   const stats = profile.stats || {};
   const levelInfo = profile.levelInfo || {};
@@ -356,14 +356,14 @@ async function loadProfile(){
         avatar: profile.avatar,
         elo: profile.chessElo || profile.elo,
         chessElo: profile.chessElo,
-        othelloElo: profile.othelloElo,
-        azulElo: profile.azulElo,
+        moonveil_dominionElo: profile.moonveil_dominionElo,
+        moonveil_glyphElo: profile.moonveil_glyphElo,
         strategyElo: profile.strategyElo,
-        moonfallP4Elo: profile.moonfallP4Elo,
-        hexblitzElo: profile.hexblitzElo,
-        moonfallSettlersElo: profile.moonfallSettlersElo,
-        moonfallWorldConquestElo: profile.moonfallWorldConquestElo,
-        moonfallRtsElo: profile.moonfallRtsElo,
+        moonveilNexusElo: profile.moonveilNexusElo,
+        moonveil_hexfallElo: profile.moonveil_hexfallElo,
+        moonveilRealmsElo: profile.moonveilRealmsElo,
+        moonveilConquestElo: profile.moonveilConquestElo,
+        moonveilAscendElo: profile.moonveilAscendElo,
         ratings: profile.ratings,
         xp: profile.xp,
         level: profile.level,

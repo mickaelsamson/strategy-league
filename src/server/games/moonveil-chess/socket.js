@@ -1,0 +1,345 @@
+const { CHESS_GAME_MODES, CHESS_TIME_CONTROLS } = require('../../config/constants');
+
+function randomId(){
+  return Math.random().toString(36).substr(2, 9);
+}
+
+function randomEntry(entries){
+  return entries[Math.floor(Math.random() * entries.length)] || null;
+}
+
+function createChessModule({ io, socket, state, updatePresence, applyRankedResult, isGameAllowed }){
+  function findLobbyByUsername(username){
+    return Object.values(state.lobbies).find(lobby =>
+      lobby.players.some(player => player.username === username)
+    ) || null;
+  }
+
+  function findGameIdForSocket(){
+    let gameId = state.playerGames[socket.id];
+    if(gameId) return gameId;
+    if(!socket.username) return null;
+
+    gameId = Object.keys(state.chessGames).find(id =>
+      state.chessGames[id]?.players?.some(p => p.username === socket.username)
+    );
+
+    if(gameId) state.playerGames[socket.id] = gameId;
+    return gameId || null;
+  }
+
+  function emitGameStart(game){
+    game.players.forEach(player => {
+      state.playerGames[player.id] = game.id;
+      const s = io.sockets.sockets.get(player.id);
+      if(!s) return;
+
+      s.emit('chess_start', {
+        color: player.color,
+        fen: game.fen,
+        gameMode: game.gameMode,
+        timeControl: game.timeControl,
+        players: {
+          white: game.players.find(pl => pl.color === 'w').username,
+          black: game.players.find(pl => pl.color === 'b').username
+        }
+      });
+    });
+  }
+
+  function emitGameOver(gameId, payload){
+    const game = state.chessGames[gameId];
+    if(!game || game.ended) return;
+
+    game.ended = true;
+    state.rematchRequests[gameId] = {};
+
+    game.players.forEach(player => {
+      const s = io.sockets.sockets.get(player.id);
+      if(s) s.emit('chess_game_over', payload);
+    });
+  }
+
+  function startLobbyGame(lobbyId){
+    const lobby = state.lobbies[lobbyId];
+    if(!lobby || lobby.players.length !== 2) return false;
+
+    const gameId = randomId();
+    const [p1, p2] = lobby.matchmaking === 'public'
+      ? lobby.players.slice().sort(() => Math.random() - 0.5)
+      : lobby.players;
+
+    state.chessGames[gameId] = {
+      id: gameId,
+      players: [
+        { id: p1.id, username: p1.username, color: 'w' },
+        { id: p2.id, username: p2.username, color: 'b' }
+      ],
+      turn: 'w',
+      fen: null,
+      ended: false,
+      rated: false,
+      gameMode: lobby.gameMode || 'classic',
+      timeControl: lobby.time
+    };
+
+    emitGameStart(state.chessGames[gameId]);
+    delete state.lobbies[lobbyId];
+    return true;
+  }
+
+  function findPublicMatch({ time, gameMode }){
+    return randomEntry(Object.values(state.lobbies).filter(lobby =>
+      lobby.matchmaking === 'public' &&
+      lobby.time === time &&
+      (lobby.gameMode || 'classic') === gameMode &&
+      lobby.players.length < 2 &&
+      !lobby.players.some(player => player.username === socket.username)
+    ));
+  }
+
+  function register(){
+    socket.on('create_lobby', ({ name, time, gameMode })=>{
+      if(isGameAllowed && !isGameAllowed('chess', socket)) return;
+      const parsedTime = Number(time);
+      if(!CHESS_TIME_CONTROLS.includes(parsedTime)) return;
+      const selectedGameMode = CHESS_GAME_MODES.includes(gameMode) ? gameMode : 'classic';
+
+      const existing = findLobbyByUsername(socket.username);
+      if(existing) return;
+
+      const id = randomId();
+      state.lobbies[id] = {
+        id,
+        name,
+        gameMode: selectedGameMode,
+        time: parsedTime,
+        players: [{ id: socket.id, username: socket.username, ready: false }]
+      };
+
+      updatePresence();
+    });
+
+    socket.on('join_lobby', id => {
+      if(isGameAllowed && !isGameAllowed('chess', socket)) return;
+      const lobby = state.lobbies[id];
+      if(!lobby) return;
+
+      const existing = findLobbyByUsername(socket.username);
+      if(existing) return;
+
+      lobby.players.push({ id: socket.id, username: socket.username, ready: false });
+      updatePresence();
+    });
+
+    socket.on('toggle_ready', id => {
+      if(isGameAllowed && !isGameAllowed('chess', socket)) return;
+      const lobby = state.lobbies[id];
+      if(!lobby) return;
+
+      const player = lobby.players.find(p => p.id === socket.id);
+      if(!player) return;
+      player.ready = !player.ready;
+
+      if(lobby.players.length === 2 && lobby.players.every(p => p.ready)){
+        startLobbyGame(id);
+      }
+
+      updatePresence();
+    });
+
+    socket.on('public_chess_matchmaking', ({ time, gameMode } = {}) => {
+      if(isGameAllowed && !isGameAllowed('chess', socket)) return;
+      if(!socket.username) return;
+      if(findLobbyByUsername(socket.username)) return;
+
+      const parsedTime = CHESS_TIME_CONTROLS.includes(Number(time)) ? Number(time) : 300;
+      const selectedGameMode = CHESS_GAME_MODES.includes(gameMode) ? gameMode : 'classic';
+      const match = findPublicMatch({ time: parsedTime, gameMode: selectedGameMode });
+
+      if(match){
+        match.players.push({ id: socket.id, username: socket.username, ready: true });
+        startLobbyGame(match.id);
+        updatePresence();
+        return;
+      }
+
+      const id = randomId();
+      state.lobbies[id] = {
+        id,
+        name: 'Public matchmaking',
+        matchmaking: 'public',
+        gameMode: selectedGameMode,
+        time: parsedTime,
+        players: [{ id: socket.id, username: socket.username, ready: true }]
+      };
+
+      updatePresence();
+    });
+
+    socket.on('chess_move', ({ fen })=>{
+      const gameId = findGameIdForSocket();
+      if(!gameId) return;
+
+      const game = state.chessGames[gameId];
+      if(!game || game.ended) return;
+
+      game.fen = fen;
+      game.players.forEach(p => {
+        const s = io.sockets.sockets.get(p.id);
+        if(s) s.emit('chess_update', { fen });
+      });
+    });
+
+    socket.on('resign', ()=>{
+      const gameId = findGameIdForSocket();
+      if(!gameId) return;
+
+      const game = state.chessGames[gameId];
+      if(!game || game.ended) return;
+
+      const quitter = game.players.find(p => p.id === socket.id || p.username === socket.username);
+      const winner = game.players.find(p => p.username !== quitter?.username);
+
+      applyRankedResult(game, winner?.username, 'resign')
+        .then(result=>{
+          emitGameOver(gameId, {
+            reason: 'resign',
+            message: quitter ? `${quitter.username} resigned.` : 'A player resigned.',
+            winner: winner?.username || null,
+            rewards: result?.players || {}
+          });
+        })
+        .catch(err => {
+          console.error('ELO update error:', err);
+          emitGameOver(gameId, {
+            reason: 'resign',
+            message: quitter ? `${quitter.username} resigned.` : 'A player resigned.',
+            winner: winner?.username || null,
+            rewards: {}
+          });
+        })
+        .finally(()=>updatePresence());
+    });
+
+    socket.on('chess_game_end', ({ winner, reason } = {})=>{
+      const gameId = findGameIdForSocket();
+      if(!gameId) return;
+
+      const game = state.chessGames[gameId];
+      if(!game || game.ended) return;
+
+      const inGame = game.players.some(p => p.username === socket.username);
+      if(!inGame) return;
+
+      const validWinner = winner && game.players.some(p => p.username === winner);
+      const winnerName = validWinner ? winner : null;
+      const endReason = reason || 'completed';
+
+      const messageByReason = {
+        checkmate: 'Checkmate.',
+        timeout: 'Time is over.',
+        stalemate: 'Draw by stalemate.',
+        draw: 'Draw.'
+      };
+
+      applyRankedResult(game, winnerName, endReason)
+        .then(result=>emitGameOver(gameId, {
+          reason: endReason,
+          message: messageByReason[endReason] || 'Game finished.',
+          winner: winnerName,
+          rewards: result?.players || {}
+        }))
+        .catch(err => {
+          console.error('ELO update error:', err);
+          emitGameOver(gameId, {
+            reason: endReason,
+            message: messageByReason[endReason] || 'Game finished.',
+            winner: winnerName,
+            rewards: {}
+          });
+        })
+        .finally(()=>updatePresence());
+    });
+
+    socket.on('chess_timeout', ()=>{
+      const gameId = findGameIdForSocket();
+      if(!gameId) return;
+
+      const game = state.chessGames[gameId];
+      if(!game || game.ended) return;
+
+      const loser = game.players.find(p => p.username === socket.username);
+      if(!loser) return;
+
+      const winner = game.players.find(p => p.username !== loser.username);
+
+      applyRankedResult(game, winner?.username || null, 'timeout')
+        .then(result=>emitGameOver(gameId, {
+          reason: 'timeout',
+          message: loser ? `${loser.username} ran out of time.` : 'Time is over.',
+          winner: winner?.username || null,
+          rewards: result?.players || {}
+        }))
+        .catch(err => {
+          console.error('ELO update error:', err);
+          emitGameOver(gameId, {
+            reason: 'timeout',
+            message: loser ? `${loser.username} ran out of time.` : 'Time is over.',
+            winner: winner?.username || null,
+            rewards: {}
+          });
+        })
+        .finally(()=>updatePresence());
+    });
+
+    socket.on('rematch', ()=>{
+      const gameId = findGameIdForSocket();
+      if(!gameId) return;
+
+      const game = state.chessGames[gameId];
+      if(!game || !game.ended) return;
+
+      if(!state.rematchRequests[gameId]) state.rematchRequests[gameId] = {};
+      state.rematchRequests[gameId][socket.username] = true;
+
+      const requestedBy = Object.keys(state.rematchRequests[gameId]);
+      game.players.forEach(player => {
+        const s = io.sockets.sockets.get(player.id);
+        if(!s) return;
+        s.emit('chess_rematch_status', { requestedBy });
+        if(player.username !== socket.username){
+          s.emit('game_rematch_invite', {
+            from: socket.username,
+            toUsername: player.username,
+            gameKey: 'chess',
+            label: 'Moonveil Chess',
+            message: `${socket.username} wants a Moonveil Chess rematch.`
+          });
+        }
+      });
+
+      const allReady = game.players.every(player => state.rematchRequests[gameId][player.username]);
+      if(!allReady) return;
+
+      game.players.forEach(player => {
+        player.color = player.color === 'w' ? 'b' : 'w';
+      });
+
+      game.fen = null;
+      game.turn = 'w';
+      game.ended = false;
+      state.rematchRequests[gameId] = {};
+      emitGameStart(game);
+    });
+  }
+
+  return {
+    register,
+    findGameIdForSocket,
+    emitGameStart,
+    emitGameOver
+  };
+}
+
+module.exports = { createChessModule };

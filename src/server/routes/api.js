@@ -147,30 +147,30 @@ function escapeRegExp(value){
 
 function clearAllLobbies(state, io){
   state.lobbies = {};
-  state.othelloLobbies = {};
-  state.azulLobbies = {};
-  state.moonfallSettlersLobbies = {};
-  state.moonfallP4Lobbies = {};
-  state.hexblitzLobbies = {};
+  state.moonveil_dominionLobbies = {};
+  state.moonveil_glyphLobbies = {};
+  state.moonveilRealmsLobbies = {};
+  state.moonveilNexusLobbies = {};
+  state.moonveil_hexfallLobbies = {};
 
   if(io){
     io.emit('lobbies_update', state.lobbies);
-    io.emit('othello_lobbies_update', state.othelloLobbies);
-    io.emit('azul_lobbies_update', state.azulLobbies);
-    io.emit('moonfall_settlers_lobbies_update', state.moonfallSettlersLobbies);
-    io.emit('moonfall_p4_lobbies_update', state.moonfallP4Lobbies);
-    io.emit('hexblitz_lobbies_update', state.hexblitzLobbies);
+    io.emit('moonveil_dominion_lobbies_update', state.moonveil_dominionLobbies);
+    io.emit('moonveil_glyph_lobbies_update', state.moonveil_glyphLobbies);
+    io.emit('moonveil_realms_lobbies_update', state.moonveilRealmsLobbies);
+    io.emit('moonveil_nexus_lobbies_update', state.moonveilNexusLobbies);
+    io.emit('moonveil_hexfall_lobbies_update', state.moonveil_hexfallLobbies);
   }
 }
 
 function clearGameLobbies(state, io, gameKey){
   const emitMap = {
     chess: ['lobbies', 'lobbies_update'],
-    othello: ['othelloLobbies', 'othello_lobbies_update'],
-    azul: ['azulLobbies', 'azul_lobbies_update'],
-    moonfall_settlers: ['moonfallSettlersLobbies', 'moonfall_settlers_lobbies_update'],
-    moonfall_p4: ['moonfallP4Lobbies', 'moonfall_p4_lobbies_update'],
-    hexblitz: ['hexblitzLobbies', 'hexblitz_lobbies_update']
+    moonveil_dominion: ['moonveil_dominionLobbies', 'moonveil_dominion_lobbies_update'],
+    moonveil_glyph: ['moonveil_glyphLobbies', 'moonveil_glyph_lobbies_update'],
+    moonveil_realms: ['moonveilRealmsLobbies', 'moonveil_realms_lobbies_update'],
+    moonveil_nexus: ['moonveilNexusLobbies', 'moonveil_nexus_lobbies_update'],
+    moonveil_hexfall: ['moonveil_hexfallLobbies', 'moonveil_hexfall_lobbies_update']
   };
 
   const entry = emitMap[gameKey];
@@ -314,14 +314,14 @@ function createApiRouter({ User, state, isGameAllowed, io }){
         password: await hashPassword(password),
         elo: 1000,
         chessElo: 1000,
-        othelloElo: 1000,
-        azulElo: 1000,
+        moonveil_dominionElo: 1000,
+        moonveil_glyphElo: 1000,
         strategyElo: 1000,
-        moonfallP4Elo: 1000,
-        hexblitzElo: 1000,
-        moonfallSettlersElo: 1000,
-        moonfallWorldConquestElo: 1000,
-        moonfallRtsElo: 1000,
+        moonveilNexusElo: 1000,
+        moonveil_hexfallElo: 1000,
+        moonveilRealmsElo: 1000,
+        moonveilConquestElo: 1000,
+        moonveilAscendElo: 1000,
         xp: 0,
         isAdmin: false
       });
@@ -448,14 +448,14 @@ function createApiRouter({ User, state, isGameAllowed, io }){
         avatar: profile.avatar,
         elo: profile.elo,
         chessElo: profile.chessElo,
-        othelloElo: profile.othelloElo,
-        azulElo: profile.azulElo,
+        moonveil_dominionElo: profile.moonveil_dominionElo,
+        moonveil_glyphElo: profile.moonveil_glyphElo,
         strategyElo: profile.strategyElo,
-        moonfallP4Elo: profile.moonfallP4Elo,
-        hexblitzElo: profile.hexblitzElo,
-        moonfallSettlersElo: profile.moonfallSettlersElo,
-        moonfallWorldConquestElo: profile.moonfallWorldConquestElo,
-        moonfallRtsElo: profile.moonfallRtsElo,
+        moonveilNexusElo: profile.moonveilNexusElo,
+        moonveil_hexfallElo: profile.moonveil_hexfallElo,
+        moonveilRealmsElo: profile.moonveilRealmsElo,
+        moonveilConquestElo: profile.moonveilConquestElo,
+        moonveilAscendElo: profile.moonveilAscendElo,
         xp: profile.xp,
         level: profile.level,
         levelInfo: profile.levelInfo,
@@ -500,31 +500,31 @@ function createApiRouter({ User, state, isGameAllowed, io }){
       ...Object.values(state.chessGames || {}).filter(game => !game?.ended)
     ]);
 
-    const othello = countUniquePlayers([
-      ...Object.values(state.othelloLobbies || {}),
-      ...Object.values(state.othelloGames || {}).filter(game => !game?.ended)
+    const moonveil_dominion = countUniquePlayers([
+      ...Object.values(state.moonveil_dominionLobbies || {}),
+      ...Object.values(state.moonveil_dominionGames || {}).filter(game => !game?.ended)
     ]);
 
-    const azul = countUniquePlayers([
-      ...Object.values(state.azulLobbies || {}),
-      ...Object.values(state.azulGames || {}).filter(game => !game?.ended)
+    const moonveil_glyph = countUniquePlayers([
+      ...Object.values(state.moonveil_glyphLobbies || {}),
+      ...Object.values(state.moonveil_glyphGames || {}).filter(game => !game?.ended)
     ]);
 
     const strategy = countUniquePlayers([
-      ...Object.values(state.moonfallSettlersLobbies || {}),
-      ...Object.values(state.moonfallSettlersGames || {}).filter(game => !game?.ended),
-      ...Object.values(state.moonfallP4Lobbies || {}),
-      ...Object.values(state.moonfallP4Games || {}).filter(game => !game?.ended),
-      ...Object.values(state.hexblitzLobbies || {}),
-      ...Object.values(state.hexblitzGames || {}).filter(game => !game?.ended)
+      ...Object.values(state.moonveilRealmsLobbies || {}),
+      ...Object.values(state.moonveilRealmsGames || {}).filter(game => !game?.ended),
+      ...Object.values(state.moonveilNexusLobbies || {}),
+      ...Object.values(state.moonveilNexusGames || {}).filter(game => !game?.ended),
+      ...Object.values(state.moonveil_hexfallLobbies || {}),
+      ...Object.values(state.moonveil_hexfallGames || {}).filter(game => !game?.ended)
     ]);
 
     res.json({
       chess,
-      othello,
-      azul,
+      moonveil_dominion,
+      moonveil_glyph,
       strategy,
-      total: chess + othello + azul + strategy
+      total: chess + moonveil_dominion + moonveil_glyph + strategy
     });
   });
 

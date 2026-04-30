@@ -1,23 +1,23 @@
-const { createChessModule } = require('../games/chess/socket');
-const { createOthelloModule } = require('../games/othello/socket');
-const { createAzulModule } = require('../games/azul/socket');
-const { createMoonfallSettlersModule } = require('../games/moonfall-settlers/socket');
-const { createMoonfallP4Module } = require('../games/moonfall-p4/socket');
-const { createHexblitzModule } = require('../games/hexblitz/socket');
+const { createChessModule } = require('../games/moonveil-chess/socket');
+const { createMoonveilDominionModule } = require('../games/moonveil-dominion/socket');
+const { createMoonveilGlyphModule } = require('../games/moonveil-glyph/socket');
+const { createMoonveilRealmsModule } = require('../games/moonveil-realms/socket');
+const { createMoonveilNexusModule } = require('../games/moonveil-nexus/socket');
+const { createMoonveilHexfallModule } = require('../games/moonveil-hexfall/socket');
 const { DISCONNECT_FORFEIT_MS } = require('../config/constants');
 const { AUTH_COOKIE_NAME, parseCookieHeader, verifyAuthToken } = require('../services/auth-service');
 const { buildRatingsPayload, getLevelInfo } = require('../services/user-service');
 
-function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, applyOthelloResult, applyAzulResult, applyStructuredGameResult }){
+function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, applyMoonveilDominionResult, applyMoonveilGlyphResult, applyStructuredGameResult }){
   const GAME_META = {
-    chess: { label: 'Chess', lobbyUrl: '/chess/index.html', gameUrl: '/chess/chess-game.html' },
-    othello: { label: 'Othello', lobbyUrl: '/othello/index.html', gameUrl: '/othello/game.html' },
-    azul: { label: 'Azul Arena', lobbyUrl: '/azul/index.html', gameUrl: '/azul/game.html' },
-    moonfall: { label: 'Moonfall Settlers', lobbyUrl: '/moonfall-settlers/index.html', gameUrl: '/moonfall-settlers/index.html' },
-    moonfall_p4: { label: 'Moonveil Nexus', lobbyUrl: '/moonfall-p4/index.html', gameUrl: '/moonfall-p4/index.html' },
-    hexblitz: { label: 'Hexblitz Moonfall', lobbyUrl: '/hexblitz_moonfall/index.html', gameUrl: '/hexblitz_moonfall/index.html' },
-    moonfall_world_conquest: { label: 'Moonfall World Conquest', lobbyUrl: '/moonfall-world-conquest/index.html', gameUrl: '/moonfall-world-conquest/index.html' },
-    moonfall_rts: { label: 'Moonfall RTS', lobbyUrl: '/moonfall-rts/index.html', gameUrl: '/moonfall-rts/index.html' }
+    chess: { label: 'Moonveil Chess', lobbyUrl: '/moonveil-chess/index.html', gameUrl: '/moonveil-chess/game.html' },
+    moonveil_dominion: { label: 'Moonveil Dominion', lobbyUrl: '/moonveil-dominion/index.html', gameUrl: '/moonveil-dominion/game.html' },
+    moonveil_glyph: { label: 'Moonveil Glyph', lobbyUrl: '/moonveil-glyph/index.html', gameUrl: '/moonveil-glyph/game.html' },
+    moonveil_realms: { label: 'Moonveil Realms', lobbyUrl: '/moonveil-realms/index.html', gameUrl: '/moonveil-realms/index.html' },
+    moonveil_nexus: { label: 'Moonveil Nexus', lobbyUrl: '/moonveil-nexus/index.html', gameUrl: '/moonveil-nexus/index.html' },
+    moonveil_hexfall: { label: 'Moonveil Hexfall', lobbyUrl: '/moonveil-hexfall/index.html', gameUrl: '/moonveil-hexfall/index.html' },
+    moonveil_conquest: { label: 'Moonveil Conquest', lobbyUrl: '/moonveil-conquest/index.html', gameUrl: '/moonveil-conquest/index.html' },
+    moonveil_ascend: { label: 'Moonveil Ascend', lobbyUrl: '/moonveil-ascend/index.html', gameUrl: '/moonveil-ascend/index.html' }
   };
 
   function socketsForUsername(username){
@@ -34,30 +34,30 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
     );
     if(chessEntry) return { gameKey: 'chess', gameId: chessEntry[0], label: GAME_META.chess.label, url: GAME_META.chess.gameUrl };
 
-    const othelloEntry = Object.entries(state.othelloGames).find(([, game]) =>
+    const moonveil_dominionEntry = Object.entries(state.moonveil_dominionGames).find(([, game]) =>
       game && !game.ended && game.players?.some(player => player.username === username)
     );
-    if(othelloEntry) return { gameKey: 'othello', gameId: othelloEntry[0], label: GAME_META.othello.label, url: GAME_META.othello.gameUrl };
+    if(moonveil_dominionEntry) return { gameKey: 'moonveil_dominion', gameId: moonveil_dominionEntry[0], label: GAME_META.moonveil_dominion.label, url: GAME_META.moonveil_dominion.gameUrl };
 
-    const azulEntry = Object.entries(state.azulGames).find(([, game]) =>
+    const moonveil_glyphEntry = Object.entries(state.moonveil_glyphGames).find(([, game]) =>
       game && !game.ended && game.players?.some(player => player.username === username)
     );
-    if(azulEntry) return { gameKey: 'azul', gameId: azulEntry[0], label: GAME_META.azul.label, url: GAME_META.azul.gameUrl };
+    if(moonveil_glyphEntry) return { gameKey: 'moonveil_glyph', gameId: moonveil_glyphEntry[0], label: GAME_META.moonveil_glyph.label, url: GAME_META.moonveil_glyph.gameUrl };
 
-    const moonfallEntry = Object.entries(state.moonfallSettlersGames).find(([, game]) =>
+    const moonveilEntry = Object.entries(state.moonveilRealmsGames).find(([, game]) =>
       game && !game.ended && game.players?.some(player => player.username === username)
     );
-    if(moonfallEntry) return { gameKey: 'moonfall', gameId: moonfallEntry[0], label: GAME_META.moonfall.label, url: GAME_META.moonfall.gameUrl };
+    if(moonveilEntry) return { gameKey: 'moonveil_realms', gameId: moonveilEntry[0], label: GAME_META.moonveil_realms.label, url: GAME_META.moonveil_realms.gameUrl };
 
-    const moonfallP4Entry = Object.entries(state.moonfallP4Games).find(([, game]) =>
+    const moonveilNexusEntry = Object.entries(state.moonveilNexusGames).find(([, game]) =>
       game && !game.ended && game.players?.some(player => player.username === username)
     );
-    if(moonfallP4Entry) return { gameKey: 'moonfall_p4', gameId: moonfallP4Entry[0], label: GAME_META.moonfall_p4.label, url: GAME_META.moonfall_p4.gameUrl };
+    if(moonveilNexusEntry) return { gameKey: 'moonveil_nexus', gameId: moonveilNexusEntry[0], label: GAME_META.moonveil_nexus.label, url: GAME_META.moonveil_nexus.gameUrl };
 
-    const hexblitzEntry = Object.entries(state.hexblitzGames).find(([, game]) =>
+    const moonveil_hexfallEntry = Object.entries(state.moonveil_hexfallGames).find(([, game]) =>
       game && !game.ended && game.players?.some(player => player.username === username)
     );
-    if(hexblitzEntry) return { gameKey: 'hexblitz', gameId: hexblitzEntry[0], label: GAME_META.hexblitz.label, url: GAME_META.hexblitz.gameUrl };
+    if(moonveil_hexfallEntry) return { gameKey: 'moonveil_hexfall', gameId: moonveil_hexfallEntry[0], label: GAME_META.moonveil_hexfall.label, url: GAME_META.moonveil_hexfall.gameUrl };
 
     return null;
   }
@@ -87,24 +87,24 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
         draws: user?.draws || 0,
         elo: ratings.chess || 1000,
         chessElo: ratings.chess || 1000,
-        othelloElo: ratings.othello || 1000,
-        azulElo: ratings.azul || 1000,
-        strategyElo: ratings.moonfall_world_conquest || 1000,
-        moonfallP4Elo: ratings.moonfall_p4 || 1000,
-        hexblitzElo: ratings.hexblitz || 1000,
-        moonfallSettlersElo: ratings.moonfall_settlers || 1000,
-        moonfallWorldConquestElo: ratings.moonfall_world_conquest || 1000,
-        moonfallRtsElo: ratings.moonfall_rts || 1000
+        moonveil_dominionElo: ratings.moonveil_dominion || 1000,
+        moonveil_glyphElo: ratings.moonveil_glyph || 1000,
+        strategyElo: ratings.moonveil_conquest || 1000,
+        moonveilNexusElo: ratings.moonveil_nexus || 1000,
+        moonveil_hexfallElo: ratings.moonveil_hexfall || 1000,
+        moonveilRealmsElo: ratings.moonveil_realms || 1000,
+        moonveilConquestElo: ratings.moonveil_conquest || 1000,
+        moonveilAscendElo: ratings.moonveil_ascend || 1000
       };
     }
 
     io.emit('online_users', users);
     io.emit('lobbies_update', state.lobbies);
-    io.emit('othello_lobbies_update', state.othelloLobbies);
-    io.emit('azul_lobbies_update', state.azulLobbies);
-    io.emit('moonfall_settlers_lobbies_update', state.moonfallSettlersLobbies);
-    io.emit('moonfall_p4_lobbies_update', state.moonfallP4Lobbies);
-    io.emit('hexblitz_lobbies_update', state.hexblitzLobbies);
+    io.emit('moonveil_dominion_lobbies_update', state.moonveil_dominionLobbies);
+    io.emit('moonveil_glyph_lobbies_update', state.moonveil_glyphLobbies);
+    io.emit('moonveil_realms_lobbies_update', state.moonveilRealmsLobbies);
+    io.emit('moonveil_nexus_lobbies_update', state.moonveilNexusLobbies);
+    io.emit('moonveil_hexfall_lobbies_update', state.moonveil_hexfallLobbies);
     io.sockets.sockets.forEach(socket => emitActiveGame(socket));
   }
 
@@ -134,25 +134,25 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
       isGameAllowed
     });
 
-    const othello = createOthelloModule({
+    const moonveil_dominion = createMoonveilDominionModule({
       io,
       socket,
       state,
       updatePresence,
-      applyOthelloResult: (game, winnerColor, reason) => applyOthelloResult(User, game, winnerColor, reason),
+      applyMoonveilDominionResult: (game, winnerColor, reason) => applyMoonveilDominionResult(User, game, winnerColor, reason),
       isGameAllowed
     });
 
-    const azul = createAzulModule({
+    const moonveil_glyph = createMoonveilGlyphModule({
       io,
       socket,
       state,
       updatePresence,
-      applyAzulResult: (game, winner, reason) => applyAzulResult(User, game, winner, reason),
+      applyMoonveilGlyphResult: (game, winner, reason) => applyMoonveilGlyphResult(User, game, winner, reason),
       isGameAllowed
     });
 
-    const moonfall = createMoonfallSettlersModule({
+    const moonveil = createMoonveilRealmsModule({
       io,
       socket,
       state,
@@ -161,7 +161,7 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
       applyStructuredGameResult: options => applyStructuredGameResult(User, options)
     });
 
-    const moonfallP4 = createMoonfallP4Module({
+    const moonveilNexus = createMoonveilNexusModule({
       io,
       socket,
       state,
@@ -170,7 +170,7 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
       applyStructuredGameResult: options => applyStructuredGameResult(User, options)
     });
 
-    const hexblitz = createHexblitzModule({
+    const moonveil_hexfall = createMoonveilHexfallModule({
       io,
       socket,
       state,
@@ -218,8 +218,8 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
         });
       }
 
-      for(const gameId in state.othelloGames){
-        const game = state.othelloGames[gameId];
+      for(const gameId in state.moonveil_dominionGames){
+        const game = state.moonveil_dominionGames[gameId];
         if(!game || game.ended) continue;
 
         const player = game.players.find(entry => entry.username === socket.username);
@@ -229,15 +229,15 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
         player.id = socket.id;
 
         if(previousSocketId && previousSocketId !== socket.id){
-          delete state.othelloPlayerGames[previousSocketId];
+          delete state.moonveil_dominionPlayerGames[previousSocketId];
         }
 
-        state.othelloPlayerGames[socket.id] = gameId;
-        othello.emitState(game);
+        state.moonveil_dominionPlayerGames[socket.id] = gameId;
+        moonveil_dominion.emitState(game);
       }
 
-      for(const gameId in state.azulGames){
-        const game = state.azulGames[gameId];
+      for(const gameId in state.moonveil_glyphGames){
+        const game = state.moonveil_glyphGames[gameId];
         if(!game || game.ended) continue;
 
         const player = game.players.find(entry => entry.username === socket.username);
@@ -247,27 +247,27 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
         player.id = socket.id;
 
         if(previousSocketId && previousSocketId !== socket.id){
-          delete state.azulPlayerGames[previousSocketId];
+          delete state.moonveil_glyphPlayerGames[previousSocketId];
         }
 
-        state.azulPlayerGames[socket.id] = gameId;
-        azul.emitState(game);
+        state.moonveil_glyphPlayerGames[socket.id] = gameId;
+        moonveil_glyph.emitState(game);
       }
 
-      moonfall.rebindForUsername(socket.username);
-      moonfallP4.rebindForUsername(socket.username);
-      hexblitz.rebindForUsername(socket.username);
+      moonveil.rebindForUsername(socket.username);
+      moonveilNexus.rebindForUsername(socket.username);
+      moonveil_hexfall.rebindForUsername(socket.username);
 
       emitActiveGame(socket);
       updatePresence();
     });
 
     chess.register();
-    othello.register();
-    azul.register();
-    moonfall.register();
-    moonfallP4.register();
-    hexblitz.register();
+    moonveil_dominion.register();
+    moonveil_glyph.register();
+    moonveil.register();
+    moonveilNexus.register();
+    moonveil_hexfall.register();
 
     socket.on('send_game_invite', async ({ toUsername, gameKey, lobbyId } = {})=>{
       try{
@@ -368,22 +368,22 @@ function registerSockets({ io, User, state, isGameAllowed, applyRankedResult, ap
         if(state.lobbies[id].players.length === 0) delete state.lobbies[id];
       }
 
-      for(const id in state.othelloLobbies){
-        state.othelloLobbies[id].players = state.othelloLobbies[id].players.filter(player => player.id !== socket.id);
-        if(state.othelloLobbies[id].players.length === 0) delete state.othelloLobbies[id];
+      for(const id in state.moonveil_dominionLobbies){
+        state.moonveil_dominionLobbies[id].players = state.moonveil_dominionLobbies[id].players.filter(player => player.id !== socket.id);
+        if(state.moonveil_dominionLobbies[id].players.length === 0) delete state.moonveil_dominionLobbies[id];
       }
 
-      for(const id in state.azulLobbies){
-        state.azulLobbies[id].players = state.azulLobbies[id].players.filter(player => player.id !== socket.id);
-        if(state.azulLobbies[id].players.length === 0) delete state.azulLobbies[id];
+      for(const id in state.moonveil_glyphLobbies){
+        state.moonveil_glyphLobbies[id].players = state.moonveil_glyphLobbies[id].players.filter(player => player.id !== socket.id);
+        if(state.moonveil_glyphLobbies[id].players.length === 0) delete state.moonveil_glyphLobbies[id];
       }
 
-      moonfall.handleDisconnect();
-      moonfallP4.handleDisconnect();
-      hexblitz.handleDisconnect();
+      moonveil.handleDisconnect();
+      moonveilNexus.handleDisconnect();
+      moonveil_hexfall.handleDisconnect();
 
-      io.emit('othello_lobbies_update', state.othelloLobbies);
-      io.emit('azul_lobbies_update', state.azulLobbies);
+      io.emit('moonveil_dominion_lobbies_update', state.moonveil_dominionLobbies);
+      io.emit('moonveil_glyph_lobbies_update', state.moonveil_glyphLobbies);
       updatePresence();
     });
   });

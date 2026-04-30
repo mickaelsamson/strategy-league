@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="/assets/styles/theme.css">
+<link rel="stylesheet" href="/assets/styles/game-mode-shell.css">
+<script defer src="/assets/scripts/site-shell.js"></script>
+<script defer src="/assets/scripts/game-mode-tabs.js"></script>
+<title>Moonveil Chess</title>
+<script src="/socket.io/socket.io.js" defer></script>
+<style>
+.lobby{
+  background:linear-gradient(135deg, rgba(96,29,37,0.64), rgba(33,9,14,0.66));
+  border:1px solid rgba(255,91,105,0.16);
+  padding:16px;
+  border-radius:8px;
+  text-align:left;
+}
+.players{
+  margin-top:8px;
+  font-size:14px;
+  color:var(--shell-soft);
+}
+.lobby-mode{
+  display:inline-flex;
+  min-height:26px;
+  align-items:center;
+  margin-left:8px;
+  padding:0 9px;
+  border:1px solid rgba(232,189,108,0.34);
+  border-radius:999px;
+  color:#f2d59b;
+  background:rgba(232,189,108,0.1);
+  font-size:12px;
+  font-weight:900;
+  text-transform:uppercase;
+}
+.rules{
+  text-align:left;
+  color:var(--shell-soft);
+  font-size:14px;
+  line-height:1.5;
+}
+.ready{ color:#22c55e; }
+.notready{ color:#ef4444; }
+</style>
+</head>
+
+<body class="with-navbar game-mode-page chess-mode-page">
+<div id="navbar-container"></div>
+
+<div id="blockedScreen" class="blocked-screen">
+  <h1>Games Disabled</h1>
+  <p>Come back later.</p>
+  <button onclick="goBack()">Back</button>
+</div>
+
+<main class="game-mode-app">
+  <section class="game-mode-shell">
+    <div class="game-mode-art" aria-hidden="true">
+      <div class="game-mode-preview">
+        <div class="game-mode-preview-stack">
+          <div class="preview-chip">Opening choice<strong>Blitz or slow duel</strong></div>
+          <div class="preview-chip">Ranked online<strong>Ready up and challenge</strong></div>
+          <div class="preview-chip">Board mode<strong>Local table coming soon</strong></div>
+        </div>
+      </div>
+      <div class="game-mode-aura"></div>
+    </div>
+
+    <section class="game-mode-card">
+      <div class="tutorial-launch">
+        <button type="button" class="tutorial-btn" onclick="window.location.href='/moonveil-chess/game.html?tutorial=1'">Tutorial</button>
+      </div>
+      <span class="eyebrow">Classic duel</span>
+      <h1>Moonveil Chess</h1>
+      <p class="game-mode-copy">Use the same Moonveil Realms entry flow everywhere: choose Local or Online first, then launch the mode you want with the same visual rhythm.</p>
+
+      <div class="setup-mode-tabs" role="tablist" aria-label="Game mode">
+        <button id="localModeBtn" type="button" class="setup-mode-tab">Local</button>
+        <button id="onlineModeBtn" type="button" class="setup-mode-tab">Online</button>
+      </div>
+
+      <section id="localSetupPanel" class="mode-panel" hidden>
+        <div class="coming-soon-card">
+          <span class="eyebrow">Local board</span>
+          <strong>Hot-seat Moonveil Chess is coming soon</strong>
+          <p>This tab is already in place so every game now exposes the same entry pattern. The local board flow is intentionally blocked until the full offline match logic is ready.</p>
+          <div class="mode-actions">
+            <button type="button" disabled>Coming soon</button>
+            <button type="button" class="ghost-btn" onclick="goBack()">Back</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="onlineSetupPanel" class="mode-panel">
+        <div class="mode-section">
+          <div class="mode-grid two-col">
+            <label>Lobby name
+              <input id="name" placeholder="Lobby name">
+            </label>
+            <label>Clock
+              <select id="timeControl">
+                <option value="120">Bullet (2 min)</option>
+                <option value="300">Blitz (5 min)</option>
+                <option value="600">Fast (10 min)</option>
+                <option value="1800">Slow (30 min)</option>
+              </select>
+            </label>
+            <label>Mode
+              <select id="gameMode">
+                <option value="classic">Classic Moonveil Chess</option>
+                <option value="moonveil">Moonveil powers</option>
+              </select>
+            </label>
+          </div>
+          <div class="mode-actions">
+            <button onclick="createLobby()">Create lobby</button>
+            <button type="button" onclick="publicMatchmaking()">Public matchmaking</button>
+            <button type="button" class="ghost-btn" onclick="openInvitePicker()">Invite friend</button>
+            <button type="button" class="ghost-btn" onclick="goBack()">Back</button>
+          </div>
+          <div class="rules">
+            <strong>Time controls:</strong> Bullet 2 min, Blitz 5 min, Fast 10 min, Slow 30 min.<br>
+            <strong>Moonveil mode:</strong> each player gets one use of each tactical power per game.<br>
+            <strong>Rules:</strong> timer at 0 = loss, and a disconnection longer than 1 minute = forfeit.
+          </div>
+        </div>
+
+        <div class="status-card">
+          <span class="eyebrow">Online status</span>
+          <strong>Available Lobbies</strong>
+          <span>Create a ranked room, choose your clock, and start the duel.</span>
+        </div>
+
+        <div class="list-panel">
+          <div id="lobbies"></div>
+        </div>
+      </section>
+    </section>
+  </section>
+</main>
+
+<script>
+window.addEventListener("DOMContentLoaded", () => {
+  window.GameModeTabs?.init({ defaultMode: "online" });
+});
+
+async function checkGamesAccess(){
+  try{
+    const res = await fetch("/api/games/status?gameKey=chess");
+    const data = await res.json();
+
+    if(!data.enabled){
+      document.getElementById("blockedScreen").style.display = "flex";
+      return false;
+    }
+
+    return true;
+
+  }catch(err){
+    console.error(err);
+    return true;
+  }
+}
+
+(async ()=>{
+
+  const allowed = await checkGamesAccess();
+  if(!allowed) return;
+
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+
+  if(!user){
+    window.location.href = "/login.html";
+  }
+
+  // 🔥 FIX SOCKET SAFE
+  let socket;
+  if(typeof io !== "undefined"){
+    socket = io();
+    window.StrategyLeagueSocket = socket;
+  }else{
+    console.error("Socket.io not loaded");
+    return;
+  }
+
+  socket.emit("register_online", user.username);
+  socket.on("online_users", users=>{
+    window.dispatchEvent(new CustomEvent("site-shell-online-users", { detail: users }));
+  });
+  const timeLabels = {
+    120: "Bullet (2 min)",
+    300: "Blitz (5 min)",
+    600: "Fast (10 min)",
+    1800: "Slow (30 min)"
+  };
+  const gameModeLabels = {
+    classic: "Classic",
+    moonveil: "Moonveil"
+  };
+  let pendingInviteLobbyId = new URLSearchParams(window.location.search).get("inviteLobbyId");
+
+  function escapeLobbyHtml(text){
+    return String(text || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function lobbySlot(player){
+    if(!player){
+      return `<div class="sl-player-slot"><div class="sl-empty-avatar">+</div><strong>Available</strong><small>Invite a friend</small></div>`;
+    }
+    return `
+      <div class="sl-player-slot ${player.ready ? "is-ready" : ""}">
+        <div class="sl-player-avatar">${escapeLobbyHtml(player.username).slice(0, 1).toUpperCase()}</div>
+        <strong>${escapeLobbyHtml(player.username)}</strong>
+        <small>${player.ready ? "Ready" : "Waiting"}</small>
+      </div>
+    `;
+  }
+
+  function lobbySlots(lobby, me){
+    const players = lobby.players || [];
+    const maxPlayers = 2;
+    const emptySlots = Array.from({ length: Math.max(0, maxPlayers - players.length) });
+    return `
+      ${players.map(lobbySlot).join("")}
+      ${emptySlots.map((_slot, index) => me ? `
+        <button class="sl-lobby-invite" type="button" onclick="inviteToLobby('${lobby.id}')">
+          <b>+</b><span>Invite friend</span>
+        </button>
+      ` : lobbySlot(null)).join("")}
+    `;
+  }
+  
+      socket.on("lobbies_update", lobbies=>{
+
+      const list = Object.values(lobbies);
+
+      if(pendingInviteLobbyId){
+        const invitedLobby = list.find(lobby => lobby.id === pendingInviteLobbyId);
+        const alreadyInLobby = invitedLobby?.players?.some(player => player.username === user.username);
+        const full = (invitedLobby?.players?.length || 0) >= 2;
+        if(invitedLobby && !alreadyInLobby && !full){
+          joinLobby(pendingInviteLobbyId);
+          pendingInviteLobbyId = null;
+        }
+      }
+
+      if(!list.length){
+        document.getElementById("lobbies").innerHTML = "<div class='empty-state'>No lobby yet. Create the first room.</div>";
+        return;
+      }
+
+      document.getElementById("lobbies").innerHTML =
+      list.map(l=>{
+
+        const me = l.players.find(p=>p.username===user.username);
+
+        return `
+          <div class="sl-lobby-card">
+            <div class="sl-lobby-head">
+              <div>
+                <strong>${escapeLobbyHtml(l.name)}</strong>
+                <span>${timeLabels[l.time] || `${l.time}s`} · ${gameModeLabels[l.gameMode] || "Classic"}${l.matchmaking === "public" ? " · Public matchmaking" : ""}</span>
+              </div>
+              <div class="sl-lobby-count">${l.players.length}/2</div>
+            </div>
+            <div class="sl-lobby-slots">${lobbySlots(l, me)}</div>
+            <div class="sl-lobby-actions">
+              ${!me ? `<button onclick="joinLobby('${l.id}')">Join</button>` : `<button onclick="toggleReady('${l.id}')">Ready</button>`}
+            </div>
+          </div>
+        `;
+      }).join("");
+  });
+
+  function createLobby(){
+    const name = document.getElementById("name").value || "Moonveil Chess Room";
+    const time = parseInt(document.getElementById("timeControl").value);
+    const gameMode = document.getElementById("gameMode").value;
+    socket.emit("create_lobby",{ name, time, gameMode });
+  }
+
+  function publicMatchmaking(){
+    const time = parseInt(document.getElementById("timeControl").value);
+    const gameMode = document.getElementById("gameMode").value;
+    socket.emit("public_chess_matchmaking", { time, gameMode });
+  }
+
+  function joinLobby(id){
+    socket.emit("join_lobby", id);
+  }
+
+  function toggleReady(id){
+    socket.emit("toggle_ready", id);
+  }
+
+  function openInvitePicker(){
+    window.SiteShell?.openInvitePicker?.("chess");
+  }
+
+  function inviteToLobby(id){
+    window.SiteShell?.openLobbyInvitePicker?.("chess", id);
+  }
+
+  Object.assign(window, { createLobby, publicMatchmaking, joinLobby, toggleReady, openInvitePicker, inviteToLobby });
+
+  socket.on("chess_start", (data)=>{
+  localStorage.setItem("chessSession", JSON.stringify(data));
+    window.location.href = "/moonveil-chess/game.html";
+  });
+
+  window.createLobby = createLobby;
+  window.publicMatchmaking = publicMatchmaking;
+  window.joinLobby = joinLobby;
+  window.toggleReady = toggleReady;
+  window.openInvitePicker = openInvitePicker;
+
+})();
+
+function goBack(){
+  window.location.href = "/games.html";
+}
+</script>
+</body>
+</html>

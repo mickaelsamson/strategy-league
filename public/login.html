@@ -18,7 +18,7 @@ body{
   font-family:"Trebuchet MS", "Segoe UI", sans-serif;
   background:
     linear-gradient(115deg, rgba(2,7,11,0.96) 0%, rgba(7,16,22,0.82) 46%, rgba(7,16,22,0.58) 100%),
-    url("/chess/board.png") center/cover fixed,
+    url("/moonveil-chess/board.png") center/cover fixed,
     #02070b;
 }
 
@@ -48,7 +48,7 @@ input{
   justify-content:space-between;
   background:
     linear-gradient(135deg, rgba(18,8,10,0.9), rgba(18,8,10,0.26) 62%),
-    url("/moonfall-settlers/assets/generated/moonfall-bg.png") center/cover;
+    url("/moonveil-realms/assets/generated/moonveil-bg.png") center/cover;
   isolation:isolate;
 }
 
@@ -416,7 +416,7 @@ input{
         </div>
         <div class="field">
           <label for="regUsername">Username</label>
-          <input id="regUsername" type="text" autocomplete="username" placeholder="MoonfallMaster" required>
+          <input id="regUsername" type="text" autocomplete="username" placeholder="MoonveilMaster" required>
         </div>
         <div class="field">
           <label for="regFirstName">First name</label>
@@ -542,14 +542,14 @@ function storeUser(data){
     avatar: data.avatar,
     elo: data.elo,
     chessElo: data.chessElo,
-    othelloElo: data.othelloElo,
-    azulElo: data.azulElo,
+    moonveil_dominionElo: data.moonveil_dominionElo,
+    moonveil_glyphElo: data.moonveil_glyphElo,
     strategyElo: data.strategyElo,
-    moonfallP4Elo: data.moonfallP4Elo,
-    hexblitzElo: data.hexblitzElo,
-    moonfallSettlersElo: data.moonfallSettlersElo,
-    moonfallWorldConquestElo: data.moonfallWorldConquestElo,
-    moonfallRtsElo: data.moonfallRtsElo,
+    moonveilNexusElo: data.moonveilNexusElo,
+    moonveil_hexfallElo: data.moonveil_hexfallElo,
+    moonveilRealmsElo: data.moonveilRealmsElo,
+    moonveilConquestElo: data.moonveilConquestElo,
+    moonveilAscendElo: data.moonveilAscendElo,
     ratings: data.ratings,
     xp: data.xp,
     level: data.level,

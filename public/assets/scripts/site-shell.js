@@ -80,7 +80,7 @@
   function getActiveLink(){
     const path = window.location.pathname;
     if(path === '/' || path === '/index.html') return 'home';
-    if(path.includes('/chess') || path.includes('/othello') || path.includes('/azul') || path.includes('/moonfall') || path.endsWith('/games.html')) return 'games';
+    if(path.includes('/chess') || path.includes('/moonveil-dominion') || path.includes('/moonveil-glyph') || path.includes('/moonveil') || path.endsWith('/games.html')) return 'games';
     if(path.includes('/leaderboard')) return 'leaderboard';
     if(path.includes('/weekly-challenge')) return 'challenges';
     if(path.includes('/coming-soon')){
@@ -89,7 +89,7 @@
       if(feature.includes('tournament')) return 'tournaments';
       if(feature.includes('setting')) return 'settings';
     }
-    if(path.includes('/strategy') || path.includes('/moonfall-world-conquest')) return 'games';
+    if(path.includes('/strategy') || path.includes('/moonveil-conquest')) return 'games';
     if(path.includes('/profile')) return 'profile';
     if(path.includes('/admin')) return 'admin';
     return 'home';
@@ -100,13 +100,13 @@
     if(path.endsWith('/games.html')) return true;
     return [
       '/chess',
-      '/othello',
-      '/azul',
-      '/moonfall-p4',
-      '/hexblitz_moonfall',
-      '/moonfall-settlers',
-      '/moonfall-world-conquest',
-      '/moonfall-rts',
+      '/moonveil-dominion',
+      '/moonveil-glyph',
+      '/moonveil-nexus',
+      '/moonveil-hexfall',
+      '/moonveil-realms',
+      '/moonveil-conquest',
+      '/moonveil-ascend',
       '/strategy'
     ].some(segment => path.includes(segment));
   }
@@ -302,7 +302,7 @@
       '#gameView:not([hidden])',
       '#gameScreen:not([hidden])',
       '.moonveil-scene',
-      '.azul-game',
+      '.moonveil_glyph-game',
       '#main',
       'main'
     ];
@@ -383,7 +383,7 @@
 
   function isSocketOwnedByPage(){
     const path = window.location.pathname;
-    return path.includes('/chess') || path.includes('/othello') || path.includes('/azul') || path.includes('/moonfall-settlers') || path.includes('/moonfall-p4') || path.includes('/hexblitz_moonfall');
+    return path.includes('/chess') || path.includes('/moonveil-dominion') || path.includes('/moonveil-glyph') || path.includes('/moonveil-realms') || path.includes('/moonveil-nexus') || path.includes('/moonveil-hexfall');
   }
 
   function waitForPageSocket(){
@@ -412,26 +412,26 @@
   function currentGameKey(){
     const path = window.location.pathname;
     if(path.includes('/chess')) return 'chess';
-    if(path.includes('/othello')) return 'othello';
-    if(path.includes('/azul')) return 'azul';
-    if(path.includes('/moonfall-settlers')) return 'moonfall';
-    if(path.includes('/moonfall-p4')) return 'moonfall_p4';
-    if(path.includes('/hexblitz_moonfall')) return 'hexblitz';
-    if(path.includes('/moonfall-world-conquest')) return 'moonfall_world_conquest';
-    if(path.includes('/moonfall-rts')) return 'moonfall_rts';
+    if(path.includes('/moonveil-dominion')) return 'moonveil_dominion';
+    if(path.includes('/moonveil-glyph')) return 'moonveil_glyph';
+    if(path.includes('/moonveil-realms')) return 'moonveil_realms';
+    if(path.includes('/moonveil-nexus')) return 'moonveil_nexus';
+    if(path.includes('/moonveil-hexfall')) return 'moonveil_hexfall';
+    if(path.includes('/moonveil-conquest')) return 'moonveil_conquest';
+    if(path.includes('/moonveil-ascend')) return 'moonveil_ascend';
     return null;
   }
 
   function gameUrlFor(gameKey){
     return {
-      chess: '/chess/chess-game.html',
-      othello: '/othello/game.html',
-      azul: '/azul/game.html',
-      moonfall: '/moonfall-settlers/index.html',
-      moonfall_p4: '/moonfall-p4/index.html',
-      hexblitz: '/hexblitz_moonfall/index.html',
-      moonfall_world_conquest: '/moonfall-world-conquest/index.html',
-      moonfall_rts: '/moonfall-rts/index.html'
+      chess: '/moonveil-chess/game.html',
+      moonveil_dominion: '/moonveil-dominion/game.html',
+      moonveil_glyph: '/moonveil-glyph/game.html',
+      moonveil_realms: '/moonveil-realms/index.html',
+      moonveil_nexus: '/moonveil-nexus/index.html',
+      moonveil_hexfall: '/moonveil-hexfall/index.html',
+      moonveil_conquest: '/moonveil-conquest/index.html',
+      moonveil_ascend: '/moonveil-ascend/index.html'
     }[gameKey] || '/games.html';
   }
 
@@ -492,8 +492,8 @@
 
   function acceptRematch(socket, gameKey){
     if(gameKey === 'chess') socket.emit('rematch');
-    if(gameKey === 'othello') socket.emit('othello_rematch');
-    if(gameKey === 'azul') socket.emit('azul_rematch');
+    if(gameKey === 'moonveil_dominion') socket.emit('moonveil_dominion_rematch');
+    if(gameKey === 'moonveil_glyph') socket.emit('moonveil_glyph_rematch');
     const url = gameUrlFor(gameKey);
     if(window.location.pathname !== url){
       setTimeout(() => { window.location.href = url; }, 120);

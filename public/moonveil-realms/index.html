@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/assets/styles/theme.css">
+  <link rel="stylesheet" href="/assets/styles/tutorial-guide.css">
+  <link rel="stylesheet" href="/moonveil-realms/style.css">
+  <script defer src="/assets/scripts/site-shell.js"></script>
+  <script src="/assets/scripts/tutorial-guide.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script defer src="/moonveil-realms/game.js"></script>
+  <title>Moonveil Realms</title>
+</head>
+<body class="with-navbar moonrealms-page">
+<div id="navbar-container"></div>
+
+<main class="moonrealms-app">
+  <section id="setupView" class="setup-view">
+    <div class="setup-art" aria-hidden="true">
+      <div class="moon-disc"></div>
+      <div class="preview-board">
+        <span class="hex h1"></span>
+        <span class="hex h2"></span>
+        <span class="hex h3"></span>
+        <span class="hex h4"></span>
+        <span class="hex h5"></span>
+        <span class="hex h6"></span>
+        <span class="hex h7"></span>
+      </div>
+      <div class="blade-line"></div>
+    </div>
+
+    <form id="setupForm" class="setup-card">
+      <div class="tutorial-launch">
+        <button type="button" class="tutorial-btn" onclick="window.location.href='/moonveil-realms/index.html?tutorial=1'">Tutorial</button>
+      </div>
+      <span class="eyebrow">Moonveil board strategy</span>
+      <h1>Moonveil Realms</h1>
+      <p class="setup-copy">A dark tactical Realmcraft board: rival clans, settlements, roads, ports, development cards, and the Moon Oni at the center of the conflict.</p>
+
+      <div class="setup-mode-tabs" role="tablist" aria-label="Game mode">
+        <button id="localModeBtn" type="button" class="setup-mode-tab is-active">Local</button>
+        <button id="onlineModeBtn" type="button" class="setup-mode-tab">Online</button>
+      </div>
+
+      <div id="localSetupPanel">
+        <div class="setup-grid">
+          <label>Players
+            <select id="playerCount">
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4" selected>4</option>
+            </select>
+          </label>
+          <label>Board
+            <select id="boardMode">
+              <option value="balanced" selected>Balanced</option>
+              <option value="wild">Wild</option>
+            </select>
+          </label>
+          <label>Score
+            <select id="targetScore">
+              <option value="8">8</option>
+              <option value="10" selected>10</option>
+              <option value="12">12</option>
+            </select>
+          </label>
+          <label>Timer
+            <select id="turnTimer">
+              <option value="0">Off</option>
+              <option value="30">30 sec</option>
+              <option value="60" selected>60 sec</option>
+              <option value="90">90 sec</option>
+              <option value="120">120 sec</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="slots" class="slots"></div>
+
+        <div class="setup-actions">
+          <button id="shuffleBtn" type="button" class="secondary-btn">Shuffle</button>
+          <button type="submit" class="primary-btn">Start Game</button>
+        </div>
+      </div>
+
+      <section id="onlineSetupPanel" class="online-setup is-hidden" hidden>
+        <div class="online-create">
+          <div class="setup-grid">
+            <label>Lobby name
+              <input id="onlineLobbyName" value="Moonveil Lobby">
+            </label>
+            <label>Players
+              <select id="onlineMaxPlayers">
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4" selected>4</option>
+              </select>
+            </label>
+            <label>Board
+              <select id="onlineBoardMode">
+                <option value="balanced" selected>Balanced</option>
+                <option value="wild">Wild</option>
+              </select>
+            </label>
+          </div>
+          <div class="setup-grid online-score-row">
+            <label>Score
+              <select id="onlineTargetScore">
+                <option value="8">8</option>
+                <option value="10" selected>10</option>
+                <option value="12">12</option>
+              </select>
+            </label>
+            <label>Timer
+              <select id="onlineTurnTimer">
+                <option value="0">Off</option>
+                <option value="30">30 sec</option>
+                <option value="60" selected>60 sec</option>
+                <option value="90">90 sec</option>
+                <option value="120">120 sec</option>
+              </select>
+            </label>
+            <div class="online-cta-group">
+              <button id="createOnlineLobbyBtn" type="button" class="primary-btn">Create lobby</button>
+              <button id="publicMatchmakingBtn" type="button" class="secondary-btn">Public matchmaking</button>
+              <button id="refreshOnlineBtn" type="button" class="secondary-btn">Refresh</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="online-status-card">
+          <span class="eyebrow">Lobby status</span>
+          <strong id="onlineLobbyStatus">Choose a lobby or create one.</strong>
+          <span id="onlineLobbyMeta">Online Moonveil supports 2 to 4 human players.</span>
+        </div>
+
+        <div id="onlineLobbyList" class="online-lobby-list"></div>
+      </section>
+    </form>
+  </section>
+
+  <section id="gameView" class="game-view is-hidden" hidden>
+    <header class="topbar">
+      <div class="turn-block">
+        <span class="eyebrow">Turn <b id="turnHud">1</b></span>
+        <strong id="activePlayer">Clan</strong>
+      </div>
+      <div class="status-strip">
+        <span><b id="phaseHud">Placement</b> phase</span>
+        <span><b id="pointsHud">0</b> points</span>
+        <span><b id="targetHud">10</b> target</span>
+      </div>
+      <div class="top-actions">
+        <div id="timerHud" class="turn-timer" aria-live="polite">--</div>
+        <button id="surrenderBtn" type="button">Surrender</button>
+      </div>
+    </header>
+
+    <div class="play-layout">
+      <nav class="tool-rail" aria-label="Tools">
+        <button id="newGameBtn" class="tool-icon" type="button" title="New game">↺</button>
+        <button class="tool-icon" type="button" title="Info" data-panel-target="boardPanel">i</button>
+        <button class="tool-icon" type="button" title="Log" data-panel-target="logPanel">≡</button>
+      </nav>
+
+      <div class="board-frame">
+        <canvas id="boardCanvas" aria-label="Plateau Moonveil Realms"></canvas>
+        <div id="notice" class="notice" aria-live="polite"></div>
+      </div>
+
+      <aside class="dice-stage" aria-label="Dice">
+        <div id="diceHud" class="dice-pair" aria-live="polite">
+          <i class="die-face is-empty"></i>
+          <i class="die-face is-empty"></i>
+        </div>
+        <button id="rollBtn" type="button" class="dice-roll-btn">Roll dices</button>
+        <button id="endTurnBtn" type="button" class="dice-roll-btn dice-end-btn">End turn</button>
+      </aside>
+
+      <aside class="intel-panel">
+        <section class="message-card">
+          <h2>Moonveil</h2>
+          <div id="boardPanel" class="board-panel"></div>
+        </section>
+        <section>
+          <h2>Log</h2>
+          <div id="logPanel" class="log-panel"></div>
+        </section>
+        <section>
+          <h2>Players</h2>
+          <div id="playersPanel" class="players-panel"></div>
+        </section>
+      </aside>
+
+      <footer class="bottom-dock">
+        <div id="resourcePanel" class="resource-panel"></div>
+
+        <div class="build-console">
+          <div class="command-grid build-grid">
+            <button id="roadBtn" type="button">Road</button>
+            <button id="settlementBtn" type="button">Settlement</button>
+            <button id="cityBtn" type="button">City</button>
+            <button id="devBtn" type="button">Card</button>
+          </div>
+          <div id="costPanel" class="cost-panel"></div>
+        </div>
+
+        <details class="dock-drawer">
+          <summary>Cards</summary>
+          <div id="devPanel" class="dev-panel"></div>
+        </details>
+
+        <details class="dock-drawer trade-drawer">
+          <summary id="tradeOpenBtn" class="trade-open-btn">Trade</summary>
+        </details>
+      </footer>
+
+      <div id="tradeModal" class="trade-modal is-hidden" hidden>
+        <div class="trade-card" role="dialog" aria-modal="true" aria-labelledby="tradeTitle">
+          <div class="trade-head">
+            <div>
+              <span class="eyebrow">Moonveil exchange</span>
+              <strong id="tradeTitle">Trade</strong>
+            </div>
+            <div class="trade-mode-toggle">
+              <button id="tradeBankModeBtn" type="button">Bank</button>
+              <button id="tradeClanModeBtn" type="button">Clans</button>
+            </div>
+            <button id="tradeCloseBtn" type="button" class="trade-close-btn" aria-label="Close trade">X</button>
+          </div>
+
+          <div id="tradePartnerRow" class="trade-partner-row"></div>
+
+          <div class="trade-body">
+            <section class="trade-lane">
+              <h3>You give</h3>
+              <div id="tradeGiveIcons" class="trade-resource-grid"></div>
+              <div class="trade-stepper">
+                <button id="tradeGiveMinus" type="button">-</button>
+                <span id="tradeGiveAmountLabel">1</span>
+                <button id="tradeGivePlus" type="button">+</button>
+              </div>
+            </section>
+
+            <section class="trade-lane">
+              <h3>You receive</h3>
+              <div id="tradeGetIcons" class="trade-resource-grid"></div>
+              <div class="trade-stepper">
+                <button id="tradeGetMinus" type="button">-</button>
+                <span id="tradeGetAmountLabel">1</span>
+                <button id="tradeGetPlus" type="button">+</button>
+              </div>
+            </section>
+          </div>
+
+          <div id="tradeSummary" class="trade-summary"></div>
+
+          <div class="trade-actions-bar">
+            <button id="tradeSubmitBtn" type="button">Confirm trade</button>
+            <button id="tradeCancelBtn" type="button">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="tradeResponseModal" class="trade-response-modal is-hidden" hidden>
+        <div class="trade-response-card" role="dialog" aria-modal="true" aria-labelledby="tradeResponseTitle">
+          <span class="eyebrow">Offer</span>
+          <strong id="tradeResponseTitle">Trade proposal</strong>
+          <p id="tradeResponseText"></p>
+          <div id="tradeResponseSummary" class="trade-summary"></div>
+          <div id="tradeResponseActions" class="trade-actions-bar">
+            <button id="tradeAcceptBtn" type="button">Accept</button>
+            <button id="tradeDeclineBtn" type="button">Decline</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="rules-card" aria-labelledby="rulesTitle">
+    <span class="eyebrow">Complete rules</span>
+    <h2 id="rulesTitle">Moonveil Realms Rules</h2>
+    <div class="rules-content">
+      <p><strong>Goal.</strong> Be the first clan to reach the selected victory score. Settlements are worth 1 point, cities 2 points, Victory Relic cards 1 point, Longest Road 2 points, and Largest Army 2 points.</p>
+      <p><strong>Setup.</strong> Each clan places one settlement and one road in player order, then again in reverse order. The second settlement grants one starting resource from each adjacent non-crater tile.</p>
+      <p><strong>Turn flow.</strong> Roll two dice, collect resources from matching numbered tiles, then build, trade, buy or play one development card, and end the turn.</p>
+      <p><strong>Resources.</strong> Forest gives Wood, Brick gives Brick, Wheat gives Wheat, Pasture gives Sheep, and Mountain gives Ore. A settlement collects 1 resource; a city collects 2.</p>
+      <p><strong>Building.</strong> Roads cost 1 Wood and 1 Brick. Settlements cost 1 Wood, 1 Brick, 1 Wheat, and 1 Sheep. Cities cost 2 Wheat and 3 Ore. Development cards cost 1 Wheat, 1 Sheep, and 1 Ore.</p>
+      <p><strong>Placement.</strong> Settlements must be at least two edges away from every other settlement or city. Outside setup, new settlements must connect to one of your roads. Roads must connect to your road network or one of your buildings.</p>
+      <p><strong>Oni / seven.</strong> On a 7, clans with more than 7 resources discard half at random. The active clan moves the Oni to another tile and steals one random resource from an adjacent rival with resources. The Oni blocks production on its tile.</p>
+      <p><strong>Development cards.</strong> Knight moves the Oni and counts toward Largest Army. Road Building places two free roads. Year of Plenty gives any two resources. Monopoly takes one resource type from every other clan. Victory Relics score points while held.</p>
+      <p><strong>Trade.</strong> Bank trades are normally 4:1, improved to 3:1 by generic ports or 2:1 by matching resource ports. Clan trades require the partner to accept the proposed exchange.</p>
+      <p><strong>Awards.</strong> Longest Road requires at least 5 connected roads and moves only when another clan exceeds the holder. Largest Army requires at least 3 Knights and moves only when another clan exceeds the holder.</p>
+      <p><strong>Timer and surrender.</strong> When the timer is enabled, a human who times out has the dice rolled automatically when needed, then the turn is passed. After 3 timed-out turns, that player surrenders. If at least 2 human clans remain, the surrendered clan is controlled by AI; if only 1 human clan remains, that human wins immediately.</p>
+    </div>
+  </section>
+</main>
+</body>
+</html>

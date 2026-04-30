@@ -56,14 +56,14 @@ if(!user){
 
 const leaderboardTypes = [
   { key: "global", label: "Global XP" },
-  { key: "chess", label: "Chess" },
-  { key: "othello", label: "Othello" },
-  { key: "azul", label: "Azul" },
-  { key: "moonfall_p4", label: "Moonveil Nexus" },
-  { key: "hexblitz", label: "Hexblitz" },
-  { key: "moonfall_settlers", label: "Settlers" },
-  { key: "moonfall_world_conquest", label: "World Conquest" },
-  { key: "moonfall_rts", label: "RTS" }
+  { key: "chess", label: "Moonveil Chess" },
+  { key: "moonveil_dominion", label: "Moonveil Dominion" },
+  { key: "moonveil_glyph", label: "Moonveil Glyph" },
+  { key: "moonveil_nexus", label: "Moonveil Nexus" },
+  { key: "moonveil_hexfall", label: "Moonveil Hexfall" },
+  { key: "moonveil_realms", label: "Moonveil Realms" },
+  { key: "moonveil_conquest", label: "Moonveil Conquest" },
+  { key: "moonveil_ascend", label: "Moonveil Ascend" }
 ];
 
 const profileCache = new Map();
@@ -102,13 +102,13 @@ function renderTooltipContent(profile){
     <div>Level: ${profile?.level || profile?.levelInfo?.level || 1}</div>
     <div>XP: ${profile?.xp ?? 0}</div>
     <div>Chess: ${ratings.chess ?? profile?.chessElo ?? 1000}</div>
-    <div>Othello: ${ratings.othello ?? profile?.othelloElo ?? 1000}</div>
-    <div>Azul: ${ratings.azul ?? profile?.azulElo ?? 1000}</div>
-    <div>Moonveil Nexus: ${ratings.moonfall_p4 ?? profile?.moonfallP4Elo ?? 1000}</div>
-    <div>Hexblitz: ${ratings.hexblitz ?? profile?.hexblitzElo ?? 1000}</div>
-    <div>Settlers: ${ratings.moonfall_settlers ?? profile?.moonfallSettlersElo ?? 1000}</div>
-    <div>World Conquest: ${ratings.moonfall_world_conquest ?? profile?.moonfallWorldConquestElo ?? 1000}</div>
-    <div>RTS: ${ratings.moonfall_rts ?? profile?.moonfallRtsElo ?? 1000}</div>
+    <div>Moonveil Dominion: ${ratings.moonveil_dominion ?? profile?.moonveil_dominionElo ?? 1000}</div>
+    <div>Moonveil Glyph: ${ratings.moonveil_glyph ?? profile?.moonveil_glyphElo ?? 1000}</div>
+    <div>Moonveil Nexus: ${ratings.moonveil_nexus ?? profile?.moonveilNexusElo ?? 1000}</div>
+    <div>Moonveil Hexfall: ${ratings.moonveil_hexfall ?? profile?.moonveil_hexfallElo ?? 1000}</div>
+    <div>Moonveil Realms: ${ratings.moonveil_realms ?? profile?.moonveilRealmsElo ?? 1000}</div>
+    <div>Moonveil Conquest: ${ratings.moonveil_conquest ?? profile?.moonveilConquestElo ?? 1000}</div>
+    <div>Moonveil Ascend: ${ratings.moonveil_ascend ?? profile?.moonveilAscendElo ?? 1000}</div>
   `;
 }
 
@@ -202,7 +202,7 @@ async function loadRules(){
     if(!response.ok) throw new Error("Rules unavailable");
 
     const rules = data.xpRules || {};
-    const orderedKeys = ["moonfall_p4","othello","hexblitz","chess","azul","moonfall_settlers","moonfall_rts","moonfall_world_conquest"];
+    const orderedKeys = ["moonveil_nexus","moonveil_dominion","moonveil_hexfall","chess","moonveil_glyph","moonveil_realms","moonveil_ascend","moonveil_conquest"];
     document.getElementById("rulesGrid").innerHTML = `
       <strong>Game</strong>
       <strong>Win</strong>
