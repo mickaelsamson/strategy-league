@@ -38,6 +38,7 @@
     leftSelect: document.getElementById('leftSelect'),
     rightSelect: document.getElementById('rightSelect'),
     timer: document.getElementById('timer'),
+    enemyTimer: document.getElementById('enemyTimer'),
     turnCount: document.getElementById('turnCount'),
     modeLabel: document.getElementById('modeLabel'),
     winCard: document.getElementById('winCard'),
@@ -47,6 +48,10 @@
     menuBtn: document.getElementById('menuBtn'),
     surrenderBtn: document.getElementById('surrenderBtn'),
     newGameShortcut: document.getElementById('newGameShortcut'),
+    p1Crest: document.getElementById('p1Crest'),
+    p2Crest: document.getElementById('p2Crest'),
+    p1PanelName: document.getElementById('p1PanelName'),
+    p2PanelName: document.getElementById('p2PanelName'),
     youName: document.getElementById('youName'),
     enemyName: document.getElementById('enemyName'),
     youRole: document.getElementById('youRole'),
@@ -68,6 +73,7 @@
     gameId: null,
     hostUsername: null,
     players: [],
+    profiles: {},
     me: user?.username || 'Player'
   };
 
@@ -138,9 +144,13 @@
   function startTimer(){
     clearInterval(timerId);
     timerId = setInterval(() => {
-      dom.timer.textContent = formatTime(secondsElapsed());
+      const text = formatTime(secondsElapsed());
+      dom.timer.textContent = text;
+      if(dom.enemyTimer) dom.enemyTimer.textContent = text;
     }, 1000);
-    dom.timer.textContent = formatTime(secondsElapsed());
+    const text = formatTime(secondsElapsed());
+    dom.timer.textContent = text;
+    if(dom.enemyTimer) dom.enemyTimer.textContent = text;
   }
 
   function resetState(){
@@ -378,6 +388,26 @@
         dom.board.appendChild(cell);
       }
     }
+
+    if(state.winningCells?.length >= 4){
+      const cells = state.winningCells.slice(0, 4).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+      const [startRow, startCol] = cells[0];
+      const [endRow, endCol] = cells[cells.length - 1];
+      const x1 = ((startCol + 0.5) / COLS) * 100;
+      const y1 = ((startRow + 0.5) / ROWS) * 100;
+      const x2 = ((endCol + 0.5) / COLS) * 100;
+      const y2 = ((endRow + 0.5) / ROWS) * 100;
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const dyAsWidth = dy * (ROWS / COLS);
+      const line = document.createElement('span');
+      line.className = 'win-line';
+      line.style.left = `${x1}%`;
+      line.style.top = `${y1}%`;
+      line.style.width = `${Math.hypot(dx, dyAsWidth)}%`;
+      line.style.transform = `rotate(${Math.atan2(dyAsWidth, dx)}rad)`;
+      dom.board.appendChild(line);
+    }
   }
 
   function isPlayersTurn(){
@@ -385,21 +415,62 @@
     return !state.gameOver && myToken() === state.currentPlayer;
   }
 
+  function fallbackAvatar(index){
+    return `/avatars/avatar-${String(index).padStart(2, '0')}.png`;
+  }
+
+  function playerInfo(token){
+    if(isOnlineGame()){
+      const username = online.players[token - 1] || `Player ${token}`;
+      return {
+        username,
+        avatar: online.profiles?.[username]?.avatar || (username === user?.username ? user?.avatar : '') || fallbackAvatar(token)
+      };
+    }
+
+    if(token === P1){
+      return {
+        username: user?.username || 'Player 1',
+        avatar: user?.avatar || fallbackAvatar(1)
+      };
+    }
+
+    return {
+      username: tutorialMode ? 'Coach AI' : 'Player 2',
+      avatar: fallbackAvatar(2)
+    };
+  }
+
+  function renderCrest(target, info, token){
+    if(!target) return;
+    target.classList.toggle('has-avatar', Boolean(info.avatar));
+    target.dataset.initial = (info.username || `P${token}`).slice(0, 1).toUpperCase();
+    target.innerHTML = info.avatar
+      ? `<img src="${escapeHtml(info.avatar)}" alt="">`
+      : `<span>${escapeHtml(target.dataset.initial)}</span>`;
+  }
+
   function updatePlayerCards(){
+    const p1 = playerInfo(P1);
+    const p2 = playerInfo(P2);
+    dom.p1PanelName.textContent = p1.username;
+    dom.p2PanelName.textContent = p2.username;
+    renderCrest(dom.p1Crest, p1, P1);
+    renderCrest(dom.p2Crest, p2, P2);
+
+    if(!dom.youName || !dom.enemyName || !dom.youRole || !dom.enemyRole) return;
+
     if(!isOnlineGame()){
-      dom.youName.textContent = 'YOU';
-      dom.enemyName.textContent = tutorialMode ? 'COACH AI' : 'RIVAL';
-      dom.youRole.textContent = 'Moonveil';
-      dom.enemyRole.textContent = tutorialMode ? 'Tutorial AI' : 'Nexus';
+      dom.youName.textContent = p1.username;
+      dom.enemyName.textContent = p2.username;
+      dom.youRole.textContent = 'Moonveil orbs';
+      dom.enemyRole.textContent = tutorialMode ? 'Tutorial AI' : 'Nexus orbs';
       return;
     }
 
-    const p1 = online.players[0] || 'Player 1';
-    const p2 = online.players[1] || 'Player 2';
-    const meIsP1 = online.me === p1;
-
+    const meIsP1 = online.me === p1.username;
     dom.youName.textContent = online.me;
-    dom.enemyName.textContent = meIsP1 ? p2 : p1;
+    dom.enemyName.textContent = meIsP1 ? p2.username : p1.username;
     dom.youRole.textContent = meIsP1 ? 'Moonveil orbs' : 'Nexus orbs';
     dom.enemyRole.textContent = meIsP1 ? 'Nexus orbs' : 'Moonveil orbs';
   }
@@ -421,7 +492,7 @@
       dom.status.textContent = currentIsP1 ? 'YOUR TURN' : 'COACH AI';
       dom.status.style.color = currentIsP1 ? '#cf67ff' : '#f5dc96';
     }else{
-      dom.status.textContent = currentIsP1 ? 'MOONVEIL TURN' : 'NEXUS TURN';
+      dom.status.textContent = `${playerInfo(state.currentPlayer).username} TURN`;
       dom.status.style.color = currentIsP1 ? '#cf67ff' : '#f5dc96';
     }
 
@@ -434,9 +505,11 @@
     const localWin = !isOnlineGame() ? winnerToken === P1 : myToken() === winnerToken;
 
     if(!isOnlineGame()){
-      dom.winTitle.textContent = winnerToken === P1 ? 'PLAYER 1 WINS!' : 'PLAYER 2 WINS!';
+      const winner = playerInfo(winnerToken);
+      const loser = playerInfo(winnerToken === P1 ? P2 : P1);
+      dom.winTitle.textContent = `${winner.username} WINS!`;
       dom.winText.textContent = surrendered
-        ? (winnerToken === P1 ? 'NEXUS SURRENDERED' : 'MOONVEIL SURRENDERED')
+        ? `${loser.username} SURRENDERED`
         : '4 IN A ROW';
     }else{
       dom.winTitle.textContent = localWin ? 'VICTORY' : 'DEFEAT';
@@ -476,6 +549,7 @@
     online.hostUsername = null;
     online.players = [];
 
+    document.body.classList.remove('is-playing-p4');
     dom.gameView.classList.add('is-hidden');
     dom.gameView.hidden = true;
     dom.setupView.classList.remove('is-hidden');
@@ -490,6 +564,8 @@
     dom.gameView.classList.remove('is-hidden');
     dom.gameView.hidden = false;
     dom.winCard.classList.add('hidden');
+    document.body.classList.add('is-playing-p4');
+    window.scrollTo(0, 0);
 
     renderBoard();
     updateUI();
@@ -640,6 +716,8 @@
     socket.emit('register_online', online.me);
 
     socket.on('online_users', users => {
+      online.profiles = users || {};
+      updatePlayerCards();
       window.dispatchEvent(new CustomEvent('site-shell-online-users', { detail: users }));
     });
 

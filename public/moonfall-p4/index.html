@@ -83,9 +83,9 @@
 
       <div class="play-layout">
         <aside class="left-panel player-panel panel-skin">
-          <div class="crest crest-moonveil" aria-hidden="true"></div>
+          <div id="p1Crest" class="crest crest-moonveil" aria-hidden="true"></div>
           <p class="player-kicker">Player 1</p>
-          <h2>Moonveil</h2>
+          <h2 id="p1PanelName">Player 1</h2>
           <div class="panel-divider"></div>
           <div class="info-box">
             <p><span>Time</span><b id="timer">00:00</b></p>
@@ -115,26 +115,13 @@
         </section>
 
         <aside class="right-panel player-panel panel-skin">
-          <div class="crest crest-nexus" aria-hidden="true"></div>
+          <div id="p2Crest" class="crest crest-nexus" aria-hidden="true"></div>
           <p class="player-kicker">Player 2</p>
-          <h2>Nexus</h2>
+          <h2 id="p2PanelName">Player 2</h2>
           <div class="panel-divider"></div>
-          <div class="player-card enemy">
-            <div class="avatar">◆</div>
-            <div>
-              <strong id="enemyName">RIVAL</strong>
-              <p id="enemyRole">Player 2</p>
-            </div>
-          </div>
-
-          <div class="vs">VS</div>
-
-          <div class="player-card you">
-            <div class="avatar">◇</div>
-            <div>
-              <strong id="youName">YOU</strong>
-              <p id="youRole">Player 1</p>
-            </div>
+          <div class="info-box opponent-clock">
+            <p><span>Time</span><b id="enemyTimer">00:00</b></p>
+            <p><span>Orb</span><b>Nexus</b></p>
           </div>
 
           <button id="newGameShortcut" type="button" class="secondary-btn">New Game</button>

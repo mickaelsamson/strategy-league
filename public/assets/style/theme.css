@@ -1172,7 +1172,7 @@ body.app-shell-active #score{
   color:var(--shell-text) !important;
 }
 
-body.app-shell-active button:not(.shell-nav-item):not(.shell-brand):not(.online-player):not(.online-tab):not(.online-plus):not(.online-invite-target):not(.online-row-action):not(.shell-notification-bell):not(.shell-fullscreen-btn):not(.sl-lobby-invite):not(#friendSearchClear),
+body.app-shell-active:not(.moonfall-p4-page) button:not(.shell-nav-item):not(.shell-brand):not(.online-player):not(.online-tab):not(.online-plus):not(.online-invite-target):not(.online-row-action):not(.shell-notification-bell):not(.shell-fullscreen-btn):not(.sl-lobby-invite):not(#friendSearchClear),
 body.app-shell-active .back-btn{
   border:1px solid var(--shell-line) !important;
   border-radius:8px !important;
