@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="utf-8">
 <link rel="stylesheet" href="/assets/styles/theme.css">
 <script defer src="/assets/scripts/site-shell.js"></script>
 <title>Strategy League</title>
@@ -242,8 +243,11 @@ body{
 .week-card.chess{background:url("/moonveil-chess/board.png") center/cover;}
 .week-card.moonveil_dominion{background:linear-gradient(135deg, #194537, #0c241f 54%, #3a1018);}
 .week-card.moonveil_glyph{background:linear-gradient(135deg, #083044, #0196b3 46%, #ffc44e);}
+.week-card.moonveil-nexus{background:url("/assets/images/games/moonveil-nexus-card.webp") center/cover;}
+.week-card.moonveil_hexfall{background:url("/assets/images/games/moonveil-hexfall-game.webp") center/cover;}
 .week-card.strategy{background:url("/moonveil-conquest/map.svg") center/cover;}
 .week-card.moonveil-realms{background:linear-gradient(135deg, #173039, #d9b45f 44%, #6d5bb4);}
+.week-card.moonveil-conquest{background:url("/assets/images/games/moonveil-conquest-game.svg") center/cover;}
 .week-card.moonveil-ascend{background:linear-gradient(135deg, #10272a, #5dd8ff 48%, #24161b);}
 
 .week-card > *{
@@ -575,8 +579,11 @@ body{
 .week-card.chess{background:url("/assets/images/games/moonveil-chess-game.webp") center/cover}
 .week-card.moonveil_dominion{background:url("/assets/images/games/moonveil-dominion-game.webp") center/cover}
 .week-card.moonveil_glyph{background:url("/assets/images/games/moonveil-glyph-game.webp") center/cover}
+.week-card.moonveil-nexus{background:url("/assets/images/games/moonveil-nexus-card.webp") center/cover}
+.week-card.moonveil_hexfall{background:url("/assets/images/games/moonveil-hexfall-game.webp") center/cover}
 .week-card.strategy{background:url("/assets/images/games/comingsoon-game.webp") center/cover}
 .week-card.moonveil-realms{background:url("/assets/images/games/moonveil-realms-game.webp") center/cover}
+.week-card.moonveil-conquest{background:url("/assets/images/games/moonveil-conquest-game.svg") center/cover}
 .week-card.moonveil-ascend{background:url("/assets/images/games/comingsoon-game.webp") center/cover}
 .quick-game{background:linear-gradient(135deg,rgba(18,31,41,.78),rgba(6,13,19,.72))}
 .quick-game:hover{background:linear-gradient(135deg,rgba(39,56,67,.9),rgba(6,13,19,.78))}
@@ -586,8 +593,12 @@ body{
 .game-card.chess{background:url("/assets/images/games/moonveil-chess-game.webp") center/cover}
 .game-card.moonveil_dominion{background:url("/assets/images/games/moonveil-dominion-game.webp") center/cover}
 .game-card.moonveil_glyph{background:url("/assets/images/games/moonveil-glyph-game.webp") center/cover}
+.game-card.moonveil-nexus{background:url("/assets/images/games/moonveil-nexus-card.webp") center/cover}
+.game-card.moonveil_hexfall{background:url("/assets/images/games/moonveil-hexfall-game.webp") center/cover}
 .game-card.strategy{background:url("/assets/images/games/comingsoon-game.webp") center/cover}
 .game-card.moonveil-realms{background:url("/assets/images/games/moonveil-realms-game.webp") center/cover}
+.game-card.moonveil-conquest{background:url("/assets/images/games/moonveil-conquest-game.svg") center/cover}
+.game-card.moonveil-ascend{background:url("/assets/images/games/comingsoon-game.webp") center/cover}
 .new-pill{background:linear-gradient(135deg,#22313d,var(--shell-amber))}
 .stat-ring{background:radial-gradient(circle at center,#081018 0 58%,transparent 59%),conic-gradient(var(--shell-amber) 0 var(--win-rate,60%),var(--shell-cyan) var(--win-rate,60%) 75%,rgba(255,255,255,.1) 75% 100%)}
 .stat-row{background:rgba(3,10,14,.52)}
@@ -595,8 +606,12 @@ body{
 .popular-thumb.chess{background:url("/assets/images/games/moonveil-chess-game.webp") center/cover}
 .popular-thumb.moonveil_dominion{background:url("/assets/images/games/moonveil-dominion-game.webp") center/cover}
 .popular-thumb.moonveil_glyph{background:url("/assets/images/games/moonveil-glyph-game.webp") center/cover}
+.popular-thumb.moonveil-nexus{background:url("/assets/images/games/moonveil-nexus-card.webp") center/cover}
+.popular-thumb.moonveil_hexfall{background:url("/assets/images/games/moonveil-hexfall-game.webp") center/cover}
 .popular-thumb.strategy{background:url("/assets/images/games/comingsoon-game.webp") center/cover}
 .popular-thumb.moonveil-realms{background:url("/assets/images/games/moonveil-realms-game.webp") center/cover}
+.popular-thumb.moonveil-conquest{background:url("/assets/images/games/moonveil-conquest-game.svg") center/cover}
+.popular-thumb.moonveil-ascend{background:url("/assets/images/games/comingsoon-game.webp") center/cover}
 
 .popular-item b,
 .popular-item span{
@@ -653,7 +668,7 @@ body{
       <article class="hero-card shell-surface">
         <div class="hero-content">
           <span class="pill">Popular on Strategy League</span>
-          <h1>CHESS</h1>
+          <h1>MOONVEIL CHESS</h1>
           <p>Classic strategy with ranked ELO, XP progression, rematches and fast lobbies. Build your rating one clean move at a time.</p>
           <div class="hero-actions">
             <button class="primary-action" type="button" onclick="window.location.href='/moonveil-chess/index.html'">Play Now</button>
@@ -671,36 +686,36 @@ body{
           <h2>New Games</h2>
           <button class="text-link" type="button" onclick="window.location.href='/games.html'">See All</button>
         </div>
-        <div class="game-grid">
-          <a class="game-card chess" href="/moonveil-chess/index.html">
+        <div id="newGamesGrid" class="game-grid">
+          <a class="game-card moonveil-nexus game-art-moonveil-nexus" href="/moonveil-nexus/index.html">
             <span class="new-pill">New</span>
-            <h3>CHESS</h3>
-            <p>Classic Strategy</p>
-            <span class="live-dot"><b data-playing="chess">0</b> playing</span>
+            <h3>MOONVEIL NEXUS</h3>
+            <p>Four lunar orbs. One nexus.</p>
+            <span class="live-dot"><b data-playing="moonveil_nexus">0</b> playing</span>
           </a>
-          <a class="game-card moonveil_dominion" href="/moonveil-dominion/index.html">
+          <a class="game-card moonveil_hexfall game-art-moonveil_hexfall" href="/moonveil-hexfall/index.html">
             <span class="new-pill">New</span>
-            <h3>OTHELLO</h3>
-            <p>Reversi Board Game</p>
-            <span class="live-dot"><b data-playing="moonveil_dominion">0</b> playing</span>
+            <h3>MOONVEIL HEXFALL</h3>
+            <p>Hex. Plan. Dominate.</p>
+            <span class="live-dot"><b data-playing="moonveil_hexfall">0</b> playing</span>
           </a>
-          <a class="game-card moonveil_glyph" href="/moonveil-glyph/index.html">
+          <a class="game-card moonveil-realms game-art-moonveil-realms" href="/moonveil-realms/index.html">
             <span class="new-pill">New</span>
-            <h3>AZUL ARENA</h3>
-            <p>Tile Drafting</p>
-            <span class="live-dot"><b data-playing="moonveil_glyph">0</b> playing</span>
+            <h3>MOONVEIL REALMS</h3>
+            <p>Build. Trade. Expand.</p>
+            <span class="live-dot"><b data-playing="moonveil_realms">0</b> playing</span>
           </a>
-          <a class="game-card strategy" href="/moonveil-conquest/index.html">
+          <a class="game-card moonveil-conquest game-art-moonveil-conquest" href="/moonveil-conquest/index.html">
             <span class="new-pill">Live</span>
-            <h3>WORLD CONQUEST</h3>
-            <p>Rule the world</p>
-            <span class="live-dot">Local conquest</span>
+            <h3>MOONVEIL CONQUEST</h3>
+            <p>Territories. Dice. Domination.</p>
+            <span class="live-dot"><b data-playing="moonveil_conquest">0</b> playing</span>
           </a>
-          <a class="game-card moonveil-realms" href="/moonveil-realms/index.html">
+          <a class="game-card moonveil_glyph game-art-moonveil_glyph" href="/moonveil-glyph/index.html">
             <span class="new-pill">New</span>
-            <h3>MOONFALL SETTLERS</h3>
-            <p>Realmcraft Board</p>
-            <span class="live-dot">Local board</span>
+            <h3>MOONVEIL GLYPH</h3>
+            <p>Tile strategy and beauty</p>
+            <span class="live-dot"><b data-playing="moonveil_glyph">0</b> playing</span>
           </a>
         </div>
       </section>
@@ -714,31 +729,31 @@ body{
         <button id="gameOfWeekBtn" class="primary-action" type="button">Play Weekly Game</button>
       </article>
 
-      <div class="quick-games">
+      <div id="quickGamesList" class="quick-games">
         <a class="quick-game" href="/moonveil-chess/index.html">
           <span class="quick-icon">C</span>
           <span><b>Moonveil Chess</b><small>Most Popular</small></span>
-          <em>›</em>
+          <em>&rsaquo;</em>
         </a>
         <a class="quick-game" href="/moonveil-dominion/index.html">
           <span class="quick-icon">O</span>
           <span><b>Moonveil Dominion</b><small>Classic</small></span>
-          <em>›</em>
+          <em>&rsaquo;</em>
         </a>
         <a class="quick-game" href="/moonveil-glyph/index.html">
           <span class="quick-icon">A</span>
           <span><b>Moonveil Glyph</b><small>Tile Drafting</small></span>
-          <em>›</em>
+          <em>&rsaquo;</em>
         </a>
         <a class="quick-game" href="/moonveil-conquest/index.html">
           <span class="quick-icon">W</span>
           <span><b>Moonveil Conquest</b><small>Territorial</small></span>
-          <em>›</em>
+          <em>&rsaquo;</em>
         </a>
         <a class="quick-game" href="/moonveil-realms/index.html">
           <span class="quick-icon">M</span>
           <span><b>Moonveil Realms</b><small>Realmcraft</small></span>
-          <em>›</em>
+          <em>&rsaquo;</em>
         </a>
       </div>
 
@@ -772,7 +787,7 @@ body{
       <h2>Popular Right Now</h2>
       <button class="text-link" type="button" onclick="window.location.href='/leaderboard.html'">Leaderboard</button>
     </div>
-    <div class="popular-list">
+    <div id="popularGamesList" class="popular-list">
       <div class="popular-item"><span class="popular-thumb chess"></span><span><b>Moonveil Chess</b><span><strong data-playing="chess">0</strong> playing</span></span></div>
       <div class="popular-item"><span class="popular-thumb moonveil_dominion"></span><span><b>Moonveil Dominion</b><span><strong data-playing="moonveil_dominion">0</strong> playing</span></span></div>
       <div class="popular-item"><span class="popular-thumb moonveil_glyph"></span><span><b>Moonveil Glyph</b><span><strong data-playing="moonveil_glyph">0</strong> playing</span></span></div>
@@ -787,6 +802,199 @@ const user = JSON.parse(localStorage.getItem("user"));
 
 if(!user){
   window.location.href = "/login.html";
+}
+
+const DASHBOARD_GAME_META = {
+  chess: {
+    copy: "Classic strategy duel",
+    tag: "Ranked",
+    className: "chess game-art-chess",
+    aliases: ["chess", "echecs"]
+  },
+  moonveil_dominion: {
+    copy: "Master the flip",
+    tag: "Classic",
+    className: "moonveil_dominion game-art-moonveil_dominion",
+    aliases: ["dominion", "othello", "reversi"]
+  },
+  moonveil_glyph: {
+    copy: "Tile strategy and beauty",
+    tag: "Drafting",
+    className: "moonveil_glyph game-art-moonveil_glyph",
+    aliases: ["glyph", "azul", "tiles"]
+  },
+  moonveil_nexus: {
+    copy: "Four lunar orbs. One nexus.",
+    tag: "New",
+    className: "moonveil-nexus game-art-moonveil-nexus",
+    aliases: ["nexus", "power 4", "connect four"]
+  },
+  moonveil_hexfall: {
+    copy: "Hex. Plan. Dominate.",
+    tag: "New",
+    className: "moonveil_hexfall game-art-moonveil_hexfall",
+    aliases: ["hexfall", "hex"]
+  },
+  moonveil_realms: {
+    copy: "Build. Trade. Expand.",
+    tag: "New",
+    className: "moonveil-realms game-art-moonveil-realms",
+    aliases: ["realms", "settlers", "realmcraft"]
+  },
+  moonveil_conquest: {
+    copy: "Territories. Dice. Domination.",
+    tag: "Live",
+    className: "moonveil-conquest game-art-moonveil-conquest",
+    aliases: ["conquest", "world conquest", "strategy"]
+  },
+  moonveil_ascend: {
+    copy: "Fast. Tactical. Victory.",
+    tag: "Soon",
+    className: "moonveil-ascend game-art-comingsoon",
+    aliases: ["ascend"]
+  }
+};
+
+const DASHBOARD_FALLBACK_GAMES = [
+  { key: "chess", name: "Moonveil Chess", url: "/moonveil-chess/index.html" },
+  { key: "moonveil_dominion", name: "Moonveil Dominion", url: "/moonveil-dominion/index.html" },
+  { key: "moonveil_glyph", name: "Moonveil Glyph", url: "/moonveil-glyph/index.html" },
+  { key: "moonveil_nexus", name: "Moonveil Nexus", url: "/moonveil-nexus/index.html" },
+  { key: "moonveil_hexfall", name: "Moonveil Hexfall", url: "/moonveil-hexfall/index.html" },
+  { key: "moonveil_realms", name: "Moonveil Realms", url: "/moonveil-realms/index.html" },
+  { key: "moonveil_conquest", name: "Moonveil Conquest", url: "/moonveil-conquest/index.html" },
+  { key: "moonveil_ascend", name: "Moonveil Ascend", url: "/coming-soon.html?feature=moonveil-ascend", access: { enabled: false, comingSoon: true } }
+];
+
+let dashboardGames = DASHBOARD_FALLBACK_GAMES.map(normalizeGame);
+let dashboardAccess = {};
+let currentPlayingCounts = {};
+
+function escapeHtml(text){
+  return String(text || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function normalizeGame(game){
+  const key = String(game?.key || "").trim();
+  const meta = DASHBOARD_GAME_META[key] || {};
+  const title = game?.name || game?.title || game?.shortName || key.replaceAll("_", " ");
+  return {
+    ...game,
+    key,
+    name: title,
+    title,
+    copy: game?.copy || meta.copy || "New strategy arena",
+    tag: game?.tag || meta.tag || "New",
+    className: game?.className || meta.className || `${key.replaceAll("_", "-")} game-art-comingsoon`,
+    url: game?.url || game?.href || `/coming-soon.html?feature=${encodeURIComponent(key)}`,
+    aliases: meta.aliases || []
+  };
+}
+
+function accessForGame(game){
+  return dashboardAccess[game.key] || game.access || {};
+}
+
+function isAvailableGame(game){
+  const access = accessForGame(game);
+  return access.enabled !== false && !access.comingSoon && !access.adminOnly && access.allowed !== false;
+}
+
+function gameHref(game){
+  return isAvailableGame(game)
+    ? game.url
+    : `/coming-soon.html?feature=${encodeURIComponent(game.key)}`;
+}
+
+function gameStatus(game){
+  const access = accessForGame(game);
+  if(access.comingSoon || access.enabled === false || access.adminOnly) return "Soon";
+  if(access.noXp) return "No XP";
+  return game.tag || "New";
+}
+
+function gameInitial(game){
+  const cleanTitle = (game.title || game.name || "Game").replace(/^Moonveil\s+/i, "");
+  return cleanTitle.slice(0, 1).toUpperCase() || "G";
+}
+
+function playableGames(){
+  const visible = dashboardGames.filter(isAvailableGame);
+  return visible.length ? visible : dashboardGames;
+}
+
+function latestGames(limit = 5){
+  return playableGames().slice().reverse().slice(0, limit);
+}
+
+function renderNewGames(){
+  const target = document.getElementById("newGamesGrid");
+  if(!target) return;
+  target.innerHTML = latestGames(5).map(game => `
+    <a class="game-card ${escapeHtml(game.className)}" href="${escapeHtml(gameHref(game))}">
+      <span class="new-pill">${escapeHtml(gameStatus(game))}</span>
+      <h3>${escapeHtml(String(game.title || "").toUpperCase())}</h3>
+      <p>${escapeHtml(game.copy)}</p>
+      <span class="live-dot"><b data-playing="${escapeHtml(game.key)}">${currentPlayingCounts[game.key] ?? 0}</b> playing</span>
+    </a>
+  `).join("");
+}
+
+function renderQuickGames(){
+  const target = document.getElementById("quickGamesList");
+  if(!target) return;
+  target.innerHTML = latestGames(5).map(game => `
+    <a class="quick-game" href="${escapeHtml(gameHref(game))}">
+      <span class="quick-icon">${escapeHtml(gameInitial(game))}</span>
+      <span><b>${escapeHtml(game.title)}</b><small>${escapeHtml(gameStatus(game))}</small></span>
+      <em>&rsaquo;</em>
+    </a>
+  `).join("");
+}
+
+function renderPopularGames(){
+  const target = document.getElementById("popularGamesList");
+  if(!target) return;
+  const ranked = playableGames()
+    .map((game, index) => ({ game, index, players: currentPlayingCounts[game.key] ?? 0 }))
+    .sort((a, b) => b.players - a.players || a.index - b.index)
+    .slice(0, 5);
+
+  target.innerHTML = ranked.map(({ game, players }) => `
+    <div class="popular-item">
+      <span class="popular-thumb ${escapeHtml(game.className)}"></span>
+      <span><b>${escapeHtml(game.title)}</b><span><strong data-playing="${escapeHtml(game.key)}">${players}</strong> playing</span></span>
+    </div>
+  `).join("");
+}
+
+function renderDashboardCatalog(){
+  renderNewGames();
+  renderQuickGames();
+  renderPopularGames();
+}
+
+async function loadDashboardGames(){
+  try{
+    const response = await fetch("/api/games/catalog", { cache: "no-store" });
+    if(!response.ok) throw new Error("Games catalog unavailable");
+    const data = await response.json();
+    const apiGames = Array.isArray(data.games) ? data.games.map(normalizeGame).filter(game => game.key) : [];
+    if(apiGames.length) dashboardGames = apiGames;
+    dashboardAccess = data.access || apiGames.reduce((acc, game) => {
+      if(game.access) acc[game.key] = game.access;
+      return acc;
+    }, {});
+  }catch(err){
+    console.error(err);
+  }
+
+  renderDashboardCatalog();
 }
 
 function renderAvatar(avatar){
@@ -861,14 +1069,17 @@ async function loadPlayingCounts(){
     const response = await fetch("/api/games/playing");
     if(!response.ok) throw new Error("Playing counts unavailable");
     const counts = await response.json();
+    currentPlayingCounts = counts || {};
 
-    ["chess", "moonveil_dominion", "moonveil_glyph", "strategy"].forEach(key => {
+    const keys = new Set([...Object.keys(currentPlayingCounts), ...dashboardGames.map(game => game.key)]);
+    keys.forEach(key => {
       document.querySelectorAll(`[data-playing="${key}"]`).forEach(el => {
-        el.textContent = counts[key] ?? 0;
+        el.textContent = currentPlayingCounts[key] ?? 0;
       });
     });
+    renderPopularGames();
 
-    document.getElementById("heroOnlineText").textContent = `${counts.total || 0} players playing`;
+    document.getElementById("heroOnlineText").textContent = `${currentPlayingCounts.total || 0} players playing`;
   }catch(err){
     console.error(err);
   }
@@ -883,11 +1094,12 @@ async function loadGameOfWeek(){
     const title = document.getElementById("gameOfWeekTitle");
     const button = document.getElementById("gameOfWeekBtn");
     if(!card || !title || !button) return;
+    const gameInfo = normalizeGame(game);
 
-    card.className = `week-card shell-surface ${game.key || "chess"}`;
-    title.textContent = game.name || "Moonveil Chess";
+    card.className = `week-card shell-surface ${gameInfo.className}`;
+    title.textContent = gameInfo.title || "Moonveil Chess";
     button.onclick = () => {
-      window.location.href = game.url || "/games.html";
+      window.location.href = gameInfo.url || "/games.html";
     };
   }catch(err){
     console.error(err);
@@ -898,17 +1110,18 @@ document.getElementById("homeSearch").addEventListener("keydown", event => {
   if(event.key !== "Enter") return;
   const value = event.currentTarget.value.trim().toLowerCase();
   if(!value) return;
-  if(value.includes("chess")) window.location.href = "/moonveil-chess/index.html";
-  else if(value.includes("moonveil_dominion")) window.location.href = "/moonveil-dominion/index.html";
-  else if(value.includes("moonveil_glyph")) window.location.href = "/moonveil-glyph/index.html";
-  else if(value.includes("realms") || value.includes("realms") || value.includes("realms")) window.location.href = "/moonveil-realms/index.html";
-  else if(value.includes("ascend") || value.includes("moonveil ascend")) window.location.href = "/coming-soon.html?feature=moonveil-ascend";
-  else if(value.includes("strategy") || value.includes("world") || value.includes("conquest") || value.includes("moonveil")) window.location.href = "/moonveil-conquest/index.html";
-  else window.location.href = `/profile.html?username=${encodeURIComponent(value)}`;
+  const matchedGame = dashboardGames.find(game => {
+    const terms = [game.title, game.key.replaceAll("_", " "), ...(game.aliases || [])].join(" ").toLowerCase();
+    return terms.includes(value);
+  });
+  window.location.href = matchedGame
+    ? gameHref(matchedGame)
+    : `/profile.html?username=${encodeURIComponent(value)}`;
 });
 
+renderDashboardCatalog();
 loadProfile();
-loadPlayingCounts();
+loadDashboardGames().then(loadPlayingCounts);
 loadGameOfWeek();
 setInterval(loadPlayingCounts, 10000);
 </script>

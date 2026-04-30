@@ -510,21 +510,36 @@ function createApiRouter({ User, state, isGameAllowed, io }){
       ...Object.values(state.moonveil_glyphGames || {}).filter(game => !game?.ended)
     ]);
 
-    const strategy = countUniquePlayers([
+    const moonveil_realms = countUniquePlayers([
       ...Object.values(state.moonveilRealmsLobbies || {}),
-      ...Object.values(state.moonveilRealmsGames || {}).filter(game => !game?.ended),
+      ...Object.values(state.moonveilRealmsGames || {}).filter(game => !game?.ended)
+    ]);
+
+    const moonveil_nexus = countUniquePlayers([
       ...Object.values(state.moonveilNexusLobbies || {}),
-      ...Object.values(state.moonveilNexusGames || {}).filter(game => !game?.ended),
+      ...Object.values(state.moonveilNexusGames || {}).filter(game => !game?.ended)
+    ]);
+
+    const moonveil_hexfall = countUniquePlayers([
       ...Object.values(state.moonveil_hexfallLobbies || {}),
       ...Object.values(state.moonveil_hexfallGames || {}).filter(game => !game?.ended)
     ]);
+
+    const moonveil_conquest = 0;
+    const moonveil_ascend = 0;
+    const strategy = moonveil_realms + moonveil_nexus + moonveil_hexfall + moonveil_conquest;
 
     res.json({
       chess,
       moonveil_dominion,
       moonveil_glyph,
+      moonveil_realms,
+      moonveil_nexus,
+      moonveil_hexfall,
+      moonveil_conquest,
+      moonveil_ascend,
       strategy,
-      total: chess + moonveil_dominion + moonveil_glyph + strategy
+      total: chess + moonveil_dominion + moonveil_glyph + moonveil_realms + moonveil_nexus + moonveil_hexfall + moonveil_conquest + moonveil_ascend
     });
   });
 
