@@ -381,16 +381,6 @@
         if(value !== EMPTY){
           const orb = document.createElement('span');
           orb.className = `orb p${value}`;
-          const info = playerInfo(value);
-          if(info.avatar){
-            orb.classList.add('has-avatar');
-            const avatar = document.createElement('img');
-            avatar.src = info.avatar;
-            avatar.alt = '';
-            orb.appendChild(avatar);
-          }else{
-            orb.dataset.initial = (info.username || `P${value}`).slice(0, 1).toUpperCase();
-          }
           if(winningSet.has(`${r}-${c}`)) orb.classList.add('win');
           cell.appendChild(orb);
         }
@@ -411,7 +401,8 @@
       const dy = y2 - y1;
       const dyAsWidth = dy * (ROWS / COLS);
       const line = document.createElement('span');
-      line.className = 'win-line';
+      const winningToken = state.grid[startRow]?.[startCol] || state.winner || P2;
+      line.className = `win-line p${winningToken}`;
       line.style.left = `${x1}%`;
       line.style.top = `${y1}%`;
       line.style.width = `${Math.hypot(dx, dyAsWidth)}%`;

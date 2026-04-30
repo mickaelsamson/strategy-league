@@ -581,10 +581,10 @@ body.is-playing-p4 .moonfall-app {
 .crest.has-avatar::before {
   content: "";
   position: absolute;
-  inset: 13%;
+  inset: 10%;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 50% 50%, transparent 0 56%, rgba(0, 0, 0, 0.36) 74%, rgba(0, 0, 0, 0.9) 100%);
+    radial-gradient(circle at 50% 50%, transparent 0 62%, rgba(0, 0, 0, 0.34) 77%, rgba(0, 0, 0, 0.92) 100%);
   z-index: 2;
   box-shadow:
     inset 0 0 0 2px color-mix(in srgb, var(--crest-fx) 70%, transparent),
@@ -608,19 +608,17 @@ body.is-playing-p4 .moonfall-app {
 }
 
 .crest img {
-  position: relative;
+  position: absolute;
+  left: 50%;
+  top: 50%;
   z-index: 1;
-  width: 76%;
-  height: 76%;
+  width: 84%;
+  height: 84%;
   border-radius: 50%;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
-  padding: 2%;
-  background:
-    radial-gradient(circle, rgba(255, 255, 255, 0.05), transparent 58%),
-    rgba(0, 0, 0, 0.72);
-  box-sizing: border-box;
-  filter: saturate(1.08) contrast(1.08) brightness(1);
+  transform: translate(-50%, -51%) scale(0.96);
+  filter: saturate(1.08) contrast(1.08) brightness(0.98);
 }
 
 .crest span {
@@ -899,26 +897,6 @@ body.moonfall-p4-page.app-shell-active .board-panel .moonfall-board-frame #board
   mix-blend-mode: screen;
 }
 
-.orb img {
-  position: absolute;
-  inset: 16%;
-  z-index: 1;
-  width: 68%;
-  height: 68%;
-  border-radius: 50%;
-  object-fit: contain;
-  object-position: center;
-  padding: 2%;
-  background: rgba(0, 0, 0, 0.5);
-  box-sizing: border-box;
-  opacity: 0.92;
-  filter: saturate(1.08) contrast(1.08) brightness(0.9);
-}
-
-.orb.has-avatar::after {
-  opacity: 0.7;
-}
-
 .orb.p1 {
   --orb-wave: rgba(221, 121, 255, 0.5);
   background:
@@ -946,32 +924,86 @@ body.moonfall-p4-page.app-shell-active .board-panel .moonfall-board-frame #board
 }
 
 .orb.win {
-  animation: pulseWin 0.75s ease-in-out infinite alternate;
+  filter: brightness(1.22) saturate(1.14);
+  animation: pulseWin 0.9s ease-in-out infinite alternate;
 }
 
 .cell:has(.orb.win)::after {
   content: "";
   position: absolute;
-  inset: -18%;
+  inset: -24%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 220, 111, 0.8), transparent 58%);
-  filter: blur(7px);
-  animation: winFlare 0.75s ease-in-out infinite alternate;
+  background:
+    radial-gradient(circle, rgba(255, 250, 199, 0.82) 0 17%, rgba(255, 183, 36, 0.56) 34%, rgba(255, 149, 0, 0.22) 54%, transparent 72%);
+  filter: blur(8px);
+  animation: winFlare 0.9s ease-in-out infinite alternate;
   z-index: 1;
 }
 
+.cell:has(.orb.p1.win)::after {
+  background:
+    radial-gradient(circle, rgba(252, 219, 255, 0.82) 0 17%, rgba(205, 83, 255, 0.56) 34%, rgba(119, 38, 255, 0.24) 56%, transparent 72%);
+}
+
+.cell:has(.orb.p2.win)::after {
+  background:
+    radial-gradient(circle, rgba(255, 250, 199, 0.82) 0 17%, rgba(255, 183, 36, 0.56) 34%, rgba(255, 149, 0, 0.22) 54%, transparent 72%);
+}
+
 .win-line {
+  --win-core: #fff8d4;
+  --win-mid: rgba(255, 224, 106, 0.9);
+  --win-edge: rgba(255, 153, 20, 0.52);
+  --win-fade: rgba(255, 119, 0, 0.48);
+  --win-aura: rgba(255, 218, 82, 0.46);
+  --win-shadow: rgba(255, 170, 20, 0.86);
   position: absolute;
-  z-index: 2;
-  height: clamp(8px, 1vw, 13px);
+  z-index: 5;
+  height: clamp(4px, 0.5vw, 7px);
+  opacity: 0.94;
   border-radius: 999px;
   pointer-events: none;
   transform-origin: left center;
   background:
-    radial-gradient(circle, rgba(255, 252, 208, 0.98) 0 18%, rgba(255, 192, 51, 0.92) 38%, rgba(230, 122, 8, 0.84) 68%, transparent 72%);
+    linear-gradient(90deg, transparent 0 1%, var(--win-edge) 9%, var(--win-mid) 38%, var(--win-core) 50%, var(--win-mid) 62%, var(--win-fade) 91%, transparent 100%);
   box-shadow:
-    0 0 18px rgba(255, 196, 53, 0.95),
-    0 0 36px rgba(255, 133, 0, 0.82);
+    0 0 10px color-mix(in srgb, var(--win-core) 88%, transparent),
+    0 0 28px var(--win-shadow),
+    0 0 62px var(--win-fade);
+}
+
+.win-line.p1 {
+  --win-core: #fce1ff;
+  --win-mid: rgba(219, 104, 255, 0.9);
+  --win-edge: rgba(176, 62, 255, 0.54);
+  --win-fade: rgba(111, 35, 255, 0.48);
+  --win-aura: rgba(205, 83, 255, 0.46);
+  --win-shadow: rgba(196, 65, 255, 0.84);
+}
+
+.win-line::before,
+.win-line::after {
+  content: "";
+  position: absolute;
+  left: -2%;
+  right: -2%;
+  top: 50%;
+  pointer-events: none;
+  border-radius: inherit;
+  transform: translateY(-50%);
+}
+
+.win-line::before {
+  height: 520%;
+  background:
+    linear-gradient(90deg, transparent, var(--win-edge) 18%, var(--win-aura) 50%, var(--win-fade) 82%, transparent);
+  filter: blur(9px);
+}
+
+.win-line::after {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--win-core) 86%, transparent), transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--win-core) 92%, transparent);
 }
 
 .controls {
