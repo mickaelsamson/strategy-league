@@ -444,11 +444,13 @@
 
   function renderCrest(target, info, token){
     if(!target) return;
-    target.classList.toggle('has-avatar', Boolean(info.avatar));
+    const emblem = token === P1
+      ? '/moonfall-p4/assets/ui/moonveil-emblem.png'
+      : '/moonfall-p4/assets/ui/nexus-emblem.png';
+    target.classList.remove('has-avatar');
+    target.classList.add('has-emblem');
     target.dataset.initial = (info.username || `P${token}`).slice(0, 1).toUpperCase();
-    target.innerHTML = info.avatar
-      ? `<img src="${escapeHtml(info.avatar)}" alt="">`
-      : `<span>${escapeHtml(target.dataset.initial)}</span>`;
+    target.innerHTML = `<img src="${emblem}" alt="">`;
   }
 
   function updatePlayerCards(){
