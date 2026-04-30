@@ -14,6 +14,7 @@ namespace MoonveilAscend.Selection
     {
         [SerializeField] private Camera selectionCamera;
         [SerializeField] private LayerMask selectionMask = ~0;
+        [SerializeField] private LayerMask groundMask = ~0;
 
         private readonly List<Entity> selectedEntities = new List<Entity>();
 
@@ -35,6 +36,11 @@ namespace MoonveilAscend.Selection
             if (GetLeftMouseButtonDown())
             {
                 TrySelectUnderCursor();
+            }
+
+            if (GetRightMouseButtonDown())
+            {
+                TryIssueMoveCommand();
             }
         }
 
@@ -104,12 +110,73 @@ namespace MoonveilAscend.Selection
             Debug.Log("Selected: " + string.Join(", ", selectedNames));
         }
 
+        private void TryIssueMoveCommand()
+        {
+            if (selectedEntities.Count == 0)
+            {
+                return;
+            }
+
+            Camera activeCamera = selectionCamera != null ? selectionCamera : Camera.main;
+
+            if (activeCamera == null)
+            {
+                Debug.LogWarning("SelectionManager needs a camera to raycast from.");
+                return;
+            }
+
+            Ray ray = activeCamera.ScreenPointToRay(GetMousePosition());
+            RaycastHit hit;
+
+            if (!Physics.Raycast(ray, out hit, Mathf.Infinity, groundMask))
+            {
+                return;
+            }
+
+            if (hit.collider.GetComponentInParent<Entity>() != null)
+            {
+                return;
+            }
+
+            Vector3 destination = hit.point;
+
+            for (int i = 0; i < selectedEntities.Count; i++)
+            {
+                Entity selectedEntity = selectedEntities[i];
+
+                if (selectedEntity == null || selectedEntity.Team != Team.Player)
+                {
+                    continue;
+                }
+
+                UnitMovement movement = selectedEntity.GetComponent<UnitMovement>();
+
+                if (movement != null)
+                {
+                    movement.MoveTo(destination);
+                }
+            }
+
+            Debug.Log("Move command destination: " + destination);
+        }
+
         private bool GetLeftMouseButtonDown()
         {
 #if ENABLE_INPUT_SYSTEM
             return Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame;
 #elif ENABLE_LEGACY_INPUT_MANAGER
             return Input.GetMouseButtonDown(0);
+#else
+            return false;
+#endif
+        }
+
+        private bool GetRightMouseButtonDown()
+        {
+#if ENABLE_INPUT_SYSTEM
+            return Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame;
+#elif ENABLE_LEGACY_INPUT_MANAGER
+            return Input.GetMouseButtonDown(1);
 #else
             return false;
 #endif
