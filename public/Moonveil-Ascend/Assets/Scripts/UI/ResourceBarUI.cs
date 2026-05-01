@@ -12,7 +12,7 @@ namespace MoonveilAscend.UI
         [SerializeField] private ResourceManager resourceManager = null;
         [SerializeField] private Text essenceText = null;
         [SerializeField] private Text stoneText = null;
-        [SerializeField] private Text natureText = null;
+        [SerializeField] private Text vitalisText = null;
         [SerializeField] private Text populationText = null;
 
         private void OnEnable()
@@ -46,7 +46,7 @@ namespace MoonveilAscend.UI
 
             SetText(essenceText, "Essence: " + resourceManager.Essence);
             SetText(stoneText, "Stone: " + resourceManager.Stone);
-            SetText(natureText, "Nature: " + resourceManager.Nature);
+            SetText(vitalisText, "Vitalis: " + resourceManager.Vitalis);
             SetText(populationText, "Population: " + resourceManager.PopulationUsed + " / " + resourceManager.PopulationMax);
         }
 

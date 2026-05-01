@@ -8,7 +8,7 @@ namespace MoonveilAscend.Resources
     {
         public int Essence;
         public int Stone;
-        public int Nature;
+        public int Vitalis;
         public int Population;
     }
 
@@ -20,7 +20,7 @@ namespace MoonveilAscend.Resources
         [Header("Resources")]
         [SerializeField] private int essence;
         [SerializeField] private int stone;
-        [SerializeField] private int nature;
+        [SerializeField] private int vitalis;
 
         [Header("Population")]
         [SerializeField] private int populationUsed;
@@ -40,9 +40,9 @@ namespace MoonveilAscend.Resources
             get { return stone; }
         }
 
-        public int Nature
+        public int Vitalis
         {
-            get { return nature; }
+            get { return vitalis; }
         }
 
         public int PopulationUsed
@@ -75,8 +75,8 @@ namespace MoonveilAscend.Resources
                 case ResourceType.Stone:
                     stone += amount;
                     break;
-                case ResourceType.Nature:
-                    nature += amount;
+                case ResourceType.Vitalis:
+                    vitalis += amount;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(resourceType), resourceType, null);
@@ -105,8 +105,8 @@ namespace MoonveilAscend.Resources
                 case ResourceType.Stone:
                     stone -= amount;
                     break;
-                case ResourceType.Nature:
-                    nature -= amount;
+                case ResourceType.Vitalis:
+                    vitalis -= amount;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(resourceType), resourceType, null);
@@ -129,8 +129,8 @@ namespace MoonveilAscend.Resources
                     return essence >= amount;
                 case ResourceType.Stone:
                     return stone >= amount;
-                case ResourceType.Nature:
-                    return nature >= amount;
+                case ResourceType.Vitalis:
+                    return vitalis >= amount;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(resourceType), resourceType, null);
             }
@@ -145,7 +145,7 @@ namespace MoonveilAscend.Resources
 
             essence -= Mathf.Max(0, cost.Essence);
             stone -= Mathf.Max(0, cost.Stone);
-            nature -= Mathf.Max(0, cost.Nature);
+            vitalis -= Mathf.Max(0, cost.Vitalis);
             populationUsed += Mathf.Max(0, cost.Population);
 
             ResourcesChanged?.Invoke();
@@ -157,7 +157,7 @@ namespace MoonveilAscend.Resources
         {
             return essence >= Mathf.Max(0, cost.Essence)
                 && stone >= Mathf.Max(0, cost.Stone)
-                && nature >= Mathf.Max(0, cost.Nature)
+                && vitalis >= Mathf.Max(0, cost.Vitalis)
                 && PopulationAvailable >= Mathf.Max(0, cost.Population);
         }
 
@@ -195,8 +195,8 @@ namespace MoonveilAscend.Resources
                     return essence;
                 case ResourceType.Stone:
                     return stone;
-                case ResourceType.Nature:
-                    return nature;
+                case ResourceType.Vitalis:
+                    return vitalis;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(resourceType), resourceType, null);
             }
@@ -206,7 +206,7 @@ namespace MoonveilAscend.Resources
         {
             essence = Mathf.Max(0, essence);
             stone = Mathf.Max(0, stone);
-            nature = Mathf.Max(0, nature);
+            vitalis = Mathf.Max(0, vitalis);
             populationMax = Mathf.Max(0, populationMax);
             populationUsed = Mathf.Clamp(populationUsed, 0, populationMax);
         }

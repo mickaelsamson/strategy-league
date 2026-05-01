@@ -6,7 +6,7 @@ namespace MoonveilAscend.Resources
     {
         Essence,
         Stone,
-        Nature
+        Vitalis
     }
 
     /// <summary>

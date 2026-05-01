@@ -178,7 +178,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   essence: 0
   stone: 0
-  nature: 0
+  vitalis: 0
   populationUsed: 0
   populationMax: 30
 --- !u!1 &100100
@@ -1516,7 +1516,7 @@ GameObject:
   - component: {fileID: 100904}
   - component: {fileID: 100905}
   m_Layer: 0
-  m_Name: Nature Grove Node
+  m_Name: Vitalis Grove Node
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1948,7 +1948,7 @@ MonoBehaviour:
   resourceManager: {fileID: 100003}
   essenceText: {fileID: 200203}
   stoneText: {fileID: 200303}
-  natureText: {fileID: 200403}
+  vitalisText: {fileID: 200403}
   populationText: {fileID: 200503}
 --- !u!1 &200200
 GameObject:
@@ -2120,7 +2120,7 @@ GameObject:
   - component: {fileID: 200402}
   - component: {fileID: 200403}
   m_Layer: 5
-  m_Name: Nature Text
+  m_Name: Vitalis Text
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2186,7 +2186,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 1
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 'Nature: 0'
+  m_Text: 'Vitalis: 0'
 --- !u!1 &200500
 GameObject:
   m_ObjectHideFlags: 0

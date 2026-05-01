@@ -241,7 +241,7 @@ namespace MoonveilAscend.Workers
             Debug.Log(
                 "Resource totals - Essence: " + resourceManager.Essence
                 + ", Stone: " + resourceManager.Stone
-                + ", Nature: " + resourceManager.Nature);
+                + ", Vitalis: " + resourceManager.Vitalis);
 
             carriedAmount = 0;
             ReturnToResourceOrStop();
