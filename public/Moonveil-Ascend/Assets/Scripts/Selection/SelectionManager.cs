@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using MoonveilAscend.Entities;
 using MoonveilAscend.Resources;
 using MoonveilAscend.Workers;
 using UnityEngine;
+using UnityEngine.EventSystems;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
@@ -31,6 +33,9 @@ namespace MoonveilAscend.Selection
 
         private Vector3 dragStartPosition;
         private bool isDragging;
+        private bool isSelectionInputActive;
+
+        public event Action<IReadOnlyList<Entity>> SelectionChanged;
 
         public IReadOnlyList<Entity> SelectedEntities
         {
@@ -87,12 +92,24 @@ namespace MoonveilAscend.Selection
 
         private void BeginSelectionInput()
         {
+            if (IsPointerOverUI())
+            {
+                isSelectionInputActive = false;
+                return;
+            }
+
             dragStartPosition = GetMousePosition();
             isDragging = false;
+            isSelectionInputActive = true;
         }
 
         private void UpdateSelectionInput()
         {
+            if (!isSelectionInputActive || IsPointerOverUI())
+            {
+                return;
+            }
+
             if (isDragging)
             {
                 return;
@@ -108,6 +125,19 @@ namespace MoonveilAscend.Selection
 
         private void CompleteSelectionInput()
         {
+            if (!isSelectionInputActive)
+            {
+                return;
+            }
+
+            isSelectionInputActive = false;
+
+            if (IsPointerOverUI())
+            {
+                isDragging = false;
+                return;
+            }
+
             if (isDragging)
             {
                 SelectEntitiesInDragBox();
@@ -165,6 +195,7 @@ namespace MoonveilAscend.Selection
         {
             ClearSelection();
             AddToSelection(entity);
+            NotifySelectionChanged();
             LogSelectedEntities();
         }
 
@@ -212,6 +243,7 @@ namespace MoonveilAscend.Selection
                 AddToSelection(dragSelectedEntities[i]);
             }
 
+            NotifySelectionChanged();
             LogSelectedEntities();
         }
 
@@ -240,6 +272,7 @@ namespace MoonveilAscend.Selection
 
             selectedEntities.Clear();
             Debug.Log("Selection cleared.");
+            NotifySelectionChanged();
         }
 
         private void LogSelectedEntities()
@@ -262,6 +295,11 @@ namespace MoonveilAscend.Selection
 
         private void TryIssueMoveCommand()
         {
+            if (IsPointerOverUI())
+            {
+                return;
+            }
+
             CleanupSelectionList();
 
             if (selectedEntities.Count == 0)
@@ -381,6 +419,8 @@ namespace MoonveilAscend.Selection
 
         private void CleanupSelectionList()
         {
+            bool selectionChanged = false;
+
             for (int i = selectedEntities.Count - 1; i >= 0; i--)
             {
                 Entity selectedEntity = selectedEntities[i];
@@ -389,8 +429,19 @@ namespace MoonveilAscend.Selection
                 {
                     SetSelectionIndicatorVisible(selectedEntity, false);
                     selectedEntities.RemoveAt(i);
+                    selectionChanged = true;
                 }
             }
+
+            if (selectionChanged)
+            {
+                NotifySelectionChanged();
+            }
+        }
+
+        private void NotifySelectionChanged()
+        {
+            SelectionChanged?.Invoke(selectedEntities);
         }
 
         private Vector3 GetCommandOffset(int index, int count)
@@ -518,6 +569,11 @@ namespace MoonveilAscend.Selection
             DrawScreenRect(new Rect(rect.xMin, rect.yMax - thickness, rect.width, thickness), color);
             DrawScreenRect(new Rect(rect.xMin, rect.yMin, thickness, rect.height), color);
             DrawScreenRect(new Rect(rect.xMax - thickness, rect.yMin, thickness, rect.height), color);
+        }
+
+        private bool IsPointerOverUI()
+        {
+            return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
         }
 
         private bool GetLeftMouseButtonDown()

@@ -169,6 +169,24 @@ namespace MoonveilAscend.Resources
             ResourcesChanged?.Invoke();
         }
 
+        public bool AddPopulationUsed(int amount)
+        {
+            if (amount <= 0)
+            {
+                return true;
+            }
+
+            if (PopulationAvailable < amount)
+            {
+                return false;
+            }
+
+            populationUsed += amount;
+            PopulationChanged?.Invoke(populationUsed, populationMax);
+            ResourcesChanged?.Invoke();
+            return true;
+        }
+
         public void FreePopulation(int amount)
         {
             if (amount <= 0)
