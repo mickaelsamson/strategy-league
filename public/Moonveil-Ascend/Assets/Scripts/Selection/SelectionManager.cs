@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using MoonveilAscend.Entities;
 using MoonveilAscend.Resources;
+using MoonveilAscend.Workers;
 using UnityEngine;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -147,6 +148,14 @@ namespace MoonveilAscend.Selection
                 return;
             }
 
+            ResourceNode resourceNode = hit.collider.GetComponentInParent<ResourceNode>();
+
+            if (resourceNode != null)
+            {
+                IssueGatherCommand(resourceNode);
+                return;
+            }
+
             if (hit.collider.GetComponentInParent<Entity>() != null
                 || hit.collider.GetComponentInParent<ResourceNode>() != null)
             {
@@ -168,11 +177,46 @@ namespace MoonveilAscend.Selection
 
                 if (movement != null)
                 {
+                    WorkerGatherer gatherer = selectedEntity.GetComponent<WorkerGatherer>();
+
+                    if (gatherer != null)
+                    {
+                        gatherer.StopGathering();
+                    }
+
                     movement.MoveTo(destination);
                 }
             }
 
             Debug.Log("Move command destination: " + destination);
+        }
+
+        private void IssueGatherCommand(ResourceNode resourceNode)
+        {
+            bool commandIssued = false;
+
+            for (int i = 0; i < selectedEntities.Count; i++)
+            {
+                Entity selectedEntity = selectedEntities[i];
+
+                if (selectedEntity == null || selectedEntity.Team != Team.Player)
+                {
+                    continue;
+                }
+
+                WorkerGatherer gatherer = selectedEntity.GetComponent<WorkerGatherer>();
+
+                if (gatherer != null)
+                {
+                    gatherer.StartGathering(resourceNode);
+                    commandIssued = true;
+                }
+            }
+
+            if (!commandIssued)
+            {
+                Debug.Log("No selected workers can gather from " + resourceNode.name + ".");
+            }
         }
 
         private bool GetLeftMouseButtonDown()
