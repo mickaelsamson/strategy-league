@@ -32,6 +32,7 @@ namespace MoonveilAscend.Workers
         private ResourceType carriedResourceType;
         private int carriedAmount;
         private float gatherTimer;
+        private Vector3 gatheringOffset;
 
         public int CarryCapacity
         {
@@ -92,6 +93,11 @@ namespace MoonveilAscend.Workers
 
         public void StartGathering(ResourceNode resourceNode)
         {
+            StartGathering(resourceNode, Vector3.zero);
+        }
+
+        public void StartGathering(ResourceNode resourceNode, Vector3 interactionOffset)
+        {
             if (resourceNode == null)
             {
                 return;
@@ -116,9 +122,10 @@ namespace MoonveilAscend.Workers
             currentResourceTarget = resourceNode;
             carriedAmount = 0;
             carriedResourceType = resourceNode.ResourceType;
+            gatheringOffset = new Vector3(interactionOffset.x, 0f, interactionOffset.z);
             gatherTimer = 0f;
             state = WorkerGatherState.MovingToResource;
-            movement.MoveTo(resourceNode.transform.position);
+            movement.MoveTo(GetResourceInteractionPosition());
 
             Debug.Log(name + " started gathering " + resourceNode.ResourceType + " from " + resourceNode.name + ".");
         }
@@ -129,6 +136,7 @@ namespace MoonveilAscend.Workers
             gatherTimer = 0f;
             currentResourceTarget = null;
             carriedAmount = 0;
+            gatheringOffset = Vector3.zero;
         }
 
         private void UpdateMovingToResource()
@@ -146,7 +154,7 @@ namespace MoonveilAscend.Workers
                 return;
             }
 
-            if (!IsCloseTo(currentResourceTarget.transform.position))
+            if (!IsCloseTo(GetResourceInteractionPosition()))
             {
                 return;
             }
@@ -190,7 +198,7 @@ namespace MoonveilAscend.Workers
 
             Debug.Log(name + " gathered " + carriedAmount + " " + carriedResourceType + ".");
             state = WorkerGatherState.ReturningToBase;
-            movement.MoveTo(depositTarget.position);
+            movement.MoveTo(GetDepositInteractionPosition());
         }
 
         private void UpdateReturningToBase()
@@ -202,7 +210,7 @@ namespace MoonveilAscend.Workers
                 return;
             }
 
-            if (!IsCloseTo(depositTarget.position))
+            if (!IsCloseTo(GetDepositInteractionPosition()))
             {
                 return;
             }
@@ -253,7 +261,27 @@ namespace MoonveilAscend.Workers
             }
 
             state = WorkerGatherState.MovingToResource;
-            movement.MoveTo(currentResourceTarget.transform.position);
+            movement.MoveTo(GetResourceInteractionPosition());
+        }
+
+        private Vector3 GetResourceInteractionPosition()
+        {
+            if (currentResourceTarget == null)
+            {
+                return transform.position;
+            }
+
+            return currentResourceTarget.transform.position + gatheringOffset;
+        }
+
+        private Vector3 GetDepositInteractionPosition()
+        {
+            if (depositTarget == null)
+            {
+                return transform.position;
+            }
+
+            return depositTarget.position + gatheringOffset;
         }
 
         private bool IsCloseTo(Vector3 worldPosition)
