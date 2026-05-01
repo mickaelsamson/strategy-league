@@ -24,7 +24,7 @@ namespace MoonveilAscend.Resources
 
         [Header("Population")]
         [SerializeField] private int populationUsed;
-        [SerializeField] private int populationMax = 10;
+        [SerializeField] private int populationMax = 30;
 
         public event Action ResourcesChanged;
         public event Action<ResourceType, int> ResourceChanged;
