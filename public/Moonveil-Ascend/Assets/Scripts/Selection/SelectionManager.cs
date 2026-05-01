@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using MoonveilAscend.Entities;
+using MoonveilAscend.Resources;
 using UnityEngine;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -71,6 +72,19 @@ namespace MoonveilAscend.Selection
                 return;
             }
 
+            ResourceNode resourceNode = hit.collider.GetComponentInParent<ResourceNode>();
+
+            if (resourceNode != null)
+            {
+                Debug.Log(
+                    resourceNode.name + ": "
+                    + resourceNode.ResourceType + " "
+                    + resourceNode.CurrentAmount + "/"
+                    + resourceNode.MaxAmount);
+                ClearSelection();
+                return;
+            }
+
             ClearSelection();
         }
 
@@ -133,7 +147,8 @@ namespace MoonveilAscend.Selection
                 return;
             }
 
-            if (hit.collider.GetComponentInParent<Entity>() != null)
+            if (hit.collider.GetComponentInParent<Entity>() != null
+                || hit.collider.GetComponentInParent<ResourceNode>() != null)
             {
                 return;
             }

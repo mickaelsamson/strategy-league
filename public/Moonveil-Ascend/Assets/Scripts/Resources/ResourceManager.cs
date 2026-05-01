@@ -3,13 +3,6 @@ using UnityEngine;
 
 namespace MoonveilAscend.Resources
 {
-    public enum ResourceType
-    {
-        Essence,
-        Stone,
-        Nature
-    }
-
     [Serializable]
     public struct ResourceCost
     {
