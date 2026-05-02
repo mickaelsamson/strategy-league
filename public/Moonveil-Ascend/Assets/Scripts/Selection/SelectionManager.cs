@@ -508,12 +508,14 @@ namespace MoonveilAscend.Selection
 
         private GameObject CreateSelectionIndicator(Entity entity)
         {
+            Vector3 indicatorPosition = GetSelectionIndicatorPosition(entity);
+            Vector3 indicatorScale = GetSelectionIndicatorWorldScale(entity);
             GameObject indicator = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             indicator.name = "Selection Indicator";
-            indicator.transform.SetParent(entity.transform, false);
-            indicator.transform.localPosition = new Vector3(0f, -0.51f, 0f);
-            indicator.transform.localRotation = Quaternion.identity;
-            indicator.transform.localScale = new Vector3(selectionIndicatorScale, 0.02f, selectionIndicatorScale);
+            indicator.transform.SetParent(entity.transform, true);
+            indicator.transform.position = indicatorPosition;
+            indicator.transform.rotation = Quaternion.identity;
+            SetWorldScale(indicator.transform, indicatorScale);
 
             Collider indicatorCollider = indicator.GetComponent<Collider>();
 
@@ -530,6 +532,76 @@ namespace MoonveilAscend.Selection
             }
 
             return indicator;
+        }
+
+        private Vector3 GetSelectionIndicatorPosition(Entity entity)
+        {
+            Bounds bounds;
+
+            if (TryGetEntityBounds(entity, out bounds))
+            {
+                return new Vector3(bounds.center.x, bounds.min.y + 0.02f, bounds.center.z);
+            }
+
+            return entity.transform.position;
+        }
+
+        private Vector3 GetSelectionIndicatorWorldScale(Entity entity)
+        {
+            Bounds bounds;
+            float diameter = selectionIndicatorScale;
+
+            if (TryGetEntityBounds(entity, out bounds))
+            {
+                diameter = Mathf.Max(selectionIndicatorScale, Mathf.Max(bounds.size.x, bounds.size.z) * 0.75f);
+            }
+
+            return new Vector3(diameter, 0.02f, diameter);
+        }
+
+        private bool TryGetEntityBounds(Entity entity, out Bounds bounds)
+        {
+            Collider collider = entity.GetComponentInChildren<Collider>();
+
+            if (collider != null)
+            {
+                bounds = collider.bounds;
+                return true;
+            }
+
+            Renderer renderer = entity.GetComponentInChildren<Renderer>();
+
+            if (renderer != null)
+            {
+                bounds = renderer.bounds;
+                return true;
+            }
+
+            bounds = default(Bounds);
+            return false;
+        }
+
+        private static void SetWorldScale(Transform target, Vector3 worldScale)
+        {
+            Transform parent = target.parent;
+
+            if (parent == null)
+            {
+                target.localScale = worldScale;
+                return;
+            }
+
+            Vector3 parentScale = parent.lossyScale;
+            target.localScale = new Vector3(
+                GetLocalScaleAxis(worldScale.x, parentScale.x),
+                GetLocalScaleAxis(worldScale.y, parentScale.y),
+                GetLocalScaleAxis(worldScale.z, parentScale.z));
+        }
+
+        private static float GetLocalScaleAxis(float worldSize, float parentScale)
+        {
+            float safeParentScale = Mathf.Abs(parentScale);
+            return safeParentScale > 0.001f ? worldSize / safeParentScale : worldSize;
         }
 
         private Material CreateSelectionIndicatorMaterial()

@@ -1,3 +1,4 @@
+using MoonveilAscend.Buildings;
 using MoonveilAscend.Entities;
 using MoonveilAscend.Resources;
 using UnityEngine;
@@ -19,10 +20,9 @@ namespace MoonveilAscend.Workers
     [RequireComponent(typeof(UnitMovement))]
     public class WorkerGatherer : MonoBehaviour
     {
-        private const float InteractionDistance = 0.5f;
-
         [SerializeField] private int carryCapacity = 10;
         [SerializeField] private float gatherDuration = 1.5f;
+        [SerializeField] private float interactionDistance = 1.5f;
         [SerializeField] private ResourceNode currentResourceTarget;
         [SerializeField] private Transform depositTarget;
         [SerializeField] private ResourceManager resourceManager;
@@ -289,7 +289,7 @@ namespace MoonveilAscend.Workers
             Vector3 currentPosition = transform.position;
             Vector3 flatTarget = new Vector3(worldPosition.x, currentPosition.y, worldPosition.z);
             float stopDistance = movement != null ? movement.StopDistance : 0f;
-            return Vector3.Distance(currentPosition, flatTarget) <= stopDistance + InteractionDistance;
+            return Vector3.Distance(currentPosition, flatTarget) <= stopDistance + interactionDistance;
         }
 
         private void ResolveReferences()
@@ -301,7 +301,15 @@ namespace MoonveilAscend.Workers
 
             if (depositTarget == null)
             {
-                GameObject baseObject = GameObject.Find("Player Main Base Placeholder");
+                depositTarget = FindClosestPlayerMainBase();
+            }
+
+            if (depositTarget == null)
+            {
+                GameObject baseObject = GameObject.Find("Player Main Base Placeholder")
+                    ?? GameObject.Find("Player Main Base")
+                    ?? GameObject.Find("mooncore-citadel")
+                    ?? GameObject.Find("Mooncore Citadel");
 
                 if (baseObject != null)
                 {
@@ -310,10 +318,45 @@ namespace MoonveilAscend.Workers
             }
         }
 
+        private Transform FindClosestPlayerMainBase()
+        {
+            PlayerMainBase[] playerBases = FindObjectsByType<PlayerMainBase>(FindObjectsInactive.Exclude);
+            Transform closestBase = null;
+            float closestDistanceSqr = float.PositiveInfinity;
+
+            for (int i = 0; i < playerBases.Length; i++)
+            {
+                PlayerMainBase playerBase = playerBases[i];
+
+                if (playerBase == null)
+                {
+                    continue;
+                }
+
+                Entity baseEntity = playerBase.GetComponent<Entity>();
+
+                if (baseEntity != null && baseEntity.Team != Team.Player)
+                {
+                    continue;
+                }
+
+                float distanceSqr = (playerBase.transform.position - transform.position).sqrMagnitude;
+
+                if (distanceSqr < closestDistanceSqr)
+                {
+                    closestDistanceSqr = distanceSqr;
+                    closestBase = playerBase.transform;
+                }
+            }
+
+            return closestBase;
+        }
+
         private void OnValidate()
         {
             carryCapacity = Mathf.Max(1, carryCapacity);
             gatherDuration = Mathf.Max(0f, gatherDuration);
+            interactionDistance = Mathf.Max(0f, interactionDistance);
         }
     }
 }

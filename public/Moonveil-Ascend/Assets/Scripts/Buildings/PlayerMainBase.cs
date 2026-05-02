@@ -1,5 +1,6 @@
 using MoonveilAscend.Entities;
 using MoonveilAscend.Resources;
+using MoonveilAscend.Workers;
 using UnityEngine;
 
 namespace MoonveilAscend.Buildings
@@ -127,6 +128,7 @@ namespace MoonveilAscend.Buildings
 
             GameObject worker = Instantiate(workerPrefab, GetSpawnPosition(), Quaternion.identity);
             worker.name = "Player Worker";
+            EnsureWorkerGameplayComponents(worker);
 
             Debug.Log(name + " trained worker.");
         }
@@ -154,6 +156,45 @@ namespace MoonveilAscend.Buildings
             trainWorkerCostVitalis = Mathf.Max(0, trainWorkerCostVitalis);
             workerPopulationCost = Mathf.Max(0, workerPopulationCost);
             trainDuration = Mathf.Max(0f, trainDuration);
+        }
+
+        private void EnsureWorkerGameplayComponents(GameObject worker)
+        {
+            Entity entity = worker.GetComponent<Entity>();
+
+            if (entity == null)
+            {
+                entity = worker.AddComponent<Entity>();
+                entity.EntityName = "Worker";
+                entity.Team = Team.Player;
+                entity.MaxHealth = 100;
+            }
+
+            if (worker.GetComponent<UnitMovement>() == null)
+            {
+                worker.AddComponent<UnitMovement>();
+            }
+
+            if (worker.GetComponent<WorkerGatherer>() == null)
+            {
+                worker.AddComponent<WorkerGatherer>();
+            }
+
+            if (worker.GetComponentInChildren<Collider>() == null)
+            {
+                BoxCollider collider = worker.AddComponent<BoxCollider>();
+                Vector3 scale = worker.transform.lossyScale;
+                float width = GetLocalColliderSize(1.2f, scale.x);
+                float height = GetLocalColliderSize(2f, scale.y);
+
+                collider.size = new Vector3(width, height, GetLocalColliderSize(1.2f, scale.z));
+                collider.center = new Vector3(0f, height * 0.5f, 0f);
+            }
+        }
+
+        private static float GetLocalColliderSize(float targetWorldSize, float axisScale)
+        {
+            return axisScale > 0.001f ? targetWorldSize / axisScale : targetWorldSize;
         }
     }
 }
