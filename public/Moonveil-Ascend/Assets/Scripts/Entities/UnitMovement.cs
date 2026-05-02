@@ -1,75 +1,200 @@
 using UnityEngine;
+using UnityEngine.AI;
 
-namespace MoonveilAscend.Entities
+namespace MoonveilAscend.Workers
 {
     /// <summary>
-    /// Minimal transform-based unit movement for early RTS interaction testing.
+    /// NavMesh-based movement controller for RTS units.
+    /// Keeps a simple public API for selection, gathering, and worker systems.
     /// </summary>
+    [RequireComponent(typeof(NavMeshAgent))]
     public class UnitMovement : MonoBehaviour
     {
-        [SerializeField] private float moveSpeed = 5f;
-        [SerializeField] private float stopDistance = 0.1f;
+        [Header("Movement")]
+        [SerializeField] private float moveSpeed = 3.5f;
+        [SerializeField] private float stopDistance = 0.2f;
+        [SerializeField] private float acceleration = 12f;
+        [SerializeField] private float angularSpeed = 720f;
 
-        private Vector3 targetPosition;
-        private bool hasTarget;
+        [Header("Debug")]
+        [SerializeField] private bool logMovement;
+
+        private NavMeshAgent agent;
+        private Vector3 currentDestination;
+        private bool hasDestination;
 
         public float MoveSpeed
         {
             get { return moveSpeed; }
-            set { moveSpeed = Mathf.Max(0f, value); }
+            set
+            {
+                moveSpeed = Mathf.Max(0f, value);
+                ApplyAgentSettings();
+            }
         }
 
         public float StopDistance
         {
             get { return stopDistance; }
-            set { stopDistance = Mathf.Max(0f, value); }
+            set
+            {
+                stopDistance = Mathf.Max(0f, value);
+                ApplyAgentSettings();
+            }
+        }
+
+        public bool HasDestination
+        {
+            get { return hasDestination; }
+        }
+
+        public Vector3 CurrentDestination
+        {
+            get { return currentDestination; }
+        }
+
+        public bool IsMoving
+        {
+            get
+            {
+                if (agent == null || !agent.enabled || !agent.isOnNavMesh)
+                {
+                    return false;
+                }
+
+                if (!hasDestination)
+                {
+                    return false;
+                }
+
+                if (agent.pathPending)
+                {
+                    return true;
+                }
+
+                if (agent.remainingDistance > agent.stoppingDistance + 0.05f)
+                {
+                    return true;
+                }
+
+                return agent.velocity.sqrMagnitude > 0.01f;
+            }
         }
 
         private void Awake()
         {
-            targetPosition = transform.position;
+            agent = GetComponent<NavMeshAgent>();
+            ApplyAgentSettings();
         }
 
-        private void Update()
+        private void OnEnable()
         {
-            if (!hasTarget)
+            if (agent == null)
+            {
+                agent = GetComponent<NavMeshAgent>();
+            }
+
+            ApplyAgentSettings();
+        }
+
+        public void MoveTo(Vector3 destination)
+        {
+            if (agent == null)
+            {
+                agent = GetComponent<NavMeshAgent>();
+            }
+
+            if (agent == null || !agent.enabled)
             {
                 return;
             }
 
-            Vector3 currentPosition = transform.position;
-            Vector3 flatTarget = new Vector3(targetPosition.x, currentPosition.y, targetPosition.z);
-            Vector3 toTarget = flatTarget - currentPosition;
-
-            if (toTarget.magnitude <= stopDistance)
+            if (!agent.isOnNavMesh)
             {
-                transform.position = flatTarget;
-                hasTarget = false;
+                Debug.LogWarning(name + " cannot move because it is not on a NavMesh.");
                 return;
             }
 
-            transform.position = Vector3.MoveTowards(
-                currentPosition,
-                flatTarget,
-                moveSpeed * Time.deltaTime);
-        }
+            Vector3 sampledDestination;
 
-        public void MoveTo(Vector3 worldPosition)
-        {
-            targetPosition = new Vector3(worldPosition.x, transform.position.y, worldPosition.z);
-            hasTarget = true;
+            if (!TrySampleNavMesh(destination, out sampledDestination))
+            {
+                Debug.LogWarning(name + " could not find a valid NavMesh position near destination.");
+                return;
+            }
+
+            currentDestination = sampledDestination;
+            hasDestination = true;
+
+            agent.isStopped = false;
+            agent.SetDestination(sampledDestination);
+
+            if (logMovement)
+            {
+                Debug.Log(name + " moving to " + sampledDestination);
+            }
         }
 
         public void Stop()
         {
-            hasTarget = false;
-            targetPosition = transform.position;
+            hasDestination = false;
+
+            if (agent == null || !agent.enabled || !agent.isOnNavMesh)
+            {
+                return;
+            }
+
+            agent.isStopped = true;
+            agent.ResetPath();
+        }
+
+        public void SetStoppingDistance(float distance)
+        {
+            StopDistance = distance;
+        }
+
+        private bool TrySampleNavMesh(Vector3 position, out Vector3 sampledPosition)
+        {
+            NavMeshHit hit;
+
+            if (NavMesh.SamplePosition(position, out hit, 3f, NavMesh.AllAreas))
+            {
+                sampledPosition = hit.position;
+                return true;
+            }
+
+            sampledPosition = position;
+            return false;
+        }
+
+        private void ApplyAgentSettings()
+        {
+            if (agent == null)
+            {
+                return;
+            }
+
+            agent.speed = moveSpeed;
+            agent.stoppingDistance = stopDistance;
+            agent.acceleration = acceleration;
+            agent.angularSpeed = angularSpeed;
+
+            // We rotate the visual/model separately with FaceMovementDirection.
+            // Keeping this false avoids conflict with the custom visual direction script.
+            agent.updateRotation = false;
         }
 
         private void OnValidate()
         {
             moveSpeed = Mathf.Max(0f, moveSpeed);
             stopDistance = Mathf.Max(0f, stopDistance);
+            acceleration = Mathf.Max(0f, acceleration);
+            angularSpeed = Mathf.Max(0f, angularSpeed);
+
+            if (Application.isPlaying)
+            {
+                ApplyAgentSettings();
+            }
         }
     }
 }
